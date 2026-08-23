@@ -6,6 +6,8 @@ use App\Core\Models\UserNotification;
 use App\Platform\Tenancy\Exceptions\NoCurrentTenantException;
 use App\Platform\Tenancy\TenantContext;
 use Carbon\Carbon;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -31,9 +33,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  */
-class User extends Authenticatable
+class User extends Authenticatable implements CanResetPasswordContract
 {
-    use HasRoles, HasUuids, Notifiable, SoftDeletes;
+    use CanResetPassword, HasRoles, HasUuids, Notifiable, SoftDeletes;
 
     /**
      * The connection name for the model.

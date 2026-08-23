@@ -1,6 +1,7 @@
 <?php
 
 use App\Core\Auth\Controllers\TenantAuthController;
+use App\Core\Auth\Controllers\TenantPasswordResetController;
 use App\Core\Auth\Middleware\RequireActiveTenantUser;
 use App\Core\Auth\Middleware\RequireTenantTwoFactor;
 use App\Core\Controllers\AnalyticsDashboardController;
@@ -78,6 +79,10 @@ Route::group([], function () {
     Route::middleware('guest:web')->group(function () {
         Route::get('/login', [TenantAuthController::class, 'showLogin'])->name('login');
         Route::post('/login', [TenantAuthController::class, 'login']);
+        Route::get('/forgot-password', [TenantPasswordResetController::class, 'create'])->name('password.request');
+        Route::post('/forgot-password', [TenantPasswordResetController::class, 'store'])->middleware('throttle:password-reset')->name('password.email');
+        Route::get('/reset-password/{token}', [TenantPasswordResetController::class, 'edit'])->name('password.reset');
+        Route::post('/reset-password', [TenantPasswordResetController::class, 'update'])->middleware('throttle:password-reset')->name('password.update');
     });
 
     Route::middleware(['auth:web', RequireActiveTenantUser::class])->group(function () {

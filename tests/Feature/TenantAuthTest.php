@@ -1,13 +1,17 @@
 <?php
 
 use App\Core\Auth\Models\User;
+use App\Core\Auth\Notifications\TenantResetPasswordNotification;
+use App\Core\Security\Models\TenantAuditLog;
 use App\Platform\Tenancy\Models\ClinicProfile;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
 use App\Platform\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -208,4 +212,119 @@ test('tenant user with 2FA requires two-factor challenge', function () {
             ->where('clinic.trade_name', 'Alfa Dental Clinic')
             ->where('user.email', 'carlos@alfadental.com')
         );
+});
+
+test('tenant password recovery page preserves clinic identity and does not disclose unknown accounts', function () {
+    Notification::fake();
+
+    $this->get('http://alfa.bsdental.test/forgot-password')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Auth/ForgotPassword')
+            ->where('clinic.trade_name', 'Alfa Dental Clinic')
+        );
+
+    $response = $this->post('http://alfa.bsdental.test/forgot-password', [
+        'email' => 'no-existe@alfadental.com',
+    ]);
+
+    $response->assertRedirect()
+        ->assertSessionHas('status', 'Si el correo corresponde a una cuenta activa, recibirás un enlace para restablecer la contraseña.');
+
+    Notification::assertNothingSent();
+
+    app(TenantContext::class)->makeCurrent($this->tenantA);
+    expect(DB::connection('tenant')->table('password_reset_tokens')->count())->toBe(0);
+});
+
+test('tenant user can reset password with a hashed single-use token', function () {
+    Notification::fake();
+    $resetUrl = null;
+
+    $this->post('http://alfa.bsdental.test/forgot-password', [
+        'email' => 'CARLOS@ALFADENTAL.COM',
+    ])->assertRedirect()
+        ->assertSessionHas('status');
+
+    app(TenantContext::class)->makeCurrent($this->tenantA);
+    $user = User::where('email', 'carlos@alfadental.com')->firstOrFail();
+
+    Notification::assertSentTo(
+        $user,
+        TenantResetPasswordNotification::class,
+        function (TenantResetPasswordNotification $notification) use (&$resetUrl): bool {
+            $resetUrl = $notification->resetUrl;
+
+            return str_starts_with($notification->resetUrl, 'http://alfa.bsdental.test/reset-password/')
+                && str_contains($notification->resetUrl, 'email=carlos%40alfadental.com');
+        }
+    );
+
+    expect($resetUrl)->toBeString();
+    $path = (string) parse_url($resetUrl, PHP_URL_PATH);
+    $token = basename($path);
+    $storedToken = DB::connection('tenant')->table('password_reset_tokens')
+        ->where('email', 'carlos@alfadental.com')
+        ->value('token');
+
+    expect($storedToken)->not->toBe($token)
+        ->and(Hash::check($token, $storedToken))->toBeTrue();
+
+    $this->post('http://alfa.bsdental.test/reset-password', [
+        'token' => $token,
+        'email' => 'carlos@alfadental.com',
+        'password' => 'NuevaClaveSegura#2026',
+        'password_confirmation' => 'NuevaClaveSegura#2026',
+    ])->assertRedirect(route('login'))
+        ->assertSessionHas('status', 'Tu contraseña fue actualizada. Ya puedes iniciar sesión.');
+
+    app(TenantContext::class)->makeCurrent($this->tenantA);
+    $user->refresh();
+    expect(Hash::check('NuevaClaveSegura#2026', $user->password))->toBeTrue()
+        ->and(DB::connection('tenant')->table('password_reset_tokens')->where('email', $user->email)->exists())->toBeFalse()
+        ->and(TenantAuditLog::where('action', 'auth.password_reset_completed')->exists())->toBeTrue();
+
+    $this->post('http://alfa.bsdental.test/reset-password', [
+        'token' => $token,
+        'email' => 'carlos@alfadental.com',
+        'password' => 'OtraClaveSegura#2026',
+        'password_confirmation' => 'OtraClaveSegura#2026',
+    ])->assertSessionHasErrors('email');
+});
+
+test('tenant reset tokens expire and cannot cross tenant boundaries', function () {
+    Notification::fake();
+    $resetUrl = null;
+
+    $this->post('http://alfa.bsdental.test/forgot-password', [
+        'email' => 'carlos@alfadental.com',
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenantA);
+    $user = User::where('email', 'carlos@alfadental.com')->firstOrFail();
+    Notification::assertSentTo($user, TenantResetPasswordNotification::class, function ($notification) use (&$resetUrl): bool {
+        $resetUrl = $notification->resetUrl;
+
+        return true;
+    });
+    $token = basename((string) parse_url($resetUrl, PHP_URL_PATH));
+
+    $this->post('http://beta.bsdental.test/reset-password', [
+        'token' => $token,
+        'email' => 'carlos@alfadental.com',
+        'password' => 'FronteraSegura#2026',
+        'password_confirmation' => 'FronteraSegura#2026',
+    ])->assertSessionHasErrors('email');
+
+    app(TenantContext::class)->makeCurrent($this->tenantA);
+    DB::connection('tenant')->table('password_reset_tokens')
+        ->where('email', 'carlos@alfadental.com')
+        ->update(['created_at' => now()->subMinutes(61)]);
+
+    $this->post('http://alfa.bsdental.test/reset-password', [
+        'token' => $token,
+        'email' => 'carlos@alfadental.com',
+        'password' => 'CaducadaSegura#2026',
+        'password_confirmation' => 'CaducadaSegura#2026',
+    ])->assertSessionHasErrors('email');
 });

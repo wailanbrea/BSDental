@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3'
+import { Head, Link, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { 
     Stethoscope, 
@@ -124,9 +124,9 @@ const submit = () => {
                             />
                             <span class="ml-2 text-xs font-medium text-[#505F76]">Recordarme</span>
                         </label>
-                        <span class="text-xs font-semibold text-[#005C55] hover:underline cursor-pointer">
+                        <Link href="/forgot-password" class="text-xs font-semibold text-[#005C55] hover:underline">
                             ¿Olvidaste tu contraseña?
-                        </span>
+                        </Link>
                     </div>
 
                     <!-- Submit Button -->
