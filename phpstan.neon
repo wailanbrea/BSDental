@@ -1,0 +1,14 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+
+    paths:
+        - app/
+        - bootstrap/
+        - config/
+        - database/
+        - routes/
+
+    # Level 6 baseline for Larastan
+    level: 6

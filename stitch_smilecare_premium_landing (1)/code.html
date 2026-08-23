@@ -1,0 +1,320 @@
+<!DOCTYPE html><html lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>DENTALUX - Odontología Moderna</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#eaedff",
+                        "surface-container-low": "#f2f3ff",
+                        "outline-variant": "#bdc9c6",
+                        "on-secondary-fixed-variant": "#00504b",
+                        "tertiary": "#2d5951",
+                        "on-primary-fixed": "#00201d",
+                        "tertiary-fixed-dim": "#a2d0c6",
+                        "primary-fixed-dim": "#80d5cb",
+                        "surface-container-high": "#e2e7ff",
+                        "tertiary-container": "#467169",
+                        "on-secondary": "#ffffff",
+                        "outline": "#6e7977",
+                        "on-surface-variant": "#3e4947",
+                        "on-primary-fixed-variant": "#00504a",
+                        "error": "#ba1a1a",
+                        "inverse-on-surface": "#eef0ff",
+                        "on-tertiary-container": "#c5f3ea",
+                        "primary-fixed": "#9cf2e8",
+                        "on-tertiary-fixed-variant": "#224e47",
+                        "on-secondary-container": "#266d68",
+                        "surface-tint": "#006a63",
+                        "surface-container-highest": "#dae2fd",
+                        "error-container": "#ffdad6",
+                        "secondary": "#216963",
+                        "surface-bright": "#faf8ff",
+                        "surface-dim": "#d2d9f4",
+                        "on-error-container": "#93000a",
+                        "surface-variant": "#dae2fd",
+                        "tertiary-fixed": "#bdece2",
+                        "on-error": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#131b2e",
+                        "secondary-fixed": "#abefe8",
+                        "on-tertiary-fixed": "#00201c",
+                        "secondary-container": "#a8ece5",
+                        "on-background": "#131b2e",
+                        "inverse-primary": "#80d5cb",
+                        "on-secondary-fixed": "#00201e",
+                        "background": "#faf8ff",
+                        "surface": "#faf8ff",
+                        "primary-container": "#0f766e",
+                        "inverse-surface": "#283044",
+                        "primary": "#005c55",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#8fd3cc",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-container": "#a3faef"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "48px",
+                        "margin-mobile": "16px",
+                        "gutter": "24px",
+                        "unit": "8px",
+                        "container-max": "1280px",
+                        "section-gap": "120px"
+                    },
+                    "fontFamily": {
+                        "display-hero-mobile": ["Plus Jakarta Sans"],
+                        "headline-h2-mobile": ["Plus Jakarta Sans"],
+                        "headline-h3": ["Plus Jakarta Sans"],
+                        "label-caps": ["Plus Jakarta Sans"],
+                        "display-hero": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "headline-h2": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "display-hero-mobile": ["42px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-h2-mobile": ["32px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "headline-h3": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "display-hero": ["64px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-h2": ["40px", { "lineHeight": "1.3", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        @media (prefers-reduced-motion: no-preference) {
+            .fade-in-up {
+                opacity: 0;
+                transform: translateY(30px);
+                transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .fade-in-up.visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            .hover-lift {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            .hover-lift:hover {
+                transform: translateY(-4px);
+                box-shadow: 0px 12px 24px rgba(15, 23, 42, 0.08);
+            }
+            .floating {
+                animation: float 6s ease-in-out infinite;
+            }
+            .floating-delayed {
+                animation: float 6s ease-in-out infinite 3s;
+            }
+            @keyframes float {
+                0% {
+                    transform: translateY(0px);
+                }
+                50% {
+                    transform: translateY(-10px);
+                }
+                100% {
+                    transform: translateY(0px);
+                }
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .fade-in-up {
+                opacity: 1;
+                transform: none;
+            }
+            .hover-lift:hover {
+                transform: none;
+            }
+            .floating, .floating-delayed {
+                animation: none;
+            }
+        }
+        .ambient-shadow {
+            box-shadow: 0px 4px 20px rgba(15, 23, 42, 0.04);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface antialiased overflow-x-hidden selection:bg-primary-container selection:text-white">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface-container/80 backdrop-blur-md shadow-sm">
+<div class="max-w-7xl mx-auto flex justify-between items-center px-margin-desktop py-4">
+<a class="font-display-hero text-headline-h3 tracking-tighter text-primary dark:text-primary-fixed-dim" href="#">DENTALUX</a>
+<div class="hidden md:flex items-center gap-gutter">
+<a class="text-on-surface-variant dark:text-on-surface-variant font-medium font-label-caps text-label-caps hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-300" href="#tratamientos">Tratamientos</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-medium font-label-caps text-label-caps hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-300" href="#nosotros">Nosotros</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-medium font-label-caps text-label-caps hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-300" href="#especialistas">Especialistas</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-medium font-label-caps text-label-caps hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-300" href="#opiniones">Opiniones</a>
+</div>
+
+</div>
+</nav>
+<!-- Hero Section -->
+<section class="relative pt-32 pb-section-gap px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto overflow-hidden">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter items-center">
+<div class="z-10">
+<div class="fade-in-up inline-flex items-center gap-2 bg-[#CCFBF1] text-[#115E59] px-4 py-2 rounded-full font-label-caps text-label-caps mb-8 visible" style="transition-delay: 100ms;">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+                    Odontología moderna
+                </div>
+<h1 class="fade-in-up font-display-hero-mobile md:font-display-hero text-display-hero-mobile md:text-display-hero text-on-surface mb-6 visible" style="transition-delay: 200ms;">Tu sonrisa merece un tratamiento diseñado para ti</h1>
+<p class="fade-in-up font-body-lg text-body-lg text-on-surface-variant mb-10 max-w-xl visible" style="transition-delay: 300ms;">En Dentalux combinamos tecnología de vanguardia con atención personalizada para ofrecerte resultados excepcionales en un ambiente relajado y premium.</p>
+<div class="fade-in-up flex flex-col sm:flex-row gap-4 visible" style="transition-delay: 400ms;">
+<button class="bg-primary-container text-white hover:bg-[#115E59] font-label-caps text-label-caps px-8 py-4 rounded-full transition-colors duration-300 w-full sm:w-auto text-center hover-lift">Agendar cita</button>
+<button class="border-[1.5px] border-primary-container text-primary-container hover:bg-primary-container hover:text-white font-label-caps text-label-caps px-8 py-4 rounded-full transition-colors duration-300 w-full sm:w-auto text-center hover-lift">
+                        WhatsApp
+                    </button>
+</div>
+</div>
+<div class="relative mt-12 lg:mt-0 fade-in-up z-0 visible" style="transition-delay: 300ms;">
+<div class="aspect-[4/5] md:aspect-square rounded-3xl overflow-hidden relative ambient-shadow bg-surface-container">
+<img class="object-cover w-full h-full" data-alt="A modern, brightly lit dental clinic room with advanced white and teal medical equipment. A friendly dentist in premium scrubs is consulting with a smiling patient. The scene conveys trust, hygiene, and premium healthcare, using a high-key light mode aesthetic with soft shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1PjXaajdBz24T5Cjy1ekZVkKokrfZCqC9RxQWEchaULAuNOeRLVmIl2jl58CX87yHFhylbPMviAoGS7Rk4npxTrny9eI-PzsfKfTmMFAudFRU1-tQ8Zz7J0Vd1dqziGHV8BxrTVPL2vmrY1QkSCG5nlJNHncmz7bilAGQ4CrxRjx4u5RTZQUsBKkdSiZbSE9_sDFKgDSm9z2btsmZx55U4JDTw8rsQj-AdJ20Yhe_tjYRzfK8AOgjtQ">
+</div>
+<!-- Floating Trust Cards -->
+<div class="absolute -bottom-6 -left-6 md:left-[-10%] bg-surface rounded-2xl p-4 ambient-shadow border border-surface-container flex items-center gap-4 transition-all duration-300 floating fade-in-up visible" style="transition-delay: 500ms;">
+<div class="bg-secondary-fixed text-on-secondary-fixed p-3 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<div>
+<div class="font-headline-h3 text-headline-h3 text-on-surface text-lg">4.9</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant">Opiniones verificadas</div>
+</div>
+</div>
+<div class="absolute top-12 -right-4 bg-surface rounded-2xl p-4 ambient-shadow border border-surface-container flex items-center gap-4 transition-all duration-300 floating-delayed fade-in-up visible" style="transition-delay: 600ms;">
+<div class="bg-primary-container text-white p-3 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+</div>
+<div>
+<div class="font-headline-h3 text-headline-h3 text-on-surface text-lg">+2,500</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant">Pacientes felices</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Trust Bar -->
+<section class="bg-surface border-y border-outline-variant/30 py-12 fade-in-up visible">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+<div class="flex flex-col items-center text-center gap-3">
+<span class="material-symbols-outlined text-primary-container text-3xl" style="font-variation-settings: 'FILL' 0;">verified</span>
+<span class="font-body-md text-body-md text-on-surface-variant font-medium">+10 años de experiencia</span>
+</div>
+<div class="flex flex-col items-center text-center gap-3">
+<span class="material-symbols-outlined text-primary-container text-3xl" style="font-variation-settings: 'FILL' 0;">school</span>
+<span class="font-body-md text-body-md text-on-surface-variant font-medium">Especialistas certificados</span>
+</div>
+<div class="flex flex-col items-center text-center gap-3">
+<span class="material-symbols-outlined text-primary-container text-3xl" style="font-variation-settings: 'FILL' 0;">precision_manufacturing</span>
+<span class="font-body-md text-body-md text-on-surface-variant font-medium">Tecnología moderna</span>
+</div>
+<div class="flex flex-col items-center text-center gap-3">
+<span class="material-symbols-outlined text-primary-container text-3xl" style="font-variation-settings: 'FILL' 0;">favorite</span>
+<span class="font-body-md text-body-md text-on-surface-variant font-medium">Atención personalizada</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Services Grid -->
+<section class="py-section-gap px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto" id="tratamientos">
+<div class="text-center mb-16 fade-in-up visible">
+<h2 class="font-headline-h2-mobile md:font-headline-h2 text-headline-h2-mobile md:text-headline-h2 text-on-surface mb-4">Especialidades Dentales</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">Soluciones integrales para cuidar, restaurar y embellecer tu sonrisa con la más alta precisión clínica.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Service Card 1 -->
+<div class="bg-surface rounded-2xl p-8 ambient-shadow hover-lift transition-all duration-300 border border-outline-variant/20 flex flex-col fade-in-up visible" style="transition-delay: 100ms;"><div class="mb-6 overflow-hidden rounded-xl aspect-video"><img alt="Odontología General" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLtzeyrwYQ0xkQY4drv7HHBpjFxpVqQZFrxN6VgK8GCFNUlTS-Cf3A8HpsEXPy8T3ON1iKy-Q6OArDMnIqI_gAWH-TeFZ20eNgOCrvdWdqeK_Le5AGLiG6re-vgTAXqsVoKba3LTjoGjBkKb_T-wNe05cIukfGonX1Jov9sPa1VERHg5WBTb2ofV6sPxb5snNBcI-dpHsXVVoCwa-gweQpt3F2SinzuOWSMxBkJEieKkqVtTmwXK4FWkyQU"></div>
+<div class="w-14 h-14 rounded-xl bg-surface-container flex items-center justify-center text-primary-container mb-6">
+<span class="material-symbols-outlined text-3xl">dentistry</span>
+</div>
+<h3 class="font-headline-h3 text-headline-h3 text-on-surface mb-3">Odontología General</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex-grow">Diagnóstico preventivo, tratamientos de caries y salud bucal integral para toda la familia.</p>
+</div>
+<!-- Service Card 2 -->
+<div class="bg-surface rounded-2xl p-8 ambient-shadow hover-lift transition-all duration-300 border border-outline-variant/20 flex flex-col fade-in-up visible" style="transition-delay: 200ms;"><div class="mb-6 overflow-hidden rounded-xl aspect-video"><img alt="Limpieza Dental" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1WeK-KpJk2iUC1DIsn6fLX00YesTjjr3LTi9fvnZmOvGCgTUQyxyPKuoS_ZTp-hWuaa5LhgB_wo3S9coDiq9x3VFfDtWGVIT2X1T0F6DYuQ1Yq0bf9P2dB6OP6wTIiVv1mcMjSU6sUR0MXXj9H9iheahWjFOosSfi4f8E3jdj66iXy8wo8m4pmJM6WnZXFJz2HGRB0WUSvVKBmSb6xwSgZRx8sIDbWvIoCvxO5p7H3yWsfv8QBicqYZ96ls"></div>
+<div class="w-14 h-14 rounded-xl bg-surface-container flex items-center justify-center text-primary-container mb-6">
+<span class="material-symbols-outlined text-3xl">clean_hands</span>
+</div>
+<h3 class="font-headline-h3 text-headline-h3 text-on-surface mb-3">Limpieza Dental</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex-grow">Profilaxis profunda para eliminar placa y sarro, garantizando encías sanas y aliento fresco.</p>
+</div>
+<!-- Service Card 3 -->
+<div class="bg-surface rounded-2xl p-8 ambient-shadow hover-lift transition-all duration-300 border border-outline-variant/20 flex flex-col fade-in-up visible" style="transition-delay: 300ms;"><div class="mb-6 overflow-hidden rounded-xl aspect-video"><img alt="Ortodoncia" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1UlR3wUHLwQLZUrZBTJfxEs0qKzRykWJeeHYGczyZYp4VNY4T_SlOSeSDEkYwr7bC-fHoofaym5mi3kr2ueLsnKkoV2fTJVSLoOy8SJ8O20PVzwsrROvDwPjZjxEJww0CrgSXTdGzG7mRvilAeZXXqLMBMobc1y-DCgIL-Z-vSRjaFe3tPGFT1TMY36FkVhDPoI2jA2x2Lvpw_aJxPrJKcP35OGOaAuPbHUvkbZatNEQ9pdgnz3JakCfI-s"></div>
+<div class="w-14 h-14 rounded-xl bg-surface-container flex items-center justify-center text-primary-container mb-6">
+<span class="material-symbols-outlined text-3xl">mood</span>
+</div>
+<h3 class="font-headline-h3 text-headline-h3 text-on-surface mb-3">Ortodoncia</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex-grow">Alineación perfecta con brackets estéticos o alineadores invisibles personalizados.</p>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="w-full rounded-t-xl bg-surface-container-highest dark:bg-inverse-surface mt-section-gap">
+<div class="max-w-7xl mx-auto px-margin-desktop py-section-gap grid grid-cols-1 md:grid-cols-4 gap-gutter fade-in-up visible">
+<div class="col-span-1 md:col-span-1">
+<a class="font-display-hero text-headline-h3 text-primary dark:text-primary-fixed-dim block mb-6" href="#">DENTALUX</a>
+<p class="font-body-md text-body-md text-on-surface-variant">Odontología de primer nivel con un enfoque en tu bienestar y comodidad.</p>
+</div>
+<div class="col-span-1 md:col-span-3 flex justify-start md:justify-end gap-12">
+<div class="flex flex-col gap-4">
+<a class="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Privacidad</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Términos</a>
+</div>
+<div class="flex flex-col gap-4">
+<a class="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Contacto</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Preguntas Frecuentes</a>
+</div>
+</div>
+<div class="col-span-1 md:col-span-4 mt-12 pt-8 border-t border-outline-variant/30 text-center">
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">© 2024 Dentalux Premium Clinic. Todos los derechos reservados.</p>
+</div>
+</div>
+</footer>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            
+            if (!prefersReducedMotion) {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            // Optional: unobserve after showing to only animate once
+                            // observer.unobserve(entry.target);
+                        }
+                    });
+                }, {
+                    threshold: 0.1,
+                    rootMargin: "0px 0px -50px 0px"
+                });
+
+                document.querySelectorAll('.fade-in-up').forEach((element) => {
+                    observer.observe(element);
+                });
+            } else {
+                // If reduced motion is preferred, ensure elements are visible
+                document.querySelectorAll('.fade-in-up').forEach((element) => {
+                    element.classList.add('visible');
+                });
+            }
+        });
+    </script>
+
+
+</body></html>

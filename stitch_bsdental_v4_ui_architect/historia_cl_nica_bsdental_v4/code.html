@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Historia Clínica - BSDental v4</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary": "#505f76",
+                      "on-surface": "#131b2e",
+                      "surface-variant": "#dae2fd",
+                      "inverse-on-surface": "#eef0ff",
+                      "background": "#faf8ff",
+                      "on-background": "#131b2e",
+                      "surface-container-high": "#e2e7ff",
+                      "surface": "#faf8ff",
+                      "surface-tint": "#006a63",
+                      "surface-container-low": "#f2f3ff",
+                      "error": "#ba1a1a",
+                      "primary-container": "#0f766e",
+                      "on-primary-fixed-variant": "#00504a",
+                      "on-secondary": "#ffffff",
+                      "surface-dim": "#d2d9f4",
+                      "surface-container": "#eaedff",
+                      "on-primary": "#ffffff",
+                      "surface-bright": "#faf8ff",
+                      "primary-fixed-dim": "#80d5cb",
+                      "on-secondary-fixed": "#0b1c30",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "secondary-container": "#d0e1fb",
+                      "primary": "#005c55",
+                      "on-error-container": "#93000a",
+                      "tertiary": "#0047bf",
+                      "surface-container-lowest": "#ffffff",
+                      "tertiary-fixed": "#dbe1ff",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "on-error": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-fixed-dim": "#b4c5ff",
+                      "primary-fixed": "#9cf2e8",
+                      "on-primary-fixed": "#00201d",
+                      "surface-container-highest": "#dae2fd",
+                      "on-tertiary-container": "#e6e9ff",
+                      "outline": "#6e7977",
+                      "inverse-surface": "#283044",
+                      "tertiary-container": "#1e5fe7",
+                      "error-container": "#ffdad6",
+                      "outline-variant": "#bdc9c6",
+                      "inverse-primary": "#80d5cb",
+                      "on-secondary-container": "#54647a",
+                      "on-surface-variant": "#3e4947",
+                      "secondary-fixed": "#d3e4fe",
+                      "on-tertiary-fixed-variant": "#003ea8",
+                      "on-tertiary-fixed": "#00174b",
+                      "on-primary-container": "#a3faef"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "standard-padding": "16px",
+                      "unit": "4px",
+                      "section-gap": "32px",
+                      "compact-padding": "8px",
+                      "container-margin": "24px",
+                      "gutter": "16px"
+              },
+              "fontFamily": {
+                      "data-tabular": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "display-md": ["Inter"],
+                      "label-caps": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "section-title": ["Inter"]
+              },
+              "fontSize": {
+                      "data-tabular": ["14px", {"fontWeight": "500"}],
+                      "display-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "display-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "section-title": ["18px", {"lineHeight": "26px", "fontWeight": "500"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+          font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background h-full font-body-md flex overflow-hidden">
+<!-- SideNavBar (Shared Component Blueprint) -->
+<nav class="w-[260px] h-screen fixed left-0 top-0 hidden md:block bg-surface-container-lowest border-r border-outline-variant z-50 flex flex-col py-standard-padding">
+<div class="px-standard-padding mb-section-gap flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-lg">
+<img class="w-full h-full rounded-full object-cover" data-alt="A highly detailed, professional clinic logo featuring a minimalist geometric tooth design in vibrant teal and dark slate. The logo should evoke precision, modern healthcare, and institutional trust, set against a pure white background with subtle studio lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAq9-3HT-Gz1ZYkdGpEBm2ihJ81qO_-uxnBhHeiDjqTawBAd3MBS1ZWWk4Bm_cXwRXVYpMDdkltsqgSLe8QQHrUk7l4aPOTGUavThA3Yi1y9RbXsBkG0nBjUvFgLtiw74QQHo9W_avqz2TdVAxSideGrpm0LLPLEI668lUyZxJ03oOuRPC6HB-7X_AgC7z7436-WOssMAbjhYu1BVp05aTG-GqTsS7oPh3lsnYViQUrZUhwjAGyFUEG"/>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm text-primary font-bold tracking-tight">BSDental v4</h1>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Clinical Platform</p>
+</div>
+</div>
+<ul class="flex-1 flex flex-col gap-1 px-compact-padding">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+</li>
+<li>
+<!-- Active State applied to Patients as context is a specific patient's Clinical History -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-primary font-bold border-r-4 border-primary bg-surface-container-low scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined filled" data-icon="group" data-weight="fill">group</span>
+<span class="font-body-md text-body-md">Patients</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-body-md text-body-md">Agenda</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+<span class="font-body-md text-body-md">Clinical</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="business_center">business_center</span>
+<span class="font-body-md text-body-md">Administration</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="campaign">campaign</span>
+<span class="font-body-md text-body-md">CRM</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="leaderboard">leaderboard</span>
+<span class="font-body-md text-body-md">Analytics</span>
+</a>
+</li>
+</ul>
+<div class="px-compact-padding mt-auto">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-[260px] h-screen overflow-y-auto bg-background flex flex-col">
+<!-- TopNavBar (Shared Component Blueprint) -->
+<header class="flex justify-between items-center w-full px-gutter bg-surface docked full-width top-0 h-16 sticky z-40 border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<!-- Mobile Menu Button (Visible only on mobile) -->
+<button class="md:hidden text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full cursor-pointer transition-opacity active:opacity-70">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<!-- Breadcrumb / Context -->
+<div class="flex items-center gap-2 text-sm">
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary transition-colors" href="#">Patients</a>
+<span class="material-symbols-outlined text-[16px] text-outline-variant">chevron_right</span>
+<span class="font-data-tabular text-data-tabular text-on-surface">#1042 - Maria Gonzalez</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="w-64 h-9 pl-10 pr-4 bg-surface-container-lowest border border-outline-variant rounded-full font-body-sm text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-shadow" placeholder="Search patient..." type="text"/>
+</div>
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full cursor-pointer transition-opacity active:opacity-70">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full cursor-pointer transition-opacity active:opacity-70 hidden sm:block">
+<span class="material-symbols-outlined" data-icon="storefront">storefront</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center ml-2 cursor-pointer transition-opacity active:opacity-70 overflow-hidden border border-outline-variant">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A professional headshot of a female doctor in her mid-30s wearing a white clinical coat and a subtle teal blouse. She has a warm, confident smile, dark brown hair pulled back neatly. The lighting is bright and modern studio lighting against a clean, out-of-focus high-tech clinical background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCruXThWNKh-HI2uVqot87trILJL8DvfP83ssdfu30ZVBRqJS2c73uaSpE4kyhQODUk02bsbctJ6lQs5xjYda5H_qVgyDJr12THpMAmJVFgTnxCmCPhnI-BxPsWY1O_8xap9h4ezsLyI40YYxM_zcwUgghULXxyVxssIlyzZwBomQ6JhrAtfomHrSaVFwVFtUXLkZ5f7qFzzDhOJoNFirttJstgOEh96JKEN_b3CPZ9CqVCsZBcB2u4"/>
+</div>
+</div>
+</header>
+<!-- Page Canvas -->
+<div class="p-container-margin max-w-7xl mx-auto w-full flex flex-col gap-container-margin">
+<!-- Patient Header & Clinical Alerts -->
+<div class="flex flex-col lg:flex-row gap-6">
+<!-- Patient Identity Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-standard-padding flex-1 flex items-start gap-4 shadow-sm">
+<div class="w-16 h-16 rounded-full bg-surface-container-highest overflow-hidden shrink-0 border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A portrait photograph of a Hispanic female patient in her late 40s. She has a neutral but relaxed expression, dark hair, wearing a simple casual grey sweater. The lighting is soft and flat, typical of a professional but welcoming medical intake photo, set against a plain light gray background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuALztkIy6ckXzXAHdLVHysLjPbWsM6iUG_KRqMzBXj9NAxENVl8fXx62nGkBn6iI57_Da3aC7ikwhmnb8opytjdWaYuCDzRruFf-7cApJij-osimlX34sWj_sAiiS6IoQOXpoT9NHm8a2NJGbCKWs0spSOyItKbCTiOMg5NsgUKrQAIasqQQ7Uhu1Hm6zBb5YiWhYq36cG6DvR7j2sBae9XH0qwF6KxJeBb3FbYcf12Uksoii4Vubm4"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h2 class="font-display-md text-display-md text-on-surface">Maria Gonzalez</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">ID: 1042 • 48 years • Female • DOB: 12/05/1975</p>
+</div>
+<span class="px-2 py-1 bg-primary-container/10 text-primary font-label-caps text-label-caps rounded-md border border-primary-container/20">Active</span>
+</div>
+<div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-outline-variant/50 pt-4">
+<div>
+<span class="block font-label-caps text-label-caps text-outline mb-1">BLOOD TYPE</span>
+<span class="font-data-tabular text-data-tabular text-on-surface">O Positive (O+)</span>
+</div>
+<div>
+<span class="block font-label-caps text-label-caps text-outline mb-1">LAST VISIT</span>
+<span class="font-data-tabular text-data-tabular text-on-surface">Oct 12, 2023</span>
+</div>
+<div>
+<span class="block font-label-caps text-label-caps text-outline mb-1">PRIMARY DR.</span>
+<span class="font-data-tabular text-data-tabular text-on-surface">Dr. A. Smith</span>
+</div>
+<div>
+<span class="block font-label-caps text-label-caps text-outline mb-1">INSURANCE</span>
+<span class="font-data-tabular text-data-tabular text-on-surface">BlueCross PPO</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Clinical Alerts -->
+<div class="bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl p-standard-padding lg:w-80 flex flex-col gap-3 shrink-0 shadow-sm">
+<div class="flex items-center gap-2 text-error">
+<span class="material-symbols-outlined filled">warning</span>
+<h3 class="font-section-title text-section-title">Clinical Alerts</h3>
+</div>
+<ul class="flex flex-col gap-2">
+<li class="bg-white border border-[#FECACA] rounded p-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-[18px] text-error mt-0.5">medical_information</span>
+<div>
+<span class="block font-data-tabular text-data-tabular text-on-surface">Penicillin Allergy</span>
+<span class="font-body-sm text-[12px] text-error">Severe anaphylaxis risk</span>
+</div>
+</li>
+<li class="bg-white border border-[#FECACA] rounded p-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-[18px] text-[#D97706] mt-0.5">monitor_heart</span>
+<div>
+<span class="block font-data-tabular text-data-tabular text-on-surface">Hypertension (Stage 1)</span>
+<span class="font-body-sm text-[12px] text-[#D97706]">Monitor BP before procedures</span>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<!-- Main Grid Layout -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-container-margin">
+<!-- Left Column: Medical Overview (Bento Style) -->
+<div class="xl:col-span-4 flex flex-col gap-container-margin">
+<!-- Vitals Summary -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-standard-padding flex flex-col">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-section-title text-section-title text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-outline">vital_signs</span>
+                                Vital Signs
+                            </h3>
+<button class="text-primary hover:bg-surface-container-low p-1 rounded transition-colors" title="Add Vitals">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface border border-outline-variant/50 rounded-lg p-2">
+<span class="block font-label-caps text-label-caps text-outline mb-1">BLOOD PRESSURE</span>
+<div class="flex items-baseline gap-1">
+<span class="font-data-tabular text-[16px] font-semibold text-on-surface">128/82</span>
+<span class="text-[11px] text-outline">mmHg</span>
+</div>
+<span class="text-[10px] text-error mt-1 block">Slightly elevated</span>
+</div>
+<div class="bg-surface border border-outline-variant/50 rounded-lg p-2">
+<span class="block font-label-caps text-label-caps text-outline mb-1">HEART RATE</span>
+<div class="flex items-baseline gap-1">
+<span class="font-data-tabular text-[16px] font-semibold text-on-surface">72</span>
+<span class="text-[11px] text-outline">bpm</span>
+</div>
+<span class="text-[10px] text-outline mt-1 block">Normal</span>
+</div>
+<div class="bg-surface border border-outline-variant/50 rounded-lg p-2">
+<span class="block font-label-caps text-label-caps text-outline mb-1">TEMPERATURE</span>
+<div class="flex items-baseline gap-1">
+<span class="font-data-tabular text-[16px] font-semibold text-on-surface">36.8</span>
+<span class="text-[11px] text-outline">°C</span>
+</div>
+<span class="text-[10px] text-outline mt-1 block">Normal</span>
+</div>
+<div class="bg-surface border border-outline-variant/50 rounded-lg p-2">
+<span class="block font-label-caps text-label-caps text-outline mb-1">WEIGHT / BMI</span>
+<div class="flex items-baseline gap-1">
+<span class="font-data-tabular text-[16px] font-semibold text-on-surface">68</span>
+<span class="text-[11px] text-outline">kg</span>
+</div>
+<span class="text-[10px] text-outline mt-1 block">BMI: 24.1 (Normal)</span>
+</div>
+</div>
+<div class="mt-3 text-right">
+<span class="text-[11px] text-outline">Last updated: Today, 09:15 AM</span>
+</div>
+</div>
+<!-- Current Medications -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-standard-padding">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-section-title text-section-title text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-outline">prescriptions</span>
+                                Active Medications
+                            </h3>
+</div>
+<ul class="flex flex-col gap-2">
+<li class="border-l-2 border-primary pl-3 py-1">
+<span class="block font-data-tabular text-data-tabular text-on-surface">Lisinopril 10mg</span>
+<span class="font-body-sm text-[12px] text-on-surface-variant">1 tablet daily (Hypertension)</span>
+</li>
+<li class="border-l-2 border-primary pl-3 py-1">
+<span class="block font-data-tabular text-data-tabular text-on-surface">Ibuprofen 400mg</span>
+<span class="font-body-sm text-[12px] text-on-surface-variant">As needed for pain</span>
+</li>
+</ul>
+</div>
+<!-- Background / Medical History -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-standard-padding">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-section-title text-section-title text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-outline">history</span>
+                                Background (Antecedentes)
+                            </h3>
+</div>
+<div class="space-y-3">
+<div>
+<h4 class="font-label-caps text-label-caps text-on-surface-variant mb-1">SYSTEMIC</h4>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 bg-surface-container border border-outline-variant rounded text-[12px] font-medium text-on-surface">Hypertension (2018)</span>
+<span class="px-2 py-1 bg-surface-container border border-outline-variant rounded text-[12px] font-medium text-on-surface">Gastritis</span>
+</div>
+</div>
+<div>
+<h4 class="font-label-caps text-label-caps text-on-surface-variant mb-1">DENTAL</h4>
+<p class="font-body-sm text-[13px] text-on-surface">Previous orthodontic treatment (2010). History of bruxism.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Evolutions Timeline -->
+<div class="xl:col-span-8 flex flex-col h-full bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+<!-- Timeline Header -->
+<div class="px-standard-padding py-4 border-b border-outline-variant bg-surface flex justify-between items-center">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">clinical_notes</span>
+                                Clinical Evolutions
+                            </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Chronological record of clinical notes and procedures.</p>
+</div>
+<button class="bg-primary hover:bg-on-primary-fixed-variant text-white px-4 py-2 rounded-lg font-data-tabular text-data-tabular flex items-center gap-2 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">edit_document</span>
+                            + New Evolution
+                        </button>
+</div>
+<!-- Timeline Content -->
+<div class="flex-1 p-standard-padding overflow-y-auto bg-surface-bright relative">
+<!-- Vertical Timeline Line -->
+<div class="absolute left-[39px] top-6 bottom-6 w-0.5 bg-outline-variant/40 z-0"></div>
+<div class="flex flex-col gap-6 relative z-10">
+<!-- Evolution Item: DRAFT -->
+<div class="flex gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center shrink-0 border-2 border-outline border-dashed z-10 mt-1">
+<span class="material-symbols-outlined text-outline">edit_note</span>
+</div>
+<div class="flex-1 bg-white border border-outline-variant rounded-lg p-4 shadow-sm hover:border-primary/50 transition-colors relative">
+<!-- Draft Badge -->
+<span class="absolute top-4 right-4 px-2 py-0.5 bg-surface-container-high text-on-surface-variant font-label-caps text-[10px] rounded border border-outline-variant">DRAFT</span>
+<div class="mb-3 border-b border-outline-variant/30 pb-2">
+<h4 class="font-data-tabular text-[15px] font-semibold text-on-surface">Routine Checkup &amp; Prophylaxis</h4>
+<div class="flex items-center gap-2 mt-1 text-[12px] text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">calendar_today</span> Today, 09:30 AM</span>
+<span>•</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> Dr. A. Smith</span>
+</div>
+</div>
+<div class="font-body-sm text-[13px] text-on-surface-variant space-y-2">
+<p>Patient presents for routine 6-month recall. Reports mild sensitivity in LR quadrant when drinking cold liquids.</p>
+<p class="font-medium text-on-surface mt-2 mb-1">Initial Findings:</p>
+<ul class="list-disc pl-4 space-y-1">
+<li>Gingival inflammation localized around #46, #47.</li>
+<li>No active caries detected visually.</li>
+<li>Calculus buildup primarily on lingual of lower anteriors.</li>
+</ul>
+</div>
+<div class="mt-4 pt-3 border-t border-outline-variant/30 flex justify-end gap-2">
+<button class="px-3 py-1.5 text-[13px] font-medium text-primary hover:bg-surface-container-low rounded border border-transparent transition-colors">Resume Editing</button>
+</div>
+</div>
+</div>
+<!-- Evolution Item: FINALIZED -->
+<div class="flex gap-4">
+<div class="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center shrink-0 border border-primary-container z-10 mt-1">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+<div class="flex-1 bg-white border border-outline-variant rounded-lg p-4 shadow-sm relative">
+<div class="mb-3 border-b border-outline-variant/30 pb-2">
+<h4 class="font-data-tabular text-[15px] font-semibold text-on-surface">Composite Restoration #14</h4>
+<div class="flex items-center gap-2 mt-1 text-[12px] text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">calendar_today</span> Oct 12, 2023, 14:00 PM</span>
+<span>•</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> Dr. A. Smith</span>
+<span>•</span>
+<span class="text-primary font-medium">Signed</span>
+</div>
+</div>
+<div class="font-body-sm text-[13px] text-on-surface space-y-2">
+<p><span class="font-semibold">Subjective:</span> Patient arrived for scheduled operative appointment. No pain reported prior to treatment.</p>
+<p><span class="font-semibold">Objective:</span> Caries confirmed on occlusal surface of #14 via radiograph and visual inspection.</p>
+<p><span class="font-semibold">Procedure:</span> Administered 1 carpule 2% Lidocaine w/ 1:100k epi (infiltration). Rubber dam isolation. Caries excavated using high and slow speed handpieces. Cavity prepared, etched, bonded (OptiBond). Restored with Filtek Supreme Ultra (A2 shade). Light cured, occlusion checked and adjusted, polished.</p>
+<p><span class="font-semibold">Post-Op:</span> Standard post-op instructions given. Patient tolerated procedure well.</p>
+<div class="mt-3 flex gap-2">
+<span class="px-2 py-1 bg-surface-container border border-outline-variant rounded text-[11px] font-medium text-on-surface flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">medical_services</span> Code: D2391</span>
+<span class="px-2 py-1 bg-surface-container border border-outline-variant rounded text-[11px] font-medium text-on-surface flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">qr_code_2</span> Tooth: 14</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Evolution Item: FINALIZED (Older) -->
+<div class="flex gap-4">
+<div class="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center shrink-0 border border-primary-container z-10 mt-1 opacity-70">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+<div class="flex-1 bg-white border border-outline-variant rounded-lg p-4 shadow-sm relative opacity-80">
+<div class="mb-3 border-b border-outline-variant/30 pb-2">
+<h4 class="font-data-tabular text-[15px] font-semibold text-on-surface">Initial Examination &amp; FMX</h4>
+<div class="flex items-center gap-2 mt-1 text-[12px] text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">calendar_today</span> Mar 05, 2023, 10:15 AM</span>
+<span>•</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> Dr. M. Johnson</span>
+</div>
+</div>
+<div class="font-body-sm text-[13px] text-on-surface space-y-2">
+<p>Comprehensive oral evaluation completed. Full mouth series of radiographs taken. Periodontal charting completed. Treatment plan generated for #14 occlusal caries and general prophylaxis.</p>
+</div>
+</div>
+</div>
+<!-- End of timeline marker -->
+<div class="flex gap-4 mb-4">
+<div class="w-12 flex justify-center z-10">
+<div class="w-3 h-3 rounded-full bg-outline-variant mt-2"></div>
+</div>
+<div class="flex-1 pt-1 text-[12px] text-outline-variant italic">End of record</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

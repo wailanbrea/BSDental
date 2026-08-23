@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Historia Clínica - BSDental</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline": "#6e7977",
+                      "on-primary-container": "#a3faef",
+                      "surface-container-high": "#dce9ff",
+                      "on-primary-fixed-variant": "#00504a",
+                      "primary": "#005c55",
+                      "inverse-primary": "#80d5cb",
+                      "danger": "#DC2626",
+                      "primary-fixed-dim": "#80d5cb",
+                      "warning": "#D97706",
+                      "secondary-fixed": "#bdece2",
+                      "on-background": "#0b1c30",
+                      "on-surface-variant": "#3e4947",
+                      "on-error-container": "#93000a",
+                      "surface-container-lowest": "#ffffff",
+                      "info": "#2563EB",
+                      "tertiary": "#7f4025",
+                      "on-tertiary-container": "#ffe5db",
+                      "on-tertiary-fixed": "#370e00",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-error": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-primary": "#ffffff",
+                      "inverse-surface": "#213145",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#72361b",
+                      "primary-fixed": "#9cf2e8",
+                      "success": "#16A34A",
+                      "on-secondary-fixed-variant": "#224e47",
+                      "surface-container-low": "#eff4ff",
+                      "secondary": "#3b665f",
+                      "tertiary-fixed": "#ffdbce",
+                      "surface-variant": "#d3e4fe",
+                      "surface-muted": "#F1F5F9",
+                      "primary-container": "#0f766e",
+                      "tertiary-fixed-dim": "#ffb598",
+                      "on-primary-fixed": "#00201d",
+                      "outline-variant": "#bdc9c6",
+                      "on-secondary-fixed": "#00201c",
+                      "text-main": "#0F172A",
+                      "surface": "#FFFFFF",
+                      "surface-tint": "#006a63",
+                      "tertiary-container": "#9c573a",
+                      "surface-container": "#e5eeff",
+                      "secondary-fixed-dim": "#a2d0c6",
+                      "surface-bright": "#f8f9ff",
+                      "surface-dim": "#cbdbf5",
+                      "on-secondary-container": "#416c65",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-secondary": "#ffffff",
+                      "secondary-container": "#bdece2",
+                      "on-tertiary": "#ffffff",
+                      "background": "#F8FAFC",
+                      "border-subtle": "#E2E8F0",
+                      "on-surface": "#0b1c30"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "container-max": "1440px",
+                      "sm": "8px",
+                      "sidebar-width": "260px",
+                      "xl": "32px",
+                      "base": "4px",
+                      "md": "16px",
+                      "sidebar-collapsed": "72px",
+                      "lg": "24px",
+                      "xs": "4px"
+              },
+              "fontFamily": {
+                      "data-mono": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "body-md": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "headline-md": ["Inter"]
+              },
+              "fontSize": {
+                      "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        .clinical-alert {
+            animation: pulse-border 2s infinite;
+        }
+        @keyframes pulse-border {
+            0% { border-color: rgba(220, 38, 38, 0.2); }
+            50% { border-color: rgba(220, 38, 38, 1); }
+            100% { border-color: rgba(220, 38, 38, 0.2); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-inverse-surface w-[260px] h-screen fixed left-0 top-0 hidden xl:flex flex-col border-r border-border-subtle dark:border-outline-variant flat no shadows flex flex-col h-full py-md px-sm z-50">
+<div class="flex items-center gap-sm px-sm mb-lg">
+<span class="material-symbols-outlined font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim" data-icon="dentistry" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dentistry</span>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">BSDental</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Clinical ERP</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto flex flex-col gap-xs">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-primary dark:text-on-primary-container bg-secondary-container/50 dark:bg-primary-container/30 font-semibold hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-md text-label-md">Pacientes</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-label-md text-label-md">Agenda</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+<span class="font-label-md text-label-md">Clínica</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md">Administración</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label-md text-label-md">Análisis</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors mt-auto" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Configuración</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col xl:ml-[260px] min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface/80 dark:bg-inverse-surface/80 backdrop-blur-md docked full-width top-0 sticky z-40 border-b border-border-subtle dark:border-outline-variant flat no shadows flex justify-between items-center h-16 px-lg">
+<div class="flex items-center gap-md">
+<button class="xl:hidden p-sm rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="relative w-64 hidden sm:block">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search">search</span>
+<input class="w-full h-8 pl-xl pr-sm bg-surface-muted border border-border-subtle rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary transition-all" placeholder="Buscar..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-sm rounded-full text-on-surface-variant hover:text-primary dark:hover:text-on-primary-container hover:bg-surface-container-low transition-colors Focus: ring-2 ring-primary-container/50">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-sm rounded-full text-on-surface-variant hover:text-primary dark:hover:text-on-primary-container hover:bg-surface-container-low transition-colors Focus: ring-2 ring-primary-container/50">
+<span class="material-symbols-outlined" data-icon="storefront">storefront</span>
+</button>
+<button class="p-sm rounded-full text-on-surface-variant hover:text-primary dark:hover:text-on-primary-container hover:bg-surface-container-low transition-colors Focus: ring-2 ring-primary-container/50">
+<span class="material-symbols-outlined" data-icon="account_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Canvas -->
+<div class="flex-1 p-md lg:p-lg">
+<!-- Patient Header (Specialized) -->
+<div class="bg-surface border border-border-subtle rounded-lg p-md mb-md flex flex-col md:flex-row md:items-center justify-between gap-md shadow-sm">
+<div class="flex items-center gap-md">
+<img class="w-16 h-16 rounded-full object-cover border-2 border-surface-container-high" data-alt="A highly detailed close-up portrait of a mature female patient with short gray hair, wearing a casual blue blouse. Bright, clinical lighting creates a clean, modern aesthetic. The background is a soft, out-of-focus medical office setting in light mode with bright whites and subtle teal accents, conveying professionalism and trust." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDURfOLu0wfk8KsXxXuxApa3HIZSeH_1z09Bi69PExF4EH49TIKTJUGHN_oGnE9TVV4Lm1C17s7agnq17LufotzhWl0BJcYfu7lFKZ79msnsS0FB4HzPz7JA7EDPA7EtHkG4Rpn51oNCiwEqrPVRICY8UNVoXvjYQPcBRgMYuDuRz9SlRRFzbTLebPKpJ7iG97XgcEax1ojRPsGDGbfV4uHZOO2KmfazBbbWjs6l9lV2-h7zgkrFHRV"/>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-text-main flex items-center gap-sm">
+                            Carmen Rodríguez
+                            <span class="material-symbols-outlined text-primary text-sm" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+</h2>
+<div class="flex flex-wrap gap-sm mt-xs text-on-surface-variant font-label-md text-label-md">
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]" data-icon="cake">cake</span> 62 años (14/05/1961)</span>
+<span class="text-border-subtle">|</span>
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]" data-icon="badge">badge</span> HC-2023-0891</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-sm items-start md:items-end">
+<div class="bg-danger/10 text-danger px-sm py-xs rounded-full font-label-sm text-label-sm flex items-center gap-xs clinical-alert border border-danger/20">
+<span class="material-symbols-outlined text-[16px]" data-icon="warning" data-weight="fill" style="font-variation-settings: 'FILL' 1;">warning</span>
+                        Alérgica a Penicilina
+                    </div>
+<div class="bg-warning/10 text-warning px-sm py-xs rounded-full font-label-sm text-label-sm flex items-center gap-xs border border-warning/20">
+<span class="material-symbols-outlined text-[16px]" data-icon="medical_information">medical_information</span>
+                        Hipertensión Controlada
+                    </div>
+</div>
+</div>
+<!-- Main Layout: Sidebar Nav + Detail Area -->
+<div class="flex flex-col md:flex-row gap-md">
+<!-- Internal Section Navigation -->
+<nav class="w-full md:w-64 flex-shrink-0">
+<div class="bg-surface border border-border-subtle rounded-lg p-sm sticky top-24">
+<h3 class="font-label-md text-label-md text-on-surface-variant px-sm py-xs mb-xs uppercase tracking-wider">Secciones</h3>
+<ul class="flex flex-col gap-xs">
+<li>
+<a class="flex items-center justify-between px-sm py-sm rounded-md text-primary bg-secondary-container/30 font-label-md text-label-md border border-primary/20" href="#alerts">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications_active">notifications_active</span>
+                                        Alertas
+                                    </div>
+<span class="bg-danger text-on-primary rounded-full px-2 py-0.5 text-[10px] font-bold">2</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-sm py-sm rounded-md text-text-main hover:bg-surface-muted transition-colors font-label-md text-label-md" href="#antecedents">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant" data-icon="history_edu">history_edu</span>
+                                    Antecedentes
+                                </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-sm py-sm rounded-md text-text-main hover:bg-surface-muted transition-colors font-label-md text-label-md" href="#medications">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant" data-icon="prescriptions">prescriptions</span>
+                                    Medicación Actual
+                                </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-sm py-sm rounded-md text-text-main hover:bg-surface-muted transition-colors font-label-md text-label-md" href="#evolutions">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant" data-icon="clinical_notes">clinical_notes</span>
+                                    Evoluciones
+                                </a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Details Canvas -->
+<div class="flex-1 flex flex-col gap-md">
+<!-- Evolutions Section (Highlighted Content) -->
+<section class="bg-surface border border-border-subtle rounded-lg overflow-hidden flex flex-col h-[600px]" id="evolutions">
+<!-- Header with Action -->
+<div class="p-md border-b border-border-subtle flex justify-between items-center bg-surface-bright">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary text-[24px]" data-icon="clinical_notes">clinical_notes</span>
+<h3 class="font-headline-sm text-headline-sm text-text-main">Evoluciones Clínicas</h3>
+</div>
+<button class="bg-[#0F766E] text-white px-md py-sm rounded-lg font-label-md text-label-md flex items-center gap-xs hover:bg-[#0c5e58] transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+                                Nueva evolución
+                            </button>
+</div>
+<!-- Timeline / List -->
+<div class="flex-1 overflow-y-auto p-md bg-background/50">
+<!-- Evolution Item 1 -->
+<div class="relative pl-xl pb-lg">
+<!-- Timeline Line -->
+<div class="absolute left-6 top-8 bottom-0 w-px bg-border-subtle"></div>
+<!-- Timeline Dot -->
+<div class="absolute left-[20px] top-1 w-4 h-4 rounded-full border-2 border-primary bg-surface z-10"></div>
+<div class="bg-surface border border-border-subtle rounded-lg p-md shadow-sm relative">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<div class="flex items-center gap-sm mb-xs">
+<span class="font-label-md text-label-md text-text-main">Dr. Alejandro Vargas</span>
+<span class="bg-secondary-container/50 text-on-secondary-container px-xs py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">Endodoncia</span>
+</div>
+<span class="font-data-mono text-data-mono text-on-surface-variant flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]" data-icon="event">event</span> 24 Oct 2023, 10:30 AM
+                                            </span>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-xs rounded hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-[20px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="font-body-md text-body-md text-text-main mt-sm pl-xs border-l-2 border-surface-container-high py-xs">
+                                        Paciente acude para apertura cameral en pieza 36. Se anestesia con lidocaína 2% con epinefrina 1:100.000. Aislamiento absoluto. Se realiza acceso y se localizan 3 conductos (MV, ML, D). Conductometría rotatoria. Irrigación con NaOCl 5.25%. Se deja medicación intraconducto (Hidróxido de Calcio) y sellado provisional con Cavit.
+                                    </div>
+<div class="mt-sm flex gap-sm">
+<div class="flex items-center gap-xs text-label-sm font-label-sm text-primary bg-primary/5 px-sm py-xs rounded border border-primary/10">
+<span class="material-symbols-outlined text-[14px]" data-icon="tooth">qr_code_2</span> Pieza 36
+                                        </div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</main>
+</body></html>

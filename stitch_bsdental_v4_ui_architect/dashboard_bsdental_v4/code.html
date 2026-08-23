@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard - BSDental v4</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#80d5cb",
+                        "tertiary-fixed": "#dbe1ff",
+                        "on-primary-container": "#a3faef",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "on-tertiary-fixed-variant": "#003ea8",
+                        "primary-fixed-dim": "#80d5cb",
+                        "error": "#ba1a1a",
+                        "tertiary": "#0047bf",
+                        "surface-container": "#eaedff",
+                        "primary-container": "#0f766e",
+                        "on-primary-fixed": "#00201d",
+                        "inverse-surface": "#283044",
+                        "secondary-container": "#d0e1fb",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "surface-bright": "#faf8ff",
+                        "primary": "#005c55",
+                        "on-tertiary-container": "#e6e9ff",
+                        "surface-container-high": "#e2e7ff",
+                        "on-tertiary-fixed": "#00174b",
+                        "tertiary-container": "#1e5fe7",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#b4c5ff",
+                        "surface-variant": "#dae2fd",
+                        "primary-fixed": "#9cf2e8",
+                        "surface": "#faf8ff",
+                        "surface-container-highest": "#dae2fd",
+                        "error-container": "#ffdad6",
+                        "on-surface": "#131b2e",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed": "#0b1c30",
+                        "surface-container-low": "#f2f3ff",
+                        "outline": "#6e7977",
+                        "on-secondary-container": "#54647a",
+                        "secondary-fixed": "#d3e4fe",
+                        "secondary": "#505f76",
+                        "surface-dim": "#d2d9f4",
+                        "on-background": "#131b2e",
+                        "outline-variant": "#bdc9c6",
+                        "surface-tint": "#006a63",
+                        "on-primary-fixed-variant": "#00504a",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#faf8ff",
+                        "on-surface-variant": "#3e4947",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#eef0ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "compact-padding": "8px",
+                        "gutter": "16px",
+                        "standard-padding": "16px",
+                        "section-gap": "32px",
+                        "unit": "4px",
+                        "container-margin": "24px"
+                    },
+                    "fontFamily": {
+                        "section-title": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "display-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "data-tabular": ["Inter"]
+                    },
+                    "fontSize": {
+                        "section-title": ["18px", { "lineHeight": "26px", "fontWeight": "500" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "display-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "data-tabular": ["14px", { "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="w-[260px] h-screen fixed left-0 top-0 hidden md:block border-r border-outline-variant bg-surface-container-lowest">
+<div class="flex flex-col h-full py-standard-padding">
+<div class="px-gutter mb-section-gap flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dentistry</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm text-primary font-bold">BSDental v4</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Clinical Platform</p>
+</div>
+</div>
+<ul class="flex-1 px-compact-padding flex flex-col gap-1">
+<li><a class="flex items-center gap-3 px-standard-padding py-compact-padding rounded-lg bg-surface-container-low text-primary font-bold border-r-4 border-primary" href="#"><span class="material-symbols-outlined">dashboard</span>Dashboard</a></li>
+<li><a class="flex items-center gap-3 px-standard-padding py-compact-padding rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#"><span class="material-symbols-outlined">group</span>Patients</a></li>
+<li><a class="flex items-center gap-3 px-standard-padding py-compact-padding rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#"><span class="material-symbols-outlined">calendar_today</span>Agenda</a></li>
+<li><a class="flex items-center gap-3 px-standard-padding py-compact-padding rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#"><span class="material-symbols-outlined">medical_services</span>Clinical</a></li>
+<li><a class="flex items-center gap-3 px-standard-padding py-compact-padding rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#"><span class="material-symbols-outlined">business_center</span>Administration</a></li>
+<li><a class="flex items-center gap-3 px-standard-padding py-compact-padding rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#"><span class="material-symbols-outlined">campaign</span>CRM</a></li>
+<li><a class="flex items-center gap-3 px-standard-padding py-compact-padding rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#"><span class="material-symbols-outlined">leaderboard</span>Analytics</a></li>
+<li><a class="flex items-center gap-3 px-standard-padding py-compact-padding rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#"><span class="material-symbols-outlined">settings</span>Settings</a></li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-[260px] flex flex-col min-h-screen">
+<!-- TopAppBar (Mobile Only) -->
+<header class="md:hidden flex items-center justify-between h-16 px-gutter bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-40">
+<h1 class="font-headline-sm text-headline-sm text-primary font-bold">BSDental v4</h1>
+<button class="text-on-surface"><span class="material-symbols-outlined">menu</span></button>
+</header>
+<div class="p-container-margin flex-1">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-section-gap">
+<div>
+<h2 class="font-display-md text-display-md text-on-surface mb-1">Buenos días, Laura</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Resumen de Clínica Dental Sonríe • <span class="font-medium">23 de agosto de 2026</span></p>
+</div>
+<div class="flex gap-3">
+<select class="bg-surface-container-lowest border border-outline-variant text-on-surface rounded-lg px-standard-padding py-compact-padding font-body-sm focus:border-primary focus:ring-0">
+<option>Sucursal Principal</option>
+<option>Sucursal Norte</option>
+</select>
+<select class="bg-surface-container-lowest border border-outline-variant text-on-surface rounded-lg px-standard-padding py-compact-padding font-body-sm focus:border-primary focus:ring-0">
+<option>Hoy</option>
+<option>Esta semana</option>
+<option>Este mes</option>
+<option>Personalizado</option>
+</select>
+</div>
+</div>
+<!-- KPIs -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-section-gap">
+<!-- KPI 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-standard-padding border border-outline-variant">
+<div class="flex justify-between items-start mb-2">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Citas hoy</p>
+<div class="w-8 h-8 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">calendar_month</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<h3 class="font-display-lg text-display-lg text-on-surface font-data-tabular">32</h3>
+<span class="flex items-center text-primary text-xs font-medium"><span class="material-symbols-outlined text-[14px]">trending_up</span> +5%</span>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-standard-padding border border-outline-variant">
+<div class="flex justify-between items-start mb-2">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pacientes atendidos</p>
+<div class="w-8 h-8 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">person</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<h3 class="font-display-lg text-display-lg text-on-surface font-data-tabular">18</h3>
+<span class="flex items-center text-error text-xs font-medium"><span class="material-symbols-outlined text-[14px]">trending_down</span> -2%</span>
+</div>
+</div>
+<!-- KPI 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-standard-padding border border-outline-variant">
+<div class="flex justify-between items-start mb-2">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Cobrado neto hoy</p>
+<div class="w-8 h-8 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<h3 class="font-display-lg text-display-lg text-on-surface font-data-tabular text-data-tabular">RD$45,000</h3>
+<span class="flex items-center text-primary text-xs font-medium"><span class="material-symbols-outlined text-[14px]">trending_up</span> +12%</span>
+</div>
+</div>
+<!-- KPI 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-standard-padding border border-outline-variant">
+<div class="flex justify-between items-start mb-2">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Cuentas por cobrar</p>
+<div class="w-8 h-8 rounded-full bg-error-container/30 flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<h3 class="font-display-lg text-display-lg text-on-surface font-data-tabular text-data-tabular">RD$120,000</h3>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Main Column -->
+<div class="lg:col-span-2 flex flex-col gap-gutter">
+<!-- Agenda -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden flex flex-col">
+<div class="p-standard-padding border-b border-outline-variant flex justify-between items-center bg-surface">
+<h3 class="font-section-title text-section-title text-on-surface">Agenda de hoy</h3>
+<button class="text-primary font-label-caps text-label-caps hover:underline">Ver todo</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low font-label-caps text-label-caps text-on-surface-variant">
+<tr>
+<th class="px-standard-padding py-compact-padding font-semibold">Hora</th>
+<th class="px-standard-padding py-compact-padding font-semibold">Paciente</th>
+<th class="px-standard-padding py-compact-padding font-semibold">Motivo</th>
+<th class="px-standard-padding py-compact-padding font-semibold">Doctor</th>
+<th class="px-standard-padding py-compact-padding font-semibold">Estado</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm divide-y divide-outline-variant">
+<tr class="hover:bg-surface-container-low transition-colors h-[40px]">
+<td class="px-standard-padding font-data-tabular text-data-tabular">09:00 AM</td>
+<td class="px-standard-padding font-medium text-on-surface">Carlos Mendoza</td>
+<td class="px-standard-padding text-on-surface-variant">Limpieza Profunda</td>
+<td class="px-standard-padding text-on-surface-variant">Dra. Silva</td>
+<td class="px-standard-padding">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant">En espera</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-[40px]">
+<td class="px-standard-padding font-data-tabular text-data-tabular">09:30 AM</td>
+<td class="px-standard-padding font-medium text-on-surface">Ana Ramírez</td>
+<td class="px-standard-padding text-on-surface-variant">Extracción Tercer Molar</td>
+<td class="px-standard-padding text-on-surface-variant">Dr. Pérez</td>
+<td class="px-standard-padding">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary-container text-on-primary-container">Confirmada</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-[40px]">
+<td class="px-standard-padding font-data-tabular text-data-tabular">10:15 AM</td>
+<td class="px-standard-padding font-medium text-on-surface">Luis García</td>
+<td class="px-standard-padding text-on-surface-variant">Revisión Ortodoncia</td>
+<td class="px-standard-padding text-on-surface-variant">Dra. Silva</td>
+<td class="px-standard-padding">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-surface-container-high text-on-surface">Programada</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Chart Placeholder -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-standard-padding flex flex-col h-64">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-section-title text-section-title text-on-surface">Finanzas - Producción vs Cobrado</h3>
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+<div class="flex-1 bg-surface-container-low rounded flex items-center justify-center border border-dashed border-outline-variant">
+<p class="text-on-surface-variant font-body-sm">[ECharts Bar/Line Chart Placeholder]</p>
+</div>
+</div>
+</div>
+<!-- Side Column (Alerts) -->
+<div class="lg:col-span-1">
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-standard-padding flex flex-col h-full">
+<h3 class="font-section-title text-section-title text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-error">warning</span>
+                            Requieren atención
+                        </h3>
+<div class="flex flex-col gap-3">
+<!-- Alert 1 -->
+<div class="flex items-start gap-3 p-3 rounded-lg bg-error-container/20 border border-error-container">
+<span class="material-symbols-outlined text-error mt-0.5">account_balance_wallet</span>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface font-medium">8 cuentas vencidas</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs mt-0.5">Contactar pacientes para cobro.</p>
+</div>
+</div>
+<!-- Alert 2 -->
+<div class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-highest border border-outline-variant">
+<span class="material-symbols-outlined text-on-surface-variant mt-0.5">inventory_2</span>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface font-medium">4 materiales con stock bajo</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs mt-0.5">Revisar inventario general.</p>
+</div>
+</div>
+<!-- Alert 3 -->
+<div class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-highest border border-outline-variant">
+<span class="material-symbols-outlined text-on-surface-variant mt-0.5">science</span>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface font-medium">5 trabajos de laboratorio retrasados</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs mt-0.5">Hacer seguimiento con proveedor.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

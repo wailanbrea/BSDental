@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BSDental v4 - Acceso al sistema</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#ffffff",
+                    "inverse-primary": "#80d5cb",
+                    "tertiary-fixed": "#dbe1ff",
+                    "on-primary-container": "#a3faef",
+                    "on-secondary-fixed-variant": "#38485d",
+                    "on-tertiary-fixed-variant": "#003ea8",
+                    "primary-fixed-dim": "#80d5cb",
+                    "error": "#ba1a1a",
+                    "tertiary": "#0047bf",
+                    "surface-container": "#eaedff",
+                    "primary-container": "#0f766e",
+                    "on-primary-fixed": "#00201d",
+                    "inverse-surface": "#283044",
+                    "secondary-container": "#d0e1fb",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed-dim": "#b7c8e1",
+                    "surface-bright": "#faf8ff",
+                    "primary": "#005c55",
+                    "on-tertiary-container": "#e6e9ff",
+                    "surface-container-high": "#e2e7ff",
+                    "on-tertiary-fixed": "#00174b",
+                    "tertiary-container": "#1e5fe7",
+                    "on-error": "#ffffff",
+                    "tertiary-fixed-dim": "#b4c5ff",
+                    "surface-variant": "#dae2fd",
+                    "primary-fixed": "#9cf2e8",
+                    "surface": "#faf8ff",
+                    "surface-container-highest": "#dae2fd",
+                    "error-container": "#ffdad6",
+                    "on-surface": "#131b2e",
+                    "on-error-container": "#93000a",
+                    "on-secondary-fixed": "#0b1c30",
+                    "surface-container-low": "#f2f3ff",
+                    "outline": "#6e7977",
+                    "on-secondary-container": "#54647a",
+                    "secondary-fixed": "#d3e4fe",
+                    "secondary": "#505f76",
+                    "surface-dim": "#d2d9f4",
+                    "on-background": "#131b2e",
+                    "outline-variant": "#bdc9c6",
+                    "surface-tint": "#006a63",
+                    "on-primary-fixed-variant": "#00504a",
+                    "surface-container-lowest": "#ffffff",
+                    "background": "#faf8ff",
+                    "on-surface-variant": "#3e4947",
+                    "on-secondary": "#ffffff",
+                    "inverse-on-surface": "#eef0ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "compact-padding": "8px",
+                    "gutter": "16px",
+                    "standard-padding": "16px",
+                    "section-gap": "32px",
+                    "unit": "4px",
+                    "container-margin": "24px"
+            },
+            "fontFamily": {
+                    "section-title": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "display-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "data-tabular": ["Inter"]
+            },
+            "fontSize": {
+                    "section-title": ["18px", {"lineHeight": "26px", "fontWeight": "500"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "display-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "display-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "data-tabular": ["14px", {"fontWeight": "500"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface-container-low min-h-screen flex items-center justify-center p-gutter">
+<div class="w-full max-w-md bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0px_4px_12px_rgba(15,23,42,0.08)] overflow-hidden">
+<div class="p-section-gap flex flex-col items-center border-b border-outline-variant bg-surface">
+<div class="w-16 h-16 bg-primary-container text-on-primary-container rounded-full flex items-center justify-center mb-standard-padding">
+<span class="material-symbols-outlined text-display-md" data-icon="medical_services">medical_services</span>
+</div>
+<h1 class="font-display-md text-display-md text-primary font-bold">BSDental v4</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-unit text-center">Acceso al sistema</p>
+</div>
+<form class="p-section-gap space-y-standard-padding">
+<div class="flex flex-col space-y-unit">
+<label class="font-label-caps text-label-caps text-on-surface-variant" for="email">Correo Electrónico</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="mail">mail</span>
+</div>
+<input class="w-full pl-10 pr-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface transition-colors" id="email" placeholder="usuario@clinica.com" required="" type="email"/>
+</div>
+</div>
+<div class="flex flex-col space-y-unit">
+<label class="font-label-caps text-label-caps text-on-surface-variant" for="password">Contraseña</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="lock">lock</span>
+</div>
+<input class="w-full pl-10 pr-10 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface transition-colors" id="password" placeholder="••••••••" required="" type="password"/>
+<button class="absolute inset-y-0 right-0 pr-3 flex items-center text-on-surface-variant hover:text-primary transition-colors focus:outline-none" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between pt-unit">
+<div class="flex items-center">
+<input class="w-4 h-4 text-primary bg-surface-container-lowest border-outline-variant rounded focus:ring-primary focus:ring-2" id="remember" type="checkbox"/>
+<label class="ml-2 font-body-sm text-body-sm text-on-surface-variant cursor-pointer select-none" for="remember">
+                        Recordarme
+                    </label>
+</div>
+<a class="font-body-sm text-body-sm text-primary font-semibold hover:text-on-primary-fixed-variant transition-colors focus:outline-none focus:underline" href="#">
+                    ¿Olvidaste tu contraseña?
+                </a>
+</div>
+<div class="pt-container-margin">
+<button class="w-full bg-primary text-on-primary font-section-title text-section-title py-3 rounded-lg hover:bg-on-primary-fixed-variant active:bg-primary-fixed-dim transition-colors flex justify-center items-center gap-2 shadow-[0px_2px_4px_rgba(0,0,0,0.1)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface-container-lowest" type="submit">
+                    Iniciar sesión
+                    <span class="material-symbols-outlined text-[20px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</form>
+<div class="p-standard-padding bg-surface text-center border-t border-outline-variant">
+<p class="font-body-sm text-body-sm text-on-surface-variant opacity-75">
+                Plataforma Clínica Segura
+            </p>
+</div>
+</div>
+</body></html>

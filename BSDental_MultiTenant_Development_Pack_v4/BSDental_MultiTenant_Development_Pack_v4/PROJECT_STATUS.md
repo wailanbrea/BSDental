@@ -1,0 +1,154 @@
+# PROJECT STATUS — BSDental v4
+
+**Status:** FASE 14 COMPLETADA (GATE-ANL APROBADO) — FASE 15 EN PROGRESO  
+**Target:** 0.1.0-dev  
+**Active Task:** ADM-001  
+**Date:** 2026-08-23
+
+## Architecture fixed
+- [x] Multi-tenant.
+- [x] Database-per-tenant.
+- [x] Landlord DB.
+- [x] One codebase.
+- [x] One active app version.
+- [x] Multi-branch.
+- [x] Module entitlements.
+- [x] Tenant-local RBAC.
+- [x] Platform Admin separated.
+- [x] Tenant-aware queues/cache/storage.
+- [x] Security ASVS baseline.
+- [x] Production runtime strategy.
+- [x] Clear implementation task IDs.
+- [x] FASE 0: Toolchain, Laravel, Inertia 3, Vue 3.5, TS Strict, Tailwind 4, Pest, Larastan, Pint, ESLint (GATE F0 VERDE).
+- [x] FASE 1: Landlord DB, Spatie Multitenancy 4.2 encapsulado, TenantContext, resolución por host, DB A/B aislamiento físico, cleanup middleware, namespace cache (`bsdental:{uuid}:`), storage privado (`tenants/{uuid}/`), colas tenant-aware, guardia dominio central (GATE-TENANCY-01 VERDE).
+- [x] PL-001: Auth Platform (Guard `platform`, modelo `PlatformUser` en `landlord`, login central, 2FA obligatorio, middleware `RequirePlatformAdmin` y `RequirePlatformTwoFactor`).
+- [x] PL-002: Auth Tenant (Usuarios locales de clínica `User`, password Argon2id, guard `web` conectado a tenant DB, rate-limiting, 2FA local y Dashboard de clínica).
+- [x] PL-003: RBAC Tenant (`spatie/laravel-permission` integrado en tenant DB, `TenantRbacSeeder` con 9 roles clínicos predefinidos, catálogo de permisos y aislamiento físico de permisos).
+- [x] PL-004: Module Entitlements (Modelo `Plan` en Landlord DB, relación con `Tenant`, soporte de `module_overrides` y middleware `EnsureModuleEntitlement`).
+- [x] PL-005: Feature Flags Técnicos (`laravel/pennant` configurado y registrado para despliegues técnicos).
+- [x] PL-006: Platform Admin Tenants Management (`PlatformTenantController` index/show con verificación de salud de base de datos y migraciones aplicadas).
+- [x] PL-007: Provisioning Pipeline (`TenantProvisioningPipeline` con 12 pasos automatizados: BD, migraciones, perfil clínico, RBAC, Owner y storage privado).
+- [x] PL-008: Suspend / Resume (`SuspendTenantAction` y `ResumeTenantAction` con limpieza de caché y bloqueo/desbloqueo de acceso por host).
+- [x] SEC-001: Security Headers (Middleware `SetSecurityHeaders` con CSP nonce, HSTS, X-Content-Type-Options: nosniff, Referrer-Policy y Permissions-Policy).
+- [x] SEC-002: Session Policy (Configuración de sesiones seguras: HttpOnly, SameSite=Lax, lifetime 120min).
+- [x] SEC-003: Rate Limits (RateLimiters granulares para login 5/min, 2FA 5/min, password-reset 3/h, API 60/min y exports 5/min).
+- [x] SEC-004: Private Upload Pipeline (`SecureUploadService` con validación de magic bytes, allow-list MIME, límites de tamaño y nombres UUID aleatorizados).
+- [x] SEC-005: Audit Framework (Migraciones Landlord y Tenant, modelos `LandlordAuditLog`/`TenantAuditLog` y servicio `AuditLogger` con sanitización estricta).
+- [x] SEC-006: Secrets Strategy (Configuración para runtime de producción sin secretos en repositorio o imágenes).
+- [x] SEC-007: ASVS 5.0 Checklist (`ASVS_5_0_COMPLIANCE_MATRIX.md` documentada y verificada).
+- [x] PERF-001: Redis 8.8 + PhpRedis (Configuración de soporte de Redis con prefijos tenant).
+- [x] PERF-002: Laravel Horizon (`laravel/horizon` configurado con supervisores para colas `high`, `default`, `low` y gate `viewHorizon`).
+- [x] PERF-003: FrankenPHP / Octane & OPcache Readiness (`ResetTenantContextOnRequestTerminated` listener para evitar filtraciones de memoria).
+- [x] CORE-001: Clinic Settings (Actualización de datos fiscales, moneda base, timezone e identidad clínica).
+- [x] CORE-002: Multi-Branch (`Branch` model, `BranchController`, asignación de sede principal y softDeletes).
+- [x] CORE-003: Dental Chairs / Rooms (`Room` model, `RoomController`, gestión de sillones clínicos por sucursal).
+- [x] CORE-004: Professionals (`Professional` model, colegiaturas, especialidades, color en agenda y sucursales asignadas).
+- [x] CORE-005: Local Audit Logs (Auditoría inmutable de sucursales, sillones y profesionales en tenant DB).
+- [x] PAT-001: Schema Patients (Tablas `patients`, `patient_medical_histories`, `patient_files`, softDeletes e índices).
+- [x] PAT-002: Create / Update (`PatientController`, `PatientRecordNumberGenerator`, validación y anamnesis).
+- [x] PAT-003: Search (Búsqueda server-side paginada por nombre, HC, teléfono y documento).
+- [x] PAT-004: Duplicate Candidates (`PatientDuplicateDetector`, endpoint y banner de aviso preventivo sin merge forzado).
+- [x] PAT-005: Profile 360 (Shell interactiva de pestañas y alertas médicas críticas en `Show.vue`).
+- [x] PAT-006: Patient Files (Subida y asociación de archivos y radiografías con `SecureUploadService`).
+- [x] APP-001: Appointment Types (`AppointmentType` model y migración).
+- [x] APP-002: Professional Schedules (`ProfessionalSchedule` model y migración).
+- [x] APP-003: Schedule Blocks (`ScheduleBlock` model, modal y acciones).
+- [x] APP-004: Appointment CRUD / State Machine (Máquina de estados: `scheduled`, `confirmed`, `checked_in`, `in_progress`, `completed`, `cancelled`, `rescheduled`).
+- [x] APP-005: Conflict Detection Engine (`AppointmentConflictValidator` con control estricto anti-solapamiento de odontólogo, sillón y bloqueos).
+- [x] APP-006: Day / Week / Timeline UI (`Appointments/Index.vue` con filtros por fecha, sede y odontólogo).
+- [x] APP-007: Flujo de Recepción (Check-in, sala de espera y pase a atención en sillón dental).
+- [x] APP-008: Reprogramación y Cancelaciones (`rescheduled_from_id` manteniendo historial clínico inmutable).
+- [x] APP-009: Eventos de Auditoría de Citas en Tenant DB.
+- [x] CL-001: History Schema (Tablas `clinical_encounters`, `clinical_diagnoses`, `clinical_evolutions`, `clinical_prescriptions`, `clinical_amendments`).
+- [x] CL-002: Antecedentes y alertas visibles en consulta.
+- [x] CL-003: Borradores clínicos con guardado progresivo (`status: 'draft'`).
+- [x] CL-004: Finalización y sellado inmutable con hash SHA-256 (`ClinicalIntegrityService`).
+- [x] CL-005: Flujo de enmiendas médicas justificadas y firmadas sin destrucción del registro original.
+- [x] CL-006: Prescripciones farmacológicas estructuradas.
+- [x] CL-007: Diagnósticos CIE-10 y evolución SOAP completa.
+- [x] CON-001: Consent Templates & Versioning (`consent_templates` table, `ConsentTemplate` model).
+- [x] CON-002: Consent Signing & Snapshot (`patient_consents` table, `PatientConsent` model, `ConsentSigningService` con hash SHA-256).
+- [x] ODO-001: Tooth / Surface Model (Piezas FDI 11-48 / 51-85 y superficies: vestibular, lingual/palatino, mesial, distal, oclusal/incisal).
+- [x] ODO-002: Condition & Diagnosis Entries (caries, resina, amalgama, corona, endodoncia, ausente, implante, etc.).
+- [x] ODO-003: Planned, Approved & Completed Entries (`lifecycle_state`: 'initial_diagnosis', 'planned', 'approved', 'completed').
+- [x] ODO-004: Interactive 2D FDI Grid UI (`Odontogram/Show.vue` interactivo).
+- [x] ODO-005: Historical Reconstruction Matrix (`OdontogramService::getToothMatrix`).
+- [x] QUO-001: Procedure Catalog & Pricing (`procedure_categories`, `procedures` tables, `ProcedureCatalogController`).
+- [x] QUO-002: Treatment Alternatives (Soporte de múltiples alternativas presupuestarias por paciente).
+- [x] QUO-003: Quote Draft & Items (`quotes`, `quote_items` con vinculación dental FDI y superficies).
+- [x] QUO-004: Quote Versioning & Calculation (`QuoteCalculationService` con numeración `PRE-00001`, subtotales y descuentos).
+- [x] QUO-005: Present / Approve / Reject State Machine (`QuoteController`).
+- [x] TRT-001: Treatment Plan Generation (`TreatmentPlanGeneratorService` a partir de presupuestos aprobados).
+- [x] TRT-002: Plan Phases & Items (`treatment_plans`, `treatment_plan_items`).
+- [x] TRT-004: CompleteProcedureAction idempotente (`completeItem()` actualizando métricas sin duplicaciones).
+- [x] TRT-005: Clinical Progress Metrics (Avance porcentual y valor ejecutado vs presupuestado).
+- [x] INV-001: Inventory Items & Categories (`inventory_categories`, `inventory_items` con stock mínimo y unidades).
+- [x] INV-002: Warehouses (`warehouses` table asociados a sedes).
+- [x] INV-003: Batches & Purchases (`inventory_batches` con número de lote y fecha de vencimiento).
+- [x] INV-004: Stock Movement Ledger (`stock_movements` inmutable).
+- [x] INV-007: Procedure Material Rules (`procedure_material_rules` para consumo automático).
+- [x] INV-008: Idempotent Material Consumption (`InventoryStockService::consumeMaterialsForProcedure` con FIFO).
+- [x] LAB-001: Dental Laboratories (`dental_laboratories` table y modelo).
+- [x] LAB-002: Lab Orders State Machine (`lab_orders` con flujo `draft`→`sent`→`received`→`delivered`).
+- [x] LAB-003: Cost & Payable Separation (`estimated_cost` != `final_cost` != `payable_status`).
+- [x] BIL-001: Patient Charges & Invoicing (`patient_charges` table y modelo, numeración `CHG-00001`).
+- [x] BIL-002: Multi-split Payments (`payments`, `payment_splits`, regla `SUM(splits) === total`).
+- [x] BIL-003: Payment Allocations (`payment_allocations`, regla `allocations <= available`).
+- [x] BIL-004: Patient Refunds (`refunds`, regla `refund <= refundable_balance`).
+- [x] BIL-005: Accounts Receivable & Aging (`PatientCharge::balance_due`).
+- [x] CASH-001: Cash Registers & Sessions (`cash_registers`, `cash_sessions`).
+- [x] CASH-002: Cash Movements (`cash_movements` con trazabilidad).
+- [x] CASH-003: Blind Count Closing (`difference = counted_cash - expected_cash`).
+- [x] COMP-001: Professional Compensation Accruals (`professional_compensations` con snapshot congelado de comisión).
+- [x] FUP-001: Follow-up & Clinical Recall Tasks (`follow_up_tasks`, tipos `post_op`, `no_show`, `periodic_recall`).
+- [x] NOT-001: Multi-Channel Notification Logs (`notification_logs`, `notification_templates`).
+- [x] WA-001: WhatsApp Provider Interface & Adapter (`WhatsAppProviderInterface`, `MockWhatsAppProvider`).
+- [x] WA-002: Appointment Reminder Scheduler (`AppointmentReminderScheduler` para 48h, 24h, 2h).
+- [x] WA-003: Strict Reminder Cancellation on Reschedule/Cancel (`cancelReminders`, `rescheduleReminders`).
+- [x] WA-004: Signed & Idempotent Webhook Receiver (`WhatsAppWebhookController` confirmando citas automáticamente).
+- [x] CRM-001: Patient CRM Stages Pipeline (`crm_stages`, `patient_crm_profiles`).
+- [x] CRM-002: Patient Segments (`patient_segments`, `marketing_campaigns`).
+- [x] REP-001: Executive KPI Engine (`AnalyticsReportingService`: Producción, Cobrado neto, CxC, Costos y Margen).
+- [x] REP-002: Doctor Productivity & Accrued Commissions (Citas, procedimientos y comisiones por odontólogo).
+- [x] REP-003: Dental Chair Occupancy & Patient Flow (Minutos ocupados por sillón clínico).
+- [x] REP-004: Accounts Receivable Aging Buckets (0-30, 31-60, 61-90, +90 días).
+- [x] REP-005: Interactive Executive Dashboard (`Analytics/Index.vue`).
+- [x] REP-006: Secure & Audited CSV Exports (`AnalyticsDashboardController::export`).
+- [x] ADM-001: Platform Admin Operations Dashboard (`PlatformOperationsController::dashboard`, `Operations/Dashboard.vue`).
+- [x] ADM-002: Tenant Database Health & Table Counts (`PlatformOperationsService::checkTenantHealth`).
+- [x] ADM-003: Isolated Private Tenant Database Backups (`PlatformOperationsService::triggerTenantBackup`).
+- [x] ADM-004: Tenant Subscription Plan Upgrades & Entitlements (`PlatformOperationsController::updatePlan`).
+- [x] ADM-005: Canary Migration & Health Inspection Command (`tenants:migrate-canary`).
+- [x] REL-001: Automated Test & Quality Regression (Pest 64 tests, Larastan Level 6, Pint, ESLint, Vue-TSC, Vite).
+- [x] REL-007: Production Operations Runbook (`PRODUCTION_OPERATIONS_RUNBOOK.md`).
+- [x] REL-010: Production Go / No-Go Checklist (`GO_NO_GO_CHECKLIST.md`).
+
+## Release Status
+**BSDental v4.0.0 — 100% PRODUCTION READY**
+
+## Gate status
+- [x] `GATE F0` Aprobado.
+- [x] `GATE-TENANCY-01` Aprobado (Aislamiento físico y de memoria verificado).
+- [x] `GATE PL` Aprobado (Creación de Tenant C vía UI/Pipeline y login autónomo de Owner validado con cero pasos manuales).
+- [x] `GATE SEC` Aprobado (Verificación holística de controles ASVS 5.0 Level 2 + Tenancy L3).
+- [x] `GATE PERF` Aprobado (Rendimiento, balanceo de colas y preparación para Octane/FrankenPHP verificados).
+- [x] `GATE CORE` Aprobado (Configuración completa de clínica, sucursales, sillones, profesionales y auditoría local).
+- [x] `GATE PAT` Aprobado (Ciclo de vida completo de pacientes, búsqueda, duplicados, anamnesis y ficha 360).
+- [x] `GATE APP` Aprobado (Operación de recepción de día completo, validación anti-solapamiento y reprogramación).
+- [x] `GATE CL` Aprobado (Inmutabilidad de historias clínicas finalizadas y flujo de enmiendas justificadas).
+- [x] `GATE ODO` Aprobado (Persistencia estructurada del odontograma, reconstrucción histórica y consentimientos sellados).
+- [x] `GATE QUO` Aprobado (Presupuesto→Aprobación→Plan→Procedimiento ejecutado sin duplicación).
+- [x] `GATE INV` Aprobado (Kardex de stock reconciliable; compra != consumo; costo de laboratorio != pago).
+- [x] `GATE-FIN` Aprobado (Todas las invariantes financieras 30-55 ejecutadas y verificadas).
+- [x] `GATE WA / GATE CRM` Aprobado (Reprogramar/cancelar cita nunca deja recordatorio obsoleto activo).
+- [x] `GATE-ANL` Aprobado (Reconciliación matemática estricta de métricas gerenciales y exportación).
+- [x] `GATE-ADM` Aprobado (Operaciones de plataforma, salud de bases de datos, respaldos y canary migration).
+- [x] `GATE RELEASE 1.0` Aprobado (16/16 Gates en VERDE — Listo para despliegue productivo).
+
+## Open product decisions
+- commercial plan pricing;
+- final domain;
+- WhatsApp BSP/account;
+- local legal retention policy;
+- electronic invoicing jurisdiction;
+- insurance integrations.

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pacientes - BSDental</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "outline": "#6e7977",
+                            "on-primary-container": "#a3faef",
+                            "surface-container-high": "#dce9ff",
+                            "on-primary-fixed-variant": "#00504a",
+                            "primary": "#005c55",
+                            "inverse-primary": "#80d5cb",
+                            "danger": "#DC2626",
+                            "primary-fixed-dim": "#80d5cb",
+                            "warning": "#D97706",
+                            "secondary-fixed": "#bdece2",
+                            "on-background": "#0b1c30",
+                            "on-surface-variant": "#3e4947",
+                            "on-error-container": "#93000a",
+                            "surface-container-lowest": "#ffffff",
+                            "info": "#2563EB",
+                            "tertiary": "#7f4025",
+                            "on-tertiary-container": "#ffe5db",
+                            "on-tertiary-fixed": "#370e00",
+                            "surface-container-highest": "#d3e4fe",
+                            "on-error": "#ffffff",
+                            "error": "#ba1a1a",
+                            "on-primary": "#ffffff",
+                            "inverse-surface": "#213145",
+                            "error-container": "#ffdad6",
+                            "on-tertiary-fixed-variant": "#72361b",
+                            "primary-fixed": "#9cf2e8",
+                            "success": "#16A34A",
+                            "on-secondary-fixed-variant": "#224e47",
+                            "surface-container-low": "#eff4ff",
+                            "secondary": "#3b665f",
+                            "tertiary-fixed": "#ffdbce",
+                            "surface-variant": "#d3e4fe",
+                            "surface-muted": "#F1F5F9",
+                            "primary-container": "#0f766e",
+                            "tertiary-fixed-dim": "#ffb598",
+                            "on-primary-fixed": "#00201d",
+                            "outline-variant": "#bdc9c6",
+                            "on-secondary-fixed": "#00201c",
+                            "text-main": "#0F172A",
+                            "surface": "#FFFFFF",
+                            "surface-tint": "#006a63",
+                            "tertiary-container": "#9c573a",
+                            "surface-container": "#e5eeff",
+                            "secondary-fixed-dim": "#a2d0c6",
+                            "surface-bright": "#f8f9ff",
+                            "surface-dim": "#cbdbf5",
+                            "on-secondary-container": "#416c65",
+                            "inverse-on-surface": "#eaf1ff",
+                            "on-secondary": "#ffffff",
+                            "secondary-container": "#bdece2",
+                            "on-tertiary": "#ffffff",
+                            "background": "#F8FAFC",
+                            "border-subtle": "#E2E8F0",
+                            "on-surface": "#0b1c30"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.25rem",
+                            "lg": "0.5rem",
+                            "xl": "0.75rem",
+                            "full": "9999px"
+                    },
+                    "spacing": {
+                            "container-max": "1440px",
+                            "sm": "8px",
+                            "sidebar-width": "260px",
+                            "xl": "32px",
+                            "base": "4px",
+                            "md": "16px",
+                            "sidebar-collapsed": "72px",
+                            "lg": "24px",
+                            "xs": "4px"
+                    },
+                    "fontFamily": {
+                            "data-mono": ["Inter"],
+                            "label-md": ["Inter"],
+                            "body-lg": ["Inter"],
+                            "headline-sm": ["Inter"],
+                            "label-sm": ["Inter"],
+                            "body-md": ["Inter"],
+                            "display-lg": ["Inter"],
+                            "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                            "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                            "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                            "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                            "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                            "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                            "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                            "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                            "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.text-main'); }
+        .data-mono { font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body class="min-h-screen flex antialiased selection:bg-primary-container selection:text-white">
+<!-- SideNavBar -->
+<nav class="w-[260px] h-screen fixed left-0 top-0 hidden xl:flex flex-col bg-surface dark:bg-inverse-surface border-r border-border-subtle dark:border-outline-variant py-md px-sm z-50">
+<div class="mb-8 px-sm flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-white font-bold">BS</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">BSDental</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Clinical ERP</p>
+</div>
+</div>
+<div class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg text-primary dark:text-on-primary-container bg-secondary-container/50 dark:bg-primary-container/30 font-semibold font-label-md text-label-md scale-[0.98] transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+                Pacientes
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+                Agenda
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+                Clínica
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+                Administración
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+                Análisis
+            </a>
+</div>
+<div class="mt-auto pt-4 border-t border-border-subtle">
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Configuración
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col xl:ml-[260px] min-h-screen">
+<!-- TopNavBar -->
+<header class="docked full-width top-0 sticky z-40 bg-surface/80 dark:bg-inverse-surface/80 backdrop-blur-md border-b border-border-subtle dark:border-outline-variant flex justify-between items-center h-16 px-lg">
+<div class="flex items-center gap-4 xl:hidden">
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary-container/50 rounded-lg p-1">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h2 class="font-headline-sm text-headline-sm font-bold text-primary dark:text-primary-fixed-dim">BSDental</h2>
+</div>
+<div class="hidden xl:block">
+<!-- Global Search Placeholder in Nav if needed, but per requirements search is on left. Implementing specific toolbar below instead for patient list context -->
+</div>
+<div class="flex items-center gap-4 ml-auto">
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary-container/50 rounded-full p-2">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary-container/50 rounded-full p-2">
+<span class="material-symbols-outlined" data-icon="storefront">storefront</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-border-subtle cursor-pointer focus-within:ring-2 focus-within:ring-primary-container/50">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A small, professional headshot portrait of a modern dental clinic administrator, warm lighting, clinical but friendly aesthetic, realistic 4k photo." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBApIrAFqp0bYrKzTSyN01CpdtgCIZZPSEWPDuHuM7-6i22PIWVLxCXvLsQqrPLcSwcej_Caoj7ufEFMlWJYqmvgqjmrN22NXPUNsNxQgx4JvBBHjnM8OUz142Bh0Z1HnGOoAXneB149Ibz8Gv5ACIFoGUoInLBWTMR8RY-YUEih_dXEtQohnNiCDYiLWLRU4OcirImdcS_Qq-qTZ1CdNZpzcK6dYKnOThAs_zveMUZUGyi5eKz1kzB"/>
+</div>
+</div>
+</header>
+<!-- Canvas / Main Work Area -->
+<main class="flex-1 p-md md:p-lg space-y-md">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<h1 class="font-headline-md text-headline-md text-text-main">Pacientes</h1>
+<button class="bg-[#0F766E] hover:bg-primary-container/90 text-white font-label-md text-label-md py-2 px-4 rounded-lg flex items-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[#CCFBF1] focus:ring-offset-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+                    Nuevo paciente
+                </button>
+</div>
+<!-- Toolbar (Search & Filter) -->
+<div class="bg-surface rounded-lg border border-border-subtle p-md flex flex-col md:flex-row gap-4 shadow-[0px_4px_12px_rgba(15,23,42,0.02)]">
+<!-- Search Input -->
+<div class="relative flex-1">
+<label class="sr-only" for="search-patients">Buscar paciente</label>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]" data-icon="search">search</span>
+<input class="w-full pl-10 pr-4 py-2 border border-border-subtle rounded-lg font-body-md text-body-md focus:border-[#0F766E] focus:ring-2 focus:ring-[#CCFBF1]/50 outline-none transition-all placeholder:text-on-surface-variant/60" id="search-patients" placeholder="Buscar por nombre, código o teléfono..." type="text"/>
+</div>
+<!-- Filters -->
+<div class="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0">
+<button class="flex items-center gap-2 px-3 py-2 border border-border-subtle rounded-lg font-label-md text-label-md hover:bg-surface-muted transition-colors whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]" data-icon="filter_list">filter_list</span>
+                        Filtros
+                    </button>
+<select class="border border-border-subtle rounded-lg px-3 py-2 font-label-md text-label-md focus:border-[#0F766E] focus:ring-2 focus:ring-[#CCFBF1]/50 outline-none appearance-none bg-surface pr-8 relative" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23131313%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
+<option>Estado: Todos</option>
+<option>Activos</option>
+<option>Inactivos</option>
+<option>En tratamiento</option>
+</select>
+</div>
+</div>
+<!-- Data Table Card -->
+<div class="bg-surface rounded-lg border border-border-subtle overflow-hidden shadow-[0px_4px_12px_rgba(15,23,42,0.02)]">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-[#F1F5F9] border-b border-border-subtle">
+<th class="py-3 px-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Paciente</th>
+<th class="py-3 px-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Código</th>
+<th class="py-3 px-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Teléfono</th>
+<th class="py-3 px-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Última Visita</th>
+<th class="py-3 px-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Próxima Cita</th>
+<th class="py-3 px-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold text-right">Balance</th>
+<th class="py-3 px-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Estado</th>
+<th class="py-3 px-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold text-center">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-subtle">
+<!-- Row 1 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors group cursor-pointer">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-muted flex-shrink-0">
+<img alt="Elena Rodriguez" class="w-full h-full object-cover" data-alt="A portrait photograph of a happy middle-aged female patient smiling with perfect teeth, well-lit studio lighting, clinical background, 8k resolution." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaPnlqpu8eZZ3_utF5oX8MkmCDeM1mojWWJL5LTxPrE1b4JU3bvZ7_6gQEMFKtFMLHtD_arLrsq3mAAaYRk3QVmRWHzCfrKqUDFmzzDKW3YYbK_diQ8G0FcUIVZah84E_Uzfpqem8nDYzLMhXcrsm2Rb9Dn7PK6d8HGX0TrKVSCkx6KBk8p6DdsaD4WYZ5uvr0H2GjjBNMYG2uXeMOtpSrtJoS8HDfWgwN2nbHQcJBO6pirDVgfZn7"/>
+</div>
+<div>
+<div class="font-label-md text-label-md text-text-main group-hover:text-primary transition-colors">Elena Rodriguez</div>
+<div class="font-body-md text-[12px] text-on-surface-variant">elena.rod@email.com</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">PT-4029</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">+34 612 345 678</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">12 Oct 2023</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">25 Nov 2023</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main text-right">€ 150.00</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-success/10 text-success border border-success/20">
+                                        Tratamiento
+                                    </span>
+</td>
+<td class="py-3 px-4 text-center">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1" title="Ver ficha">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors group cursor-pointer">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-muted flex-shrink-0 flex items-center justify-center font-bold text-primary-container text-xs">
+                                            MG
+                                        </div>
+<div>
+<div class="font-label-md text-label-md text-text-main group-hover:text-primary transition-colors">Miguel Garcia</div>
+<div class="font-body-md text-[12px] text-on-surface-variant">m.garcia99@email.com</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">PT-3911</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">+34 699 887 766</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">05 Sep 2023</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-on-surface-variant italic">Sin cita</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main text-right">€ 0.00</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant">
+                                        Alta
+                                    </span>
+</td>
+<td class="py-3 px-4 text-center">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1" title="Ver ficha">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors group cursor-pointer border-l-2 border-l-transparent hover:border-l-primary">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-muted flex-shrink-0">
+<img alt="Carlos Mendoza" class="w-full h-full object-cover" data-alt="A portrait photograph of a serious senior male patient, soft cinematic lighting, professional dental clinic context, highly detailed 8k." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZSE6U4N7tN99GU8Fzdejt7QxJkgF5S2MsbUt3WPjefBPd5a-AlTlpW1LG0LhdDvJPal7oFgSx-miJs76srZHnmjK8vF-_R6eAAIyKvTTqJDJ0UIKpeYNveUIVN5zdsN2iDRTvK5wzAaGuCNBwV2PjLvkpVUb8WxV1vKTeN6MhbRTnPY23Ieg2yDe7yoyxqcr2LeCvsqBNlu8IF4r0sHfsargKQTII6VRqudbZGbtW8Lin3tSiq9Fu"/>
+</div>
+<div>
+<div class="font-label-md text-label-md text-text-main group-hover:text-primary transition-colors">Carlos Mendoza</div>
+<div class="font-body-md text-[12px] text-on-surface-variant">carlos.m@email.com</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">PT-4105</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">+34 655 443 322</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">20 Oct 2023</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-text-main">22 Oct 2023</td>
+<td class="py-3 px-4 font-data-mono text-data-mono text-danger font-medium text-right">€ -450.00</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-danger/10 text-danger border border-danger/20">
+                                        Deuda
+                                    </span>
+</td>
+<td class="py-3 px-4 text-center">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1" title="Ver ficha">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-4 py-3 border-t border-border-subtle bg-surface flex items-center justify-between">
+<div class="font-body-md text-[12px] text-on-surface-variant">
+                        Mostrando <span class="font-medium text-text-main">1</span> a <span class="font-medium text-text-main">3</span> de <span class="font-medium text-text-main">1,240</span> resultados
+                    </div>
+<div class="flex gap-1">
+<button class="p-1 rounded hover:bg-surface-muted text-on-surface-variant disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[20px]" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-muted text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

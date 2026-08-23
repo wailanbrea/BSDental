@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Perfil 360 del Paciente - BSDental v4</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Custom Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+                "secondary": "#505f76",
+                "on-surface": "#131b2e",
+                "surface-variant": "#dae2fd",
+                "inverse-on-surface": "#eef0ff",
+                "background": "#faf8ff",
+                "on-background": "#131b2e",
+                "surface-container-high": "#e2e7ff",
+                "surface": "#faf8ff",
+                "surface-tint": "#006a63",
+                "surface-container-low": "#f2f3ff",
+                "error": "#ba1a1a",
+                "primary-container": "#0f766e",
+                "on-primary-fixed-variant": "#00504a",
+                "on-secondary": "#ffffff",
+                "surface-dim": "#d2d9f4",
+                "surface-container": "#eaedff",
+                "on-primary": "#ffffff",
+                "surface-bright": "#faf8ff",
+                "primary-fixed-dim": "#80d5cb",
+                "on-secondary-fixed": "#0b1c30",
+                "on-secondary-fixed-variant": "#38485d",
+                "secondary-container": "#d0e1fb",
+                "primary": "#005c55",
+                "on-error-container": "#93000a",
+                "tertiary": "#0047bf",
+                "surface-container-lowest": "#ffffff",
+                "tertiary-fixed": "#dbe1ff",
+                "secondary-fixed-dim": "#b7c8e1",
+                "on-error": "#ffffff",
+                "on-tertiary": "#ffffff",
+                "tertiary-fixed-dim": "#b4c5ff",
+                "primary-fixed": "#9cf2e8",
+                "on-primary-fixed": "#00201d",
+                "surface-container-highest": "#dae2fd",
+                "on-tertiary-container": "#e6e9ff",
+                "outline": "#6e7977",
+                "inverse-surface": "#283044",
+                "tertiary-container": "#1e5fe7",
+                "error-container": "#ffdad6",
+                "outline-variant": "#bdc9c6",
+                "inverse-primary": "#80d5cb",
+                "on-secondary-container": "#54647a",
+                "on-surface-variant": "#3e4947",
+                "secondary-fixed": "#d3e4fe",
+                "on-tertiary-fixed-variant": "#003ea8",
+                "on-tertiary-fixed": "#00174b",
+                "on-primary-container": "#a3faef"
+            },
+            borderRadius: {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+            },
+            spacing: {
+                "standard-padding": "16px",
+                "unit": "4px",
+                "section-gap": "32px",
+                "compact-padding": "8px",
+                "container-margin": "24px",
+                "gutter": "16px"
+            },
+            fontFamily: {
+                "data-tabular": ["Inter"],
+                "display-lg": ["Inter"],
+                "body-md": ["Inter"],
+                "display-md": ["Inter"],
+                "label-caps": ["Inter"],
+                "body-sm": ["Inter"],
+                "headline-sm": ["Inter"],
+                "section-title": ["Inter"]
+            },
+            fontSize: {
+                "data-tabular": ["14px", { fontWeight: "500" }],
+                "display-lg": ["30px", { lineHeight: "38px", letterSpacing: "-0.02em", fontWeight: "600" }],
+                "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                "display-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+                "label-caps": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600" }],
+                "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                "section-title": ["18px", { lineHeight: "26px", fontWeight: "500" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        /* Scrollbar hiding for tabs */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen flex w-full overflow-x-hidden">
+<!-- Shared Component: SideNavBar -->
+<nav class="bg-surface-container-lowest dark:bg-inverse-surface w-[260px] h-screen fixed left-0 top-0 hidden md:block border-r border-outline-variant dark:border-outline z-50">
+<div class="flex flex-col h-full py-standard-padding">
+<!-- Brand -->
+<div class="px-container-margin mb-section-gap flex items-center gap-compact-padding">
+<div class="w-8 h-8 rounded-DEFAULT bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm text-primary dark:text-inverse-primary font-bold">BSDental v4</h1>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Clinical Platform</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<ul class="flex flex-col gap-unit px-compact-padding flex-grow">
+<!-- Dashboard -->
+<li>
+<a class="flex items-center gap-standard-padding px-standard-padding py-compact-padding rounded-DEFAULT text-on-surface-variant dark:text-on-secondary-container hover:bg-surface-container-high dark:hover:bg-on-secondary-fixed-variant transition-colors scale-95 active:scale-90 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+</li>
+<!-- Patients (ACTIVE) -->
+<li>
+<a class="flex items-center gap-standard-padding px-standard-padding py-compact-padding rounded-DEFAULT text-primary dark:text-inverse-primary font-bold border-r-4 border-primary dark:border-inverse-primary bg-surface-container-low dark:bg-surface-container-highest transition-colors scale-95 active:scale-90 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span>Patients</span>
+</a>
+</li>
+<!-- Agenda -->
+<li>
+<a class="flex items-center gap-standard-padding px-standard-padding py-compact-padding rounded-DEFAULT text-on-surface-variant dark:text-on-secondary-container hover:bg-surface-container-high dark:hover:bg-on-secondary-fixed-variant transition-colors scale-95 active:scale-90 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span>Agenda</span>
+</a>
+</li>
+<!-- Clinical -->
+<li>
+<a class="flex items-center gap-standard-padding px-standard-padding py-compact-padding rounded-DEFAULT text-on-surface-variant dark:text-on-secondary-container hover:bg-surface-container-high dark:hover:bg-on-secondary-fixed-variant transition-colors scale-95 active:scale-90 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span>Clinical</span>
+</a>
+</li>
+<!-- Administration -->
+<li>
+<a class="flex items-center gap-standard-padding px-standard-padding py-compact-padding rounded-DEFAULT text-on-surface-variant dark:text-on-secondary-container hover:bg-surface-container-high dark:hover:bg-on-secondary-fixed-variant transition-colors scale-95 active:scale-90 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">business_center</span>
+<span>Administration</span>
+</a>
+</li>
+<!-- CRM -->
+<li>
+<a class="flex items-center gap-standard-padding px-standard-padding py-compact-padding rounded-DEFAULT text-on-surface-variant dark:text-on-secondary-container hover:bg-surface-container-high dark:hover:bg-on-secondary-fixed-variant transition-colors scale-95 active:scale-90 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">campaign</span>
+<span>CRM</span>
+</a>
+</li>
+<!-- Analytics -->
+<li>
+<a class="flex items-center gap-standard-padding px-standard-padding py-compact-padding rounded-DEFAULT text-on-surface-variant dark:text-on-secondary-container hover:bg-surface-container-high dark:hover:bg-on-secondary-fixed-variant transition-colors scale-95 active:scale-90 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">leaderboard</span>
+<span>Analytics</span>
+</a>
+</li>
+</ul>
+<!-- Settings (Bottom) -->
+<div class="px-compact-padding mt-auto">
+<a class="flex items-center gap-standard-padding px-standard-padding py-compact-padding rounded-DEFAULT text-on-surface-variant dark:text-on-secondary-container hover:bg-surface-container-high dark:hover:bg-on-secondary-fixed-variant transition-colors scale-95 active:scale-90 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+</div>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col min-w-0 md:ml-[260px]">
+<!-- Shared Component: TopNavBar -->
+<header class="bg-surface dark:bg-surface-dim docked full-width top-0 h-16 sticky z-40 border-b border-outline-variant dark:border-outline flex justify-between items-center w-full px-gutter">
+<!-- Mobile Menu Trigger & Search -->
+<div class="flex items-center gap-standard-padding flex-1">
+<button class="md:hidden text-on-surface-variant p-compact-padding rounded-DEFAULT hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<!-- Search Bar -->
+<div class="relative hidden sm:flex w-full max-w-md items-center">
+<span class="material-symbols-outlined absolute left-compact-padding text-on-surface-variant pointer-events-none">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-full py-compact-padding pl-[36px] pr-standard-padding font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-shadow" placeholder="Buscar paciente, cita, tratamiento..." type="text"/>
+</div>
+</div>
+<!-- Global Actions & Profile -->
+<div class="flex items-center gap-compact-padding">
+<button class="p-compact-padding text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors relative cursor-pointer transition-opacity active:opacity-70">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-compact-padding text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors cursor-pointer transition-opacity active:opacity-70">
+<span class="material-symbols-outlined">storefront</span>
+</button>
+<button class="ml-standard-padding flex items-center gap-compact-padding cursor-pointer transition-opacity active:opacity-70">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-label-caps text-label-caps overflow-hidden border border-outline-variant">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="Professional headshot of a smiling female dentist in a bright clinical setting. She is wearing a modern teal scrub top. Soft, diffused lighting highlights a clean and modern aesthetic. The background is slightly out of focus, showing a clean white wall." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8z1eECExB9Id5HqVbY_fiLC82G2xeL_KFwfX4qMYoxWhup7chvPFa-_B16Ioa_Kt7wJUKm0ZBmwhz_nKNfg8w79vMv7HvSD5U-dfzZOnzvuyMzWyfSypjkaNLgvpsndJQGNr3hKAYc1c9Pj2VUJKA15TmD40M44t2CXv_ayWD-imWZ1QQ-Zb_MvZQi9WtbRkFfmxPRkvSSx9WdBIkLIuY7ffodDfvYc1gihM7TQp1hGE3xCKB9rJY"/>
+</div>
+</button>
+</div>
+</header>
+<!-- Page Content -->
+<main class="flex-1 overflow-y-auto bg-surface-container-lowest">
+<!-- Patient Header (UI-009) -->
+<section class="bg-surface px-container-margin py-container-margin border-b border-outline-variant">
+<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-container-margin">
+<!-- Patient Identity -->
+<div class="flex items-center gap-standard-padding">
+<div class="w-16 h-16 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-display-md text-display-md font-bold shadow-sm border border-outline-variant shrink-0">
+                            JP
+                        </div>
+<div>
+<div class="flex items-center gap-compact-padding mb-unit">
+<h2 class="font-display-md text-display-md text-on-surface m-0 leading-none">Juan Pérez</h2>
+<span class="bg-primary-container/20 text-primary-container px-2 py-0.5 rounded-DEFAULT font-label-caps text-label-caps border border-primary-container/30 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span> Activo
+                                </span>
+</div>
+<div class="flex flex-wrap items-center gap-x-standard-padding gap-y-unit font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex items-center gap-unit"><span class="material-symbols-outlined text-[16px]">tag</span> P-001245</div>
+<div class="hidden sm:block w-1 h-1 rounded-full bg-outline-variant"></div>
+<div class="flex items-center gap-unit"><span class="material-symbols-outlined text-[16px]">cake</span> 38 años</div>
+<div class="hidden sm:block w-1 h-1 rounded-full bg-outline-variant"></div>
+<div class="flex items-center gap-unit"><span class="material-symbols-outlined text-[16px]">phone</span> +34 600 123 456</div>
+<div class="hidden sm:block w-1 h-1 rounded-full bg-outline-variant"></div>
+<div class="flex items-center gap-unit"><span class="material-symbols-outlined text-[16px]">mail</span> juan.perez@email.com</div>
+</div>
+</div>
+</div>
+<!-- Header Actions -->
+<div class="flex items-center gap-compact-padding w-full lg:w-auto">
+<button class="flex-1 lg:flex-none flex items-center justify-center gap-unit bg-primary hover:bg-on-primary-fixed-variant text-on-primary font-label-caps text-label-caps px-standard-padding py-[10px] rounded-DEFAULT transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">calendar_add_on</span>
+                            Agendar cita
+                        </button>
+<button class="flex-1 lg:flex-none flex items-center justify-center gap-unit bg-surface hover:bg-surface-container-low text-primary border border-outline-variant font-label-caps text-label-caps px-standard-padding py-[10px] rounded-DEFAULT transition-colors">
+<span class="material-symbols-outlined text-[18px]">request_quote</span>
+                            Nuevo presupuesto
+                        </button>
+<button class="flex items-center justify-center p-[10px] bg-surface hover:bg-surface-container-low text-on-surface-variant border border-outline-variant rounded-DEFAULT transition-colors">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<div class="mt-container-margin -mx-container-margin px-container-margin border-t border-outline-variant overflow-x-auto no-scrollbar">
+<div class="flex items-center min-w-max">
+<!-- Active Tab -->
+<a class="px-standard-padding py-compact-padding border-b-2 border-primary text-primary font-label-caps text-label-caps flex items-center gap-unit transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">overview</span> Resumen
+                        </a>
+<a class="px-standard-padding py-compact-padding border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low font-label-caps text-label-caps flex items-center gap-unit transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">description</span> Historia clínica
+                        </a>
+<a class="px-standard-padding py-compact-padding border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low font-label-caps text-label-caps flex items-center gap-unit transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">dentistry</span> Odontograma
+                        </a>
+<a class="px-standard-padding py-compact-padding border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low font-label-caps text-label-caps flex items-center gap-unit transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">event</span> Citas
+                        </a>
+<a class="px-standard-padding py-compact-padding border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low font-label-caps text-label-caps flex items-center gap-unit transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">healing</span> Tratamientos
+                        </a>
+<a class="px-standard-padding py-compact-padding border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low font-label-caps text-label-caps flex items-center gap-unit transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">receipt_long</span> Presupuestos
+                        </a>
+<a class="px-standard-padding py-compact-padding border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low font-label-caps text-label-caps flex items-center gap-unit transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">payments</span> Pagos
+                        </a>
+<a class="px-standard-padding py-compact-padding border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low font-label-caps text-label-caps flex items-center gap-unit transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">folder_open</span> Documentos
+                        </a>
+</div>
+</div>
+</section>
+<!-- Resumen Content (Bento Grid) -->
+<div class="p-container-margin">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Alertas Clínicas (High Priority) -->
+<div class="col-span-1 md:col-span-4 bg-error-container/10 border border-error/30 rounded-lg p-standard-padding flex flex-col">
+<div class="flex items-center gap-compact-padding mb-standard-padding text-error">
+<span class="material-symbols-outlined">warning</span>
+<h3 class="font-section-title text-section-title m-0">Alertas Clínicas</h3>
+</div>
+<div class="flex-1 flex flex-col gap-compact-padding">
+<div class="bg-surface border border-error/20 rounded-DEFAULT p-compact-padding flex items-start gap-compact-padding">
+<span class="material-symbols-outlined text-error text-[18px] mt-0.5">medication</span>
+<div>
+<p class="font-data-tabular text-data-tabular text-on-surface m-0">Alergia a Penicilina</p>
+<p class="font-body-sm text-body-sm text-error/80 m-0">Reacción severa registrada (2019)</p>
+</div>
+</div>
+<!-- Placeholder for empty state if needed, or more alerts -->
+</div>
+</div>
+<!-- Próxima Cita -->
+<div class="col-span-1 md:col-span-4 bg-surface border border-outline-variant rounded-lg p-standard-padding flex flex-col">
+<div class="flex items-center justify-between mb-standard-padding">
+<div class="flex items-center gap-compact-padding text-on-surface">
+<span class="material-symbols-outlined text-primary">event_upcoming</span>
+<h3 class="font-section-title text-section-title m-0">Próxima Cita</h3>
+</div>
+<button class="text-primary hover:text-on-primary-fixed-variant transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+</div>
+<div class="flex-1 flex flex-col justify-center bg-surface-container-low rounded-DEFAULT p-standard-padding border border-outline-variant/50">
+<div class="flex items-baseline gap-compact-padding mb-unit">
+<span class="font-display-md text-display-md text-on-surface font-bold">14</span>
+<span class="font-body-md text-body-md text-on-surface-variant uppercase tracking-wider">Nov, 2023</span>
+</div>
+<p class="font-data-tabular text-data-tabular text-on-surface mb-compact-padding flex items-center gap-unit">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">schedule</span> 10:30 - 11:30 AM
+                            </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-unit mb-unit">
+<span class="material-symbols-outlined text-[16px]">person</span> Dra. Elena Gómez
+                            </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-start gap-unit">
+<span class="material-symbols-outlined text-[16px] mt-0.5">dentistry</span>
+<span>Revisión general y limpieza profiláctica</span>
+</p>
+</div>
+</div>
+<!-- Saldo Pendiente -->
+<div class="col-span-1 md:col-span-4 bg-surface border border-outline-variant rounded-lg p-standard-padding flex flex-col">
+<div class="flex items-center gap-compact-padding mb-standard-padding text-on-surface">
+<span class="material-symbols-outlined text-secondary">account_balance_wallet</span>
+<h3 class="font-section-title text-section-title m-0">Saldo Pendiente</h3>
+</div>
+<div class="flex-1 flex flex-col justify-center items-center py-standard-padding">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-unit">Total a pagar</span>
+<span class="font-display-lg text-display-lg text-on-surface font-bold mb-standard-padding">€ 145.00</span>
+<div class="w-full space-y-compact-padding">
+<div class="flex justify-between font-body-sm text-body-sm text-on-surface-variant border-b border-outline-variant/30 pb-unit">
+<span>Presupuesto #PR-2399</span>
+<span class="text-on-surface">€ 145.00</span>
+</div>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-unit bg-surface border border-primary text-primary hover:bg-primary/5 font-label-caps text-label-caps py-compact-padding rounded-DEFAULT transition-colors mt-auto">
+<span class="material-symbols-outlined text-[18px]">payment</span> Registrar Pago
+                        </button>
+</div>
+<!-- Plan de Tratamiento Activo -->
+<div class="col-span-1 md:col-span-8 bg-surface border border-outline-variant rounded-lg p-standard-padding">
+<div class="flex items-center justify-between mb-standard-padding text-on-surface">
+<div class="flex items-center gap-compact-padding">
+<span class="material-symbols-outlined text-primary">assignment_turned_in</span>
+<h3 class="font-section-title text-section-title m-0">Plan de Tratamiento Activo</h3>
+</div>
+<span class="bg-surface-container-high text-on-surface px-2 py-1 rounded-DEFAULT font-label-caps text-label-caps">Fase 2 de 4</span>
+</div>
+<div class="mb-standard-padding">
+<div class="flex justify-between font-body-sm text-body-sm mb-unit text-on-surface-variant">
+<span>Progreso general (Rehabilitación Superior)</span>
+<span class="font-bold text-on-surface">45%</span>
+</div>
+<!-- Progress Bar -->
+<div class="w-full bg-surface-container border border-outline-variant/50 rounded-full h-2.5 overflow-hidden">
+<div class="bg-primary h-2.5 rounded-full" style="width: 45%"></div>
+</div>
+</div>
+<!-- Mini Table/List of pending items -->
+<div class="border border-outline-variant rounded-DEFAULT overflow-hidden">
+<div class="grid grid-cols-12 bg-surface-container-low border-b border-outline-variant p-compact-padding font-label-caps text-label-caps text-on-surface-variant">
+<div class="col-span-6">Procedimiento</div>
+<div class="col-span-3 text-center">Diente/Zona</div>
+<div class="col-span-3 text-right">Estado</div>
+</div>
+<div class="grid grid-cols-12 p-compact-padding border-b border-outline-variant/30 font-body-sm text-body-sm items-center hover:bg-surface-container-lowest transition-colors">
+<div class="col-span-6 text-on-surface">Endodoncia multirradicular</div>
+<div class="col-span-3 text-center text-on-surface-variant">16</div>
+<div class="col-span-3 text-right"><span class="text-primary font-medium flex items-center justify-end gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span> Completado</span></div>
+</div>
+<div class="grid grid-cols-12 p-compact-padding border-b border-outline-variant/30 font-body-sm text-body-sm items-center bg-surface-container-low/30">
+<div class="col-span-6 text-on-surface font-medium">Reconstrucción post-endodoncia</div>
+<div class="col-span-3 text-center text-on-surface-variant">16</div>
+<div class="col-span-3 text-right"><span class="text-secondary font-medium flex items-center justify-end gap-1"><span class="material-symbols-outlined text-[14px]">pending</span> En proceso</span></div>
+</div>
+<div class="grid grid-cols-12 p-compact-padding font-body-sm text-body-sm items-center opacity-70">
+<div class="col-span-6 text-on-surface">Corona metal-cerámica</div>
+<div class="col-span-3 text-center text-on-surface-variant">16</div>
+<div class="col-span-3 text-right"><span class="text-on-surface-variant flex items-center justify-end gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> Pendiente</span></div>
+</div>
+</div>
+</div>
+<!-- Última Evolución -->
+<div class="col-span-1 md:col-span-4 bg-surface border border-outline-variant rounded-lg p-standard-padding flex flex-col">
+<div class="flex items-center gap-compact-padding mb-standard-padding text-on-surface">
+<span class="material-symbols-outlined text-secondary">history_edu</span>
+<h3 class="font-section-title text-section-title m-0">Última Evolución</h3>
+</div>
+<div class="flex-1 bg-surface-container-lowest border border-outline-variant/50 p-standard-padding rounded-DEFAULT relative overflow-hidden group">
+<!-- Decorative accent -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary opacity-50"></div>
+<div class="flex justify-between items-start mb-unit">
+<span class="font-label-caps text-label-caps text-on-surface-variant">28 Oct, 2023</span>
+<span class="font-label-caps text-label-caps text-primary bg-primary/10 px-2 py-0.5 rounded-DEFAULT">Clínico</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface mb-standard-padding line-clamp-4">
+                                Se realiza apertura cameral en pieza 16. Localización de 4 conductos (MV, MP, DV, P). Instrumentación mecanizada hasta calibre 25.06. Irrigación profusa con Hipoclorito de Sodio 5.25%...
+                            </p>
+<div class="flex items-center gap-unit text-on-surface-variant font-label-caps text-label-caps mt-auto pt-compact-padding border-t border-outline-variant/30">
+<div class="w-5 h-5 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center text-[10px]">DR</div>
+                                Dr. Ricardo Silva
+                            </div>
+</div>
+<button class="mt-standard-padding text-primary font-label-caps text-label-caps hover:underline flex items-center gap-unit justify-end w-full">
+                            Ver historial completo <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

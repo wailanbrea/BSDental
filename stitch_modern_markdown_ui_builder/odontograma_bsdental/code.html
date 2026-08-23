@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BSDental - Odontogram</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline": "#6e7977",
+                      "on-primary-container": "#a3faef",
+                      "surface-container-high": "#dce9ff",
+                      "on-primary-fixed-variant": "#00504a",
+                      "primary": "#005c55",
+                      "inverse-primary": "#80d5cb",
+                      "danger": "#DC2626",
+                      "primary-fixed-dim": "#80d5cb",
+                      "warning": "#D97706",
+                      "secondary-fixed": "#bdece2",
+                      "on-background": "#0b1c30",
+                      "on-surface-variant": "#3e4947",
+                      "on-error-container": "#93000a",
+                      "surface-container-lowest": "#ffffff",
+                      "info": "#2563EB",
+                      "tertiary": "#7f4025",
+                      "on-tertiary-container": "#ffe5db",
+                      "on-tertiary-fixed": "#370e00",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-error": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-primary": "#ffffff",
+                      "inverse-surface": "#213145",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#72361b",
+                      "primary-fixed": "#9cf2e8",
+                      "success": "#16A34A",
+                      "on-secondary-fixed-variant": "#224e47",
+                      "surface-container-low": "#eff4ff",
+                      "secondary": "#3b665f",
+                      "tertiary-fixed": "#ffdbce",
+                      "surface-variant": "#d3e4fe",
+                      "surface-muted": "#F1F5F9",
+                      "primary-container": "#0f766e",
+                      "tertiary-fixed-dim": "#ffb598",
+                      "on-primary-fixed": "#00201d",
+                      "outline-variant": "#bdc9c6",
+                      "on-secondary-fixed": "#00201c",
+                      "text-main": "#0F172A",
+                      "surface": "#FFFFFF",
+                      "surface-tint": "#006a63",
+                      "tertiary-container": "#9c573a",
+                      "surface-container": "#e5eeff",
+                      "secondary-fixed-dim": "#a2d0c6",
+                      "surface-bright": "#f8f9ff",
+                      "surface-dim": "#cbdbf5",
+                      "on-secondary-container": "#416c65",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-secondary": "#ffffff",
+                      "secondary-container": "#bdece2",
+                      "on-tertiary": "#ffffff",
+                      "background": "#F8FAFC",
+                      "border-subtle": "#E2E8F0",
+                      "on-surface": "#0b1c30"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "container-max": "1440px",
+                      "sm": "8px",
+                      "sidebar-width": "260px",
+                      "xl": "32px",
+                      "base": "4px",
+                      "md": "16px",
+                      "sidebar-collapsed": "72px",
+                      "lg": "24px",
+                      "xs": "4px"
+              },
+              "fontFamily": {
+                      "data-mono": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "body-md": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "headline-md": ["Inter"]
+              },
+              "fontSize": {
+                      "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+      </script>
+<style>
+        .tooth-path { transition: fill 0.2s ease; cursor: pointer; }
+        .tooth-path:hover { opacity: 0.8; }
+        .tooth-selected { stroke: #005c55; stroke-width: 2px; }
+        
+        .status-healthy { fill: #FFFFFF; stroke: #E2E8F0; }
+        .status-caries { fill: #DC2626; stroke: #991b1b; }
+        .status-filled { fill: #2563EB; stroke: #1e40af; }
+        .status-missing { fill: #F1F5F9; stroke: #cbd5e1; opacity: 0.5; }
+        .status-crown { fill: #D97706; stroke: #b45309; }
+        
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="bg-background text-main min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-inverse-surface w-[260px] h-screen fixed left-0 top-0 hidden xl:flex flex-col border-r border-border-subtle dark:border-outline-variant z-50">
+<div class="flex flex-col h-full py-md px-sm">
+<div class="flex items-center gap-sm px-md py-lg mb-md">
+<img class="w-8 h-8 object-contain" data-alt="A minimalist logo for a premium dental clinic. The design features a stylized tooth icon rendered in a deep teal color (#0F766E). The logo should convey clinical precision, hygiene, and trust. The overall aesthetic is clean, modern, and professional, suitable for high-end medical software." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwEvxUAQxqvj6hD8_ae6zwSMfA_mlJ4NMkBu27H1QvKwoz8gDv8AhQv6ZueT8MMlW0KdOXASiIENnnuvc4bRQ7i0E39ZhoBqElqIuFlOqPhry5FDN5rE2X7fOn1htl9xr2pJQ1K4JF1p6XAoH-g-RtGvR6Nx7wkmZYrnca3ZB3_ci7ZUZXT5XvR2HPGvi_tiGwLiaXRLNUf8YItxnEZdit64lyMyUuxsRS9ASex32zm6H3PyYMTC0X"/>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">BSDental</h1>
+<p class="font-label-sm text-label-sm text-outline">Clinical ERP</p>
+</div>
+</div>
+<div class="flex flex-col gap-xs flex-1 overflow-y-auto">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span> Dashboard
+                </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-primary dark:text-on-primary-container bg-secondary-container/50 dark:bg-primary-container/30 font-semibold font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span> Pacientes
+                </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">calendar_today</span> Agenda
+                </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">medical_services</span> Clínica
+                </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">payments</span> Administración
+                </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">analytics</span> Análisis
+                </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant/10 transition-colors font-label-md text-label-md mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span> Configuración
+                </a>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col xl:ml-[260px] min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface/80 dark:bg-inverse-surface/80 backdrop-blur-md docked full-width top-0 sticky z-40 border-b border-border-subtle dark:border-outline-variant flex justify-between items-center h-16 px-lg">
+<div class="flex items-center gap-md xl:hidden">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary dark:text-primary-fixed-dim">BSDental</h1>
+</div>
+<div class="hidden xl:block">
+<!-- Empty spacer for desktop -->
+</div>
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-sm rounded-full hover:bg-surface-muted">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-sm rounded-full hover:bg-surface-muted">
+<span class="material-symbols-outlined">storefront</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-sm rounded-full hover:bg-surface-muted">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 p-md md:p-lg flex flex-col gap-lg overflow-y-auto">
+<!-- Patient Header Banner -->
+<div class="bg-surface border border-border-subtle rounded-xl p-md flex flex-wrap items-center justify-between gap-md shadow-[0px_4px_12px_rgba(15,23,42,0.05)]">
+<div class="flex items-center gap-md">
+<img class="w-12 h-12 rounded-full object-cover border border-border-subtle" data-alt="A professional headshot of a middle-aged female patient, smiling softly. The lighting is bright and even, typical of a clinical setting but warm. The background is a soft, neutral off-white. The aesthetic is clean, professional, and trustworthy, suitable for a high-end medical ERP system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAK820O81EC-gur-j8lh1RqjPiQmjqb-ldFhqPegnI4YIiRbkMD-9283WKe8xRHybuZdt8ayMacv3JfMJZzXfq05fVkhXNSWovukqGmEF4zyqC3VocLovWb9fshZOX-8CCZEZYmROzUL03UlQM3tTY3aOnrfRBkH1CqAlYucr9darH-DzLnJ5um_hGFrcy1sD5WDEJKL86_4t4KpMw_mVK1ofpp926RVivvdBrZ8V1zq70K5SsNaODK"/>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-text-main">Maria Rodriguez Perez</h2>
+<div class="flex items-center gap-sm mt-xs">
+<span class="font-data-mono text-data-mono text-outline">ID: 8945-23</span>
+<span class="w-1 h-1 rounded-full bg-outline"></span>
+<span class="font-label-md text-label-md text-outline">42 years</span>
+</div>
+</div>
+</div>
+<div class="flex gap-sm">
+<div class="bg-danger/10 text-danger px-sm py-xs rounded-full flex items-center gap-xs border border-danger/20">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+<span class="font-label-sm text-label-sm">Allergic to Penicillin</span>
+</div>
+<div class="bg-warning/10 text-warning px-sm py-xs rounded-full flex items-center gap-xs border border-warning/20">
+<span class="material-symbols-outlined text-[16px]">info</span>
+<span class="font-label-sm text-label-sm">Hypertension</span>
+</div>
+</div>
+</div>
+<!-- Odontogram Work Area -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg flex-1 min-h-[600px]">
+<!-- Main Odontogram Canvas (8 cols) -->
+<div class="lg:col-span-8 bg-surface border border-border-subtle rounded-xl flex flex-col overflow-hidden">
+<div class="bg-surface-muted px-md py-sm border-b border-border-subtle flex justify-between items-center">
+<h3 class="font-label-md text-label-md text-text-main">Interactive Odontogram</h3>
+<div class="flex gap-sm">
+<button class="bg-white border border-border-subtle p-xs rounded hover:bg-surface-muted text-outline">
+<span class="material-symbols-outlined text-[18px]">undo</span>
+</button>
+<button class="bg-white border border-border-subtle p-xs rounded hover:bg-surface-muted text-outline">
+<span class="material-symbols-outlined text-[18px]">redo</span>
+</button>
+<div class="w-px bg-border-subtle mx-xs"></div>
+<button class="bg-white border border-border-subtle p-xs rounded hover:bg-surface-muted text-outline">
+<span class="material-symbols-outlined text-[18px]">zoom_in</span>
+</button>
+<button class="bg-white border border-border-subtle p-xs rounded hover:bg-surface-muted text-outline">
+<span class="material-symbols-outlined text-[18px]">zoom_out</span>
+</button>
+</div>
+</div>
+<div class="flex-1 p-lg flex items-center justify-center bg-[#F8FAFC] relative">
+<!-- Simplified SVG placeholder for Odontogram to represent structure -->
+<div class="w-full max-w-[800px] aspect-[2/1] relative flex flex-col gap-xl">
+<!-- Upper Arch -->
+<div class="flex justify-center gap-xs md:gap-sm">
+<!-- Top Right Quadrant (18-11) -->
+<div class="flex flex-row-reverse gap-1">
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">18</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(18)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">17</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(17)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">16</div><div class="w-8 h-8 rounded-sm status-filled border border-blue-600 bg-blue-100 cursor-pointer hover:bg-blue-200" onclick="selectTooth(16)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">15</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(15)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">14</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(14)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">13</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(13)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">12</div><div class="w-8 h-8 rounded-sm status-caries border border-red-600 bg-red-100 cursor-pointer hover:bg-red-200 tooth-selected" onclick="selectTooth(12)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">11</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(11)"></div></div>
+</div>
+<div class="w-px bg-border-subtle h-12"></div>
+<!-- Top Left Quadrant (21-28) -->
+<div class="flex gap-1">
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">21</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(21)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">22</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(22)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">23</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(23)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">24</div><div class="w-8 h-8 rounded-sm status-missing border border-gray-300 bg-gray-100 cursor-pointer opacity-50" onclick="selectTooth(24)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">25</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(25)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">26</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(26)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">27</div><div class="w-8 h-8 rounded-sm status-crown border border-yellow-600 bg-yellow-100 cursor-pointer hover:bg-yellow-200" onclick="selectTooth(27)"></div></div>
+<div class="text-center"><div class="font-data-mono text-[10px] text-outline mb-1">28</div><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(28)"></div></div>
+</div>
+</div>
+<!-- Lower Arch -->
+<div class="flex justify-center gap-xs md:gap-sm mt-8">
+<!-- Bottom Right Quadrant (48-41) -->
+<div class="flex flex-row-reverse gap-1">
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(48)"></div><div class="font-data-mono text-[10px] text-outline mt-1">48</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(47)"></div><div class="font-data-mono text-[10px] text-outline mt-1">47</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(46)"></div><div class="font-data-mono text-[10px] text-outline mt-1">46</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(45)"></div><div class="font-data-mono text-[10px] text-outline mt-1">45</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(44)"></div><div class="font-data-mono text-[10px] text-outline mt-1">44</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(43)"></div><div class="font-data-mono text-[10px] text-outline mt-1">43</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(42)"></div><div class="font-data-mono text-[10px] text-outline mt-1">42</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(41)"></div><div class="font-data-mono text-[10px] text-outline mt-1">41</div></div>
+</div>
+<div class="w-px bg-border-subtle h-12"></div>
+<!-- Bottom Left Quadrant (31-38) -->
+<div class="flex gap-1">
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(31)"></div><div class="font-data-mono text-[10px] text-outline mt-1">31</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(32)"></div><div class="font-data-mono text-[10px] text-outline mt-1">32</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(33)"></div><div class="font-data-mono text-[10px] text-outline mt-1">33</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(34)"></div><div class="font-data-mono text-[10px] text-outline mt-1">34</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(35)"></div><div class="font-data-mono text-[10px] text-outline mt-1">35</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(36)"></div><div class="font-data-mono text-[10px] text-outline mt-1">36</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(37)"></div><div class="font-data-mono text-[10px] text-outline mt-1">37</div></div>
+<div class="text-center"><div class="w-8 h-8 rounded-sm status-healthy border border-border-subtle cursor-pointer hover:bg-surface-muted" onclick="selectTooth(38)"></div><div class="font-data-mono text-[10px] text-outline mt-1">38</div></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Legend -->
+<div class="bg-surface border-t border-border-subtle p-sm flex gap-md justify-center flex-wrap">
+<div class="flex items-center gap-xs"><div class="w-3 h-3 rounded-full bg-white border border-border-subtle"></div><span class="font-label-sm text-label-sm text-outline">Healthy</span></div>
+<div class="flex items-center gap-xs"><div class="w-3 h-3 rounded-full bg-red-500"></div><span class="font-label-sm text-label-sm text-outline">Caries</span></div>
+<div class="flex items-center gap-xs"><div class="w-3 h-3 rounded-full bg-blue-500"></div><span class="font-label-sm text-label-sm text-outline">Filled</span></div>
+<div class="flex items-center gap-xs"><div class="w-3 h-3 rounded-full bg-yellow-500"></div><span class="font-label-sm text-label-sm text-outline">Crown</span></div>
+<div class="flex items-center gap-xs"><div class="w-3 h-3 rounded-full bg-gray-300"></div><span class="font-label-sm text-label-sm text-outline">Missing</span></div>
+</div>
+</div>
+<!-- Right Side Panel: Tooth Context (4 cols) -->
+<div class="lg:col-span-4 flex flex-col gap-md">
+<!-- Selected Tooth Header -->
+<div class="bg-surface border border-border-subtle rounded-xl p-md">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<h3 class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Selected Tooth</h3>
+<div class="flex items-end gap-sm mt-xs">
+<span class="font-display-lg text-display-lg text-primary">12</span>
+<span class="font-body-md text-body-md text-text-main mb-1">Maxillary Lateral Incisor</span>
+</div>
+</div>
+<div class="bg-danger/10 text-danger px-sm py-xs rounded-full font-label-sm text-label-sm border border-danger/20">
+                                Active Caries
+                            </div>
+</div>
+</div>
+<!-- Clinical Details Form -->
+<div class="bg-surface border border-border-subtle rounded-xl flex-1 flex flex-col overflow-hidden">
+<div class="bg-surface-muted px-md py-sm border-b border-border-subtle">
+<h4 class="font-label-md text-label-md text-text-main">Clinical Details</h4>
+</div>
+<div class="p-md flex flex-col gap-md flex-1 overflow-y-auto">
+<!-- Surface Selection (Conceptual) -->
+<div>
+<label class="block font-label-md text-label-md text-text-main mb-xs">Affected Surfaces</label>
+<div class="flex gap-sm">
+<button class="flex-1 py-xs border border-border-subtle rounded text-center font-data-mono text-data-mono hover:bg-surface-muted">M</button>
+<button class="flex-1 py-xs border border-primary bg-primary/10 text-primary rounded text-center font-data-mono text-data-mono">O</button>
+<button class="flex-1 py-xs border border-primary bg-primary/10 text-primary rounded text-center font-data-mono text-data-mono">D</button>
+<button class="flex-1 py-xs border border-border-subtle rounded text-center font-data-mono text-data-mono hover:bg-surface-muted">B</button>
+<button class="flex-1 py-xs border border-border-subtle rounded text-center font-data-mono text-data-mono hover:bg-surface-muted">L</button>
+</div>
+</div>
+<!-- Diagnosis -->
+<div>
+<label class="block font-label-md text-label-md text-text-main mb-xs">Diagnosis</label>
+<select class="w-full border border-border-subtle rounded-lg px-sm py-xs font-body-md text-body-md focus:ring-2 focus:ring-primary-container/50 focus:border-primary outline-none">
+<option>Dental Caries (K02.9)</option>
+<option>Pulpitis (K04.0)</option>
+<option>Fractured Tooth (S02.5)</option>
+</select>
+</div>
+<!-- Planned Treatment -->
+<div>
+<label class="block font-label-md text-label-md text-text-main mb-xs">Planned Treatment</label>
+<select class="w-full border border-border-subtle rounded-lg px-sm py-xs font-body-md text-body-md focus:ring-2 focus:ring-primary-container/50 focus:border-primary outline-none">
+<option>Composite Restoration (2 surfaces)</option>
+<option>Amalgam Restoration</option>
+<option>Root Canal Treatment</option>
+<option>Extraction</option>
+</select>
+</div>
+<!-- Notes -->
+<div class="flex-1">
+<label class="block font-label-md text-label-md text-text-main mb-xs">Clinical Notes</label>
+<textarea class="w-full h-24 border border-border-subtle rounded-lg px-sm py-xs font-body-md text-body-md focus:ring-2 focus:ring-primary-container/50 focus:border-primary outline-none resize-none" placeholder="Add specific notes here..."></textarea>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="p-md border-t border-border-subtle bg-surface-muted flex gap-sm">
+<button class="flex-1 bg-white border border-border-subtle text-text-main font-label-md text-label-md py-sm rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+<button class="flex-1 bg-primary text-white font-label-md text-label-md py-sm rounded-lg hover:bg-primary/90 transition-colors">Save Entry</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+        function selectTooth(id) {
+            // Placeholder logic for visual feedback
+            console.log("Selected tooth:", id);
+        }
+    </script>
+</body></html>
