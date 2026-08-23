@@ -13,7 +13,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property string $id
- * @property string $patient_id
+ * @property string|null $patient_id
+ * @property string|null $prospect_first_name
+ * @property string|null $prospect_last_name
+ * @property string|null $prospect_phone
+ * @property string|null $prospect_email
  * @property string|null $professional_id
  * @property string $quote_number
  * @property int $version
@@ -31,7 +35,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
- * @property Patient $patient
+ * @property Patient|null $patient
  * @property Professional|null $professional
  * @property Collection<int, QuoteItem> $items
  * @property TreatmentPlan|null $treatmentPlan
@@ -62,6 +66,10 @@ class Quote extends Model
     protected $fillable = [
         'id',
         'patient_id',
+        'prospect_first_name',
+        'prospect_last_name',
+        'prospect_phone',
+        'prospect_email',
         'professional_id',
         'quote_number',
         'version',

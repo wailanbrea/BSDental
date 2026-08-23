@@ -155,10 +155,14 @@ Route::group([], function () {
             Route::post('/procedures', [ProcedureCatalogController::class, 'store'])->name('clinic.procedures.store');
 
             // Quotes / Presupuestos
+            Route::get('/quotes', [QuoteController::class, 'allIndex'])->name('clinic.quotes.all');
+            Route::get('/quotes/quick-create', [QuoteController::class, 'quickCreate'])->name('clinic.quotes.quick_create');
+            Route::post('/quotes/quick', [QuoteController::class, 'storeQuick'])->name('clinic.quotes.store_quick');
             Route::get('/patients/{patientId}/quotes', [QuoteController::class, 'index'])->name('clinic.quotes.index');
             Route::get('/patients/{patientId}/quotes/create', [QuoteController::class, 'create'])->name('clinic.quotes.create');
             Route::post('/patients/{patientId}/quotes', [QuoteController::class, 'store'])->name('clinic.quotes.store');
             Route::get('/quotes/{id}', [QuoteController::class, 'show'])->name('clinic.quotes.show');
+            Route::post('/quotes/{id}/convert-to-patient', [QuoteController::class, 'convertToPatient'])->name('clinic.quotes.convert_to_patient');
             Route::post('/quotes/{id}/approve', [QuoteController::class, 'approve'])->name('clinic.quotes.approve');
             Route::post('/quotes/{id}/reject', [QuoteController::class, 'reject'])->name('clinic.quotes.reject');
 

@@ -2,6 +2,7 @@
 
 use App\Core\Auth\Models\User;
 use App\Core\Models\Patient;
+use App\Core\Models\PatientMedicalHistory;
 use App\Core\Models\Procedure;
 use App\Core\Models\ProcedureCategory;
 use App\Core\Models\Quote;
@@ -227,4 +228,94 @@ test('[GATE QUO] Quote items only accept valid permanent and primary FDI tooth n
 
     app(TenantContext::class)->makeCurrent($this->tenant);
     expect(Quote::where('patient_id', $this->patient->id)->count())->toBe(0);
+});
+
+test('[GATE QUO] A prospect quote becomes approvable only after creating its patient record', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $this->get('http://presupuestos.bsdental.test/quotes/quick-create')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Quotes/Create')
+            ->where('mode', 'prospect')
+            ->where('patient', null));
+
+    $this->post('http://presupuestos.bsdental.test/quotes/quick', [
+        'prospect_first_name' => 'María',
+        'prospect_last_name' => 'Prospecto',
+        'prospect_phone' => '809-555-0199',
+        'alternative_name' => 'Rehabilitación inicial',
+        'items' => [[
+            'procedure_id' => $this->procLimpieza->id,
+            'quantity' => 1,
+        ]],
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $quote = Quote::whereNull('patient_id')->firstOrFail();
+    expect($quote->prospect_first_name)->toBe('María')
+        ->and($quote->items()->count())->toBe(1)
+        ->and(TenantAuditLog::where('action', 'quote.quick_created')->exists())->toBeTrue();
+
+    $this->post("http://presupuestos.bsdental.test/quotes/{$quote->id}/approve")
+        ->assertSessionHas('error');
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect(TreatmentPlan::where('quote_id', $quote->id)->exists())->toBeFalse();
+
+    $this->post("http://presupuestos.bsdental.test/quotes/{$quote->id}/convert-to-patient", [
+        'first_name' => 'María',
+        'last_name' => 'Prospecto',
+        'phone' => '809-555-0199',
+        'email' => 'maria.prospecto@example.test',
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $quote->refresh();
+    $patient = Patient::findOrFail($quote->patient_id);
+    expect($patient->record_number)->toBe('HC-00002')
+        ->and($patient->source)->toBe('quick_quote')
+        ->and(PatientMedicalHistory::where('patient_id', $patient->id)->exists())->toBeTrue()
+        ->and($quote->prospect_first_name)->toBe('María');
+
+    $this->post("http://presupuestos.bsdental.test/quotes/{$quote->id}/approve")
+        ->assertRedirect();
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect(TreatmentPlan::where('quote_id', $quote->id)->exists())->toBeTrue()
+        ->and(TenantAuditLog::where('action', 'quote.prospect_converted')->exists())->toBeTrue();
+});
+
+test('[GATE QUO] A prospect quote can link to a duplicate candidate without creating another patient', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $this->post('http://presupuestos.bsdental.test/quotes/quick', [
+        'prospect_first_name' => 'Elena',
+        'prospect_last_name' => 'Gómez',
+        'prospect_phone' => '+58 412 555-8899',
+        'alternative_name' => 'Alternativa para paciente existente',
+        'items' => [['procedure_id' => $this->procResina->id, 'quantity' => 1]],
+    ]);
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $quote = Quote::whereNull('patient_id')->firstOrFail();
+    $this->get("http://presupuestos.bsdental.test/quotes/{$quote->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('prospectCandidates.0.id', $this->patient->id));
+
+    $this->post("http://presupuestos.bsdental.test/quotes/{$quote->id}/convert-to-patient", [
+        'existing_patient_id' => $this->patient->id,
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect(Patient::count())->toBe(1)
+        ->and($quote->fresh()->patient_id)->toBe($this->patient->id)
+        ->and(TenantAuditLog::where('action', 'quote.prospect_linked')->exists())->toBeTrue();
+
+    $this->get('http://presupuestos.bsdental.test/quotes')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Quotes/AllIndex')
+            ->where('quotes.data.0.id', $quote->id));
 });

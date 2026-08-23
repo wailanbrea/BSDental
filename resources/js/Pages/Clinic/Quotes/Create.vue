@@ -10,8 +10,13 @@ interface ProcedureItem { id: string; code: string | null; name: string; price: 
 interface CategoryItem { id: string; name: string; procedures: ProcedureItem[] }
 interface FormItem { procedure_id: string; tooth_number: number | null; surface: string; quantity: number; discount_percentage: number }
 
-const props = defineProps<{ patient: PatientDetails; professionals: ProfessionalDetails[]; categories: CategoryItem[]; suggestedNumber: string }>()
-const form = useForm({ professional_id: props.professionals[0]?.id || '', alternative_name: 'Plan principal', notes: '', items: [] as FormItem[] })
+const props = defineProps<{ patient: PatientDetails | null; mode?: 'patient' | 'prospect'; professionals: ProfessionalDetails[]; categories: CategoryItem[]; suggestedNumber: string }>()
+const isProspect = computed(() => props.mode === 'prospect' || !props.patient)
+const backUrl = computed(() => isProspect.value ? '/quotes' : `/patients/${props.patient!.id}/quotes`)
+const form = useForm({
+    prospect_first_name: '', prospect_last_name: '', prospect_phone: '', prospect_email: '',
+    professional_id: props.professionals[0]?.id || '', alternative_name: 'Plan principal', notes: '', items: [] as FormItem[],
+})
 const selectedProcId = ref('')
 const selectedTooth = ref<number | null>(null)
 const selectedSurface = ref('all')
@@ -37,20 +42,29 @@ function removeItem(index: number) { form.items.splice(index, 1) }
 function lineTotal(item: FormItem) { return (findProcedure(item.procedure_id)?.price || 0) * item.quantity * (1 - item.discount_percentage / 100) }
 const totalEstimated = computed(() => form.items.reduce((sum, item) => sum + lineTotal(item), 0))
 const money = (value: number) => new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(value || 0)
-function submit() { form.post(`/patients/${props.patient.id}/quotes`) }
+function submit() { form.post(isProspect.value ? '/quotes/quick' : `/patients/${props.patient!.id}/quotes`) }
 </script>
 
 <template>
-    <Head :title="`Nuevo presupuesto — ${patient.full_name}`" />
+    <Head :title="isProspect ? 'Cotización rápida' : `Nuevo presupuesto — ${patient!.full_name}`" />
     <ClinicLayout>
         <div class="mx-auto max-w-[1400px] space-y-5 p-4 md:p-7">
             <header class="flex flex-col justify-between gap-4 border-b border-[#D8E0DE] pb-5 md:flex-row md:items-end">
-                <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-[#006B63]">Presupuestos</p><h1 class="mt-1 text-2xl font-bold text-[#131B2E]">Nueva alternativa de tratamiento</h1><p class="mt-1 text-sm text-[#667085]">{{ patient.full_name }} · {{ patient.record_number }} · <span class="font-mono">{{ suggestedNumber }}</span></p></div>
-                <Link :href="`/patients/${patient.id}/quotes`" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><ArrowLeft class="h-4 w-4" /> Presupuestos</Link>
+                <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-[#006B63]">Presupuestos</p><h1 class="mt-1 text-2xl font-bold text-[#131B2E]">{{ isProspect ? 'Cotización rápida para prospecto' : 'Nueva alternativa de tratamiento' }}</h1><p class="mt-1 text-sm text-[#667085]">{{ patient ? `${patient.full_name} · ${patient.record_number} · ` : 'Sin historia clínica todavía · ' }}<span class="font-mono">{{ suggestedNumber }}</span></p></div>
+                <Link :href="backUrl" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><ArrowLeft class="h-4 w-4" /> Presupuestos</Link>
             </header>
 
             <form class="grid gap-5 xl:grid-cols-[1fr_340px]" @submit.prevent="submit">
                 <div class="space-y-5">
+                    <section v-if="isProspect" class="border border-[#B7D9D4] bg-[#F1FAF8] p-5">
+                        <div><h2 class="flex items-center gap-2 font-semibold text-[#131B2E]"><FilePlus2 class="h-5 w-5 text-[#006B63]" /> Datos del prospecto</h2><p class="mt-1 text-sm text-[#52615E]">Solo se crea la cotización. La historia clínica se abrirá cuando decidas convertirlo en paciente.</p></div>
+                        <div class="mt-4 grid gap-4 md:grid-cols-2">
+                            <label class="text-sm font-semibold text-[#455653]">Nombre *<input v-model="form.prospect_first_name" required maxlength="100" autocomplete="given-name" class="mt-1.5 h-11 w-full border border-[#9AAEAA] bg-white px-3 text-sm" /></label>
+                            <label class="text-sm font-semibold text-[#455653]">Apellido *<input v-model="form.prospect_last_name" required maxlength="100" autocomplete="family-name" class="mt-1.5 h-11 w-full border border-[#9AAEAA] bg-white px-3 text-sm" /></label>
+                            <label class="text-sm font-semibold text-[#455653]">Teléfono<input v-model="form.prospect_phone" maxlength="50" autocomplete="tel" class="mt-1.5 h-11 w-full border border-[#9AAEAA] bg-white px-3 text-sm" placeholder="Teléfono o correo requerido" /></label>
+                            <label class="text-sm font-semibold text-[#455653]">Correo<input v-model="form.prospect_email" type="email" maxlength="255" autocomplete="email" class="mt-1.5 h-11 w-full border border-[#9AAEAA] bg-white px-3 text-sm" placeholder="Teléfono o correo requerido" /></label>
+                        </div>
+                    </section>
                     <section class="border border-[#D8E0DE] bg-white p-5">
                         <h2 class="flex items-center gap-2 font-semibold text-[#131B2E]"><ReceiptText class="h-5 w-5 text-[#006B63]" /> Datos del presupuesto</h2>
                         <div class="mt-4 grid gap-4 md:grid-cols-2">
@@ -81,7 +95,7 @@ function submit() { form.post(`/patients/${props.patient.id}/quotes`) }
                     <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#667085]">Resumen estimado</p><p class="mt-2 font-mono text-3xl font-bold text-[#005C55]">{{ money(totalEstimated) }}</p><p class="mt-1 text-sm text-[#667085]">{{ form.items.length }} procedimientos incluidos</p>
                     <div class="mt-5 space-y-2 border-t border-[#D8E0DE] pt-4 text-sm"><p class="flex items-center gap-2 text-[#455653]"><Stethoscope class="h-4 w-4 text-[#006B63]" /> {{ professionals.find(p => p.id === form.professional_id)?.full_name || 'Sin profesional asignado' }}</p><p class="text-xs leading-5 text-[#667085]">Los precios se fijarán al guardar este presupuesto para conservar su evidencia histórica.</p></div>
                     <button type="submit" :disabled="form.processing || !form.items.length" class="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#005C55] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"><FilePlus2 class="h-4 w-4" /> Guardar presupuesto</button>
-                    <Link :href="`/patients/${patient.id}/quotes`" class="mt-2 inline-flex h-10 w-full items-center justify-center text-sm font-semibold text-[#005C55]">Cancelar</Link>
+                    <Link :href="backUrl" class="mt-2 inline-flex h-10 w-full items-center justify-center text-sm font-semibold text-[#005C55]">Cancelar</Link>
                 </aside>
             </form>
         </div>
