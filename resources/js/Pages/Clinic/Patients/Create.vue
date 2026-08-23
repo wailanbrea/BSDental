@@ -1,7 +1,23 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3'
-import { ref, watch } from 'vue'
-import { UserPlus, ArrowLeft, AlertCircle, ShieldAlert, FileCheck, UserRoundPen } from 'lucide-vue-next'
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
+import { Head, Link, useForm } from '@inertiajs/vue3'
+import {
+    AlertCircle,
+    ArrowLeft,
+    BadgeCheck,
+    BriefcaseMedical,
+    Check,
+    ContactRound,
+    FileCheck,
+    HeartPulse,
+    LoaderCircle,
+    Plus,
+    ShieldAlert,
+    UserRoundPen,
+    UsersRound,
+    X,
+} from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
 
 interface DuplicateCandidate {
     id: string
@@ -54,7 +70,8 @@ const props = defineProps<{
     patient?: EditablePatient
 }>()
 
-const isEditing = Boolean(props.patient)
+const isEditing = computed(() => Boolean(props.patient))
+const returnUrl = computed(() => props.patient ? `/patients/${props.patient.id}` : '/patients')
 const medicalHistory = props.patient?.medical_history
 
 const form = useForm({
@@ -63,13 +80,13 @@ const form = useForm({
     identification_type: props.patient?.identification_type ?? 'CEDULA',
     identification_number: props.patient?.identification_number ?? '',
     birth_date: props.patient?.birth_date?.slice(0, 10) ?? '',
-    gender: props.patient?.gender ?? 'male',
+    gender: props.patient?.gender ?? '',
     phone: props.patient?.phone ?? '',
     secondary_phone: props.patient?.secondary_phone ?? '',
     email: props.patient?.email ?? '',
     address: props.patient?.address ?? '',
     city: props.patient?.city ?? '',
-    blood_type: props.patient?.blood_type ?? 'O+',
+    blood_type: props.patient?.blood_type ?? '',
     emergency_contact_name: props.patient?.emergency_contact_name ?? '',
     emergency_contact_phone: props.patient?.emergency_contact_phone ?? '',
     emergency_contact_relationship: props.patient?.emergency_contact_relationship ?? '',
@@ -80,14 +97,10 @@ const form = useForm({
     insurance_company: props.patient?.insurance_company ?? '',
     insurance_policy_number: props.patient?.insurance_policy_number ?? '',
     notes: props.patient?.notes ?? '',
-    tags: props.patient?.tags ?? [],
-    // Anamnesis / Alertas
-    allergies: medicalHistory?.allergies ?? [] as string[],
-    new_allergy: '',
-    systemic_conditions: medicalHistory?.systemic_conditions ?? [] as string[],
-    new_condition: '',
-    current_medications: medicalHistory?.current_medications ?? [] as string[],
-    new_medication: '',
+    tags: [...(props.patient?.tags ?? [])],
+    allergies: [...(medicalHistory?.allergies ?? [])],
+    systemic_conditions: [...(medicalHistory?.systemic_conditions ?? [])],
+    current_medications: [...(medicalHistory?.current_medications ?? [])],
     is_pregnant: medicalHistory?.is_pregnant ?? false,
     pregnancy_weeks: medicalHistory?.pregnancy_weeks ?? null as number | null,
     bleeding_disorders: medicalHistory?.bleeding_disorders ?? false,
@@ -97,8 +110,23 @@ const form = useForm({
 
 const duplicateCandidates = ref<DuplicateCandidate[]>([])
 const checkingDuplicates = ref(false)
-
+const newAllergy = ref('')
+const newCondition = ref('')
+const newMedication = ref('')
+const newTag = ref('')
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+function addUnique(target: string[], input: string) {
+    const value = input.trim()
+    if (value && !target.some((item) => item.toLocaleLowerCase() === value.toLocaleLowerCase())) {
+        target.push(value)
+    }
+}
+
+function addAllergy() { addUnique(form.allergies, newAllergy.value); newAllergy.value = '' }
+function addCondition() { addUnique(form.systemic_conditions, newCondition.value); newCondition.value = '' }
+function addMedication() { addUnique(form.current_medications, newMedication.value); newMedication.value = '' }
+function addTag() { addUnique(form.tags, newTag.value); newTag.value = '' }
 
 function triggerDuplicateCheck() {
     if (debounceTimer) clearTimeout(debounceTimer)
@@ -117,8 +145,9 @@ function triggerDuplicateCheck() {
                 last_name: form.last_name,
             })
             if (props.patient) params.set('ignore_id', props.patient.id)
-            const res = await fetch(`/patients/check-duplicates?${params.toString()}`)
-            const data = await res.json()
+
+            const response = await fetch(`/patients/check-duplicates?${params.toString()}`)
+            const data = await response.json()
             duplicateCandidates.value = data.candidates || []
         } catch {
             duplicateCandidates.value = []
@@ -128,249 +157,195 @@ function triggerDuplicateCheck() {
     }, 400)
 }
 
-watch([() => form.identification_number, () => form.phone, () => form.first_name, () => form.last_name], () => {
-    triggerDuplicateCheck()
+watch(
+    [() => form.identification_number, () => form.phone, () => form.first_name, () => form.last_name],
+    triggerDuplicateCheck,
+)
+
+watch(() => form.is_pregnant, (isPregnant) => {
+    if (!isPregnant) form.pregnancy_weeks = null
 })
 
-function addAllergy() {
-    if (form.new_allergy.trim()) {
-        form.allergies.push(form.new_allergy.trim())
-        form.new_allergy = ''
+watch(() => form.is_minor, (isMinor) => {
+    if (!isMinor) {
+        form.guardian_name = ''
+        form.guardian_identification = ''
+        form.guardian_phone = ''
     }
-}
-
-function removeAllergy(index: number) {
-    form.allergies.splice(index, 1)
-}
-
-function addCondition() {
-    if (form.new_condition.trim()) {
-        form.systemic_conditions.push(form.new_condition.trim())
-        form.new_condition = ''
-    }
-}
-
-function removeCondition(index: number) {
-    form.systemic_conditions.splice(index, 1)
-}
-
-function addMedication() {
-    if (form.new_medication.trim()) {
-        form.current_medications.push(form.new_medication.trim())
-        form.new_medication = ''
-    }
-}
-
-function removeMedication(index: number) {
-    form.current_medications.splice(index, 1)
-}
+})
 
 function submit() {
     if (props.patient) {
-        form.put(`/patients/${props.patient.id}`)
+        form.put(`/patients/${props.patient.id}`, { preserveScroll: true })
         return
     }
 
-    form.post('/patients')
+    form.post('/patients', { preserveScroll: true })
 }
 </script>
 
 <template>
-    <Head :title="isEditing ? 'Editar Paciente — BSDental' : 'Registrar Nuevo Paciente — BSDental'" />
+    <Head :title="isEditing ? 'Editar paciente — BSDental' : 'Nuevo paciente — BSDental'" />
 
-    <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
-        <div class="max-w-5xl mx-auto space-y-6">
-            <!-- Header -->
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="p-3 bg-teal-500/10 rounded-xl text-teal-400 border border-teal-500/20">
-                        <UserRoundPen v-if="isEditing" class="w-6 h-6" />
-                        <UserPlus v-else class="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-white tracking-tight">{{ isEditing ? 'Editar Paciente' : 'Nuevo Paciente' }}</h1>
-                        <p class="text-sm text-slate-400">Historia Clínica: <span class="font-mono font-bold text-teal-400">{{ props.suggestedRecordNumber }}</span></p>
+    <ClinicLayout>
+        <div class="mx-auto max-w-7xl space-y-5">
+            <header class="flex flex-col gap-4 border-b border-[#BDC9C6] pb-5 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <Link :href="returnUrl" class="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-[#52615E] hover:text-[#005C55]">
+                        <ArrowLeft class="h-4 w-4" />
+                        {{ isEditing ? 'Volver a la Ficha 360' : 'Volver al directorio' }}
+                    </Link>
+                    <div class="flex items-center gap-3">
+                        <div class="grid h-11 w-11 place-items-center rounded-lg bg-[#D8ECE9] text-[#005C55]">
+                            <UserRoundPen class="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.14em] text-[#007D73]">Admisión clínica</p>
+                            <h1 class="text-2xl font-semibold tracking-tight text-[#131B2E]">{{ isEditing ? 'Editar paciente' : 'Registrar nuevo paciente' }}</h1>
+                        </div>
                     </div>
                 </div>
+                <div class="border border-[#BDC9C6] bg-white px-4 py-3 text-right">
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-[#667085]">Historia clínica</p>
+                    <p class="mt-1 font-mono text-base font-bold text-[#005C55]">{{ suggestedRecordNumber }}</p>
+                </div>
+            </header>
 
-                <a :href="isEditing && props.patient ? `/patients/${props.patient.id}` : '/patients'" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-400 hover:text-white transition">
-                    <ArrowLeft class="w-4 h-4" /> {{ isEditing ? 'Volver a la Ficha 360' : 'Volver al Directorio' }}
-                </a>
+            <div v-if="duplicateCandidates.length" class="border border-[#FEC84B] bg-[#FFFAEB] p-4">
+                <div class="flex items-start gap-3">
+                    <AlertCircle class="mt-0.5 h-5 w-5 shrink-0 text-[#B54708]" />
+                    <div class="flex-1">
+                        <h2 class="text-sm font-bold text-[#93370D]">Posible paciente duplicado</h2>
+                        <p class="mt-1 text-xs text-[#7A2E0E]">Verifica estas coincidencias antes de guardar una historia nueva.</p>
+                        <div class="mt-3 grid gap-2 md:grid-cols-2">
+                            <Link v-for="candidate in duplicateCandidates" :key="candidate.id" :href="`/patients/${candidate.id}`" target="_blank" class="flex items-center justify-between border border-[#FEC84B] bg-white p-3 text-sm hover:border-[#B54708]">
+                                <span><strong class="block text-[#131B2E]">{{ candidate.full_name }}</strong><span class="font-mono text-xs text-[#667085]">{{ candidate.record_number }} · {{ candidate.identification_number || candidate.phone || 'Sin identificación' }}</span></span>
+                                <span class="font-semibold text-[#006B63]">Ver ficha →</span>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Duplicate Candidate Warning Banner -->
-            <div v-if="duplicateCandidates.length > 0" class="p-5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3">
-                <div class="flex items-center gap-2 text-amber-400 font-semibold text-sm">
-                    <AlertCircle class="w-5 h-5" />
-                    <span>Posible Paciente Duplicado Detectado</span>
-                </div>
-                <p class="text-xs text-slate-300">Se encontraron coincidencias existentes con los datos ingresados:</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div v-for="dup in duplicateCandidates" :key="dup.id" class="p-3 bg-slate-900/80 border border-amber-500/20 rounded-xl flex items-center justify-between">
-                        <div>
-                            <div class="font-bold text-sm text-white">{{ dup.full_name }}</div>
-                            <div class="text-xs text-slate-400 font-mono">HC: {{ dup.record_number }} | Doc: {{ dup.identification_number || 'S/N' }}</div>
-                        </div>
-                        <a :href="`/patients/${dup.id}`" target="_blank" class="text-xs text-teal-400 hover:underline">Ver Ficha →</a>
+            <form class="space-y-5" @submit.prevent="submit">
+                <section class="border border-[#D8E0DE] bg-white">
+                    <div class="flex items-center gap-3 border-b border-[#D8E0DE] bg-[#F1F5F9] px-5 py-3">
+                        <FileCheck class="h-5 w-5 text-[#007D73]" />
+                        <div><h2 class="font-semibold text-[#131B2E]">Identificación y contacto</h2><p class="text-xs text-[#667085]">Datos civiles y canales principales del paciente.</p></div>
                     </div>
+                    <div class="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
+                        <label class="field"><span>Nombres *</span><input v-model="form.first_name" required autocomplete="given-name" /><small v-if="form.errors.first_name">{{ form.errors.first_name }}</small></label>
+                        <label class="field"><span>Apellidos *</span><input v-model="form.last_name" required autocomplete="family-name" /><small v-if="form.errors.last_name">{{ form.errors.last_name }}</small></label>
+                        <label class="field"><span>Tipo de documento</span><select v-model="form.identification_type"><option value="">Sin especificar</option><option value="CEDULA">Cédula</option><option value="DNI">DNI</option><option value="PASSPORT">Pasaporte</option><option value="RUT">RUT</option></select></label>
+                        <label class="field"><span>Número de documento</span><div class="relative"><input v-model="form.identification_number" class="w-full pr-9" autocomplete="off" /><LoaderCircle v-if="checkingDuplicates" class="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#007D73]" /></div></label>
+                        <label class="field"><span>Fecha de nacimiento</span><input v-model="form.birth_date" type="date" /></label>
+                        <label class="field"><span>Género</span><select v-model="form.gender"><option value="">Sin especificar</option><option value="male">Masculino</option><option value="female">Femenino</option><option value="other">Otro</option></select></label>
+                        <label class="field"><span>Grupo sanguíneo</span><select v-model="form.blood_type"><option value="">Sin registrar</option><option v-for="type in ['O+','O-','A+','A-','B+','B-','AB+','AB-']" :key="type" :value="type">{{ type }}</option></select></label>
+                        <label class="field"><span>Ciudad</span><input v-model="form.city" autocomplete="address-level2" /></label>
+                        <label class="field"><span>Teléfono principal</span><input v-model="form.phone" type="tel" autocomplete="tel" /><small v-if="form.errors.phone">{{ form.errors.phone }}</small></label>
+                        <label class="field"><span>Teléfono secundario</span><input v-model="form.secondary_phone" type="tel" /></label>
+                        <label class="field md:col-span-2"><span>Correo electrónico</span><input v-model="form.email" type="email" autocomplete="email" /><small v-if="form.errors.email">{{ form.errors.email }}</small></label>
+                        <label class="field md:col-span-2 xl:col-span-4"><span>Dirección residencial</span><input v-model="form.address" autocomplete="street-address" /></label>
+                    </div>
+                </section>
+
+                <div class="grid gap-5 xl:grid-cols-2">
+                    <section class="border border-[#D8E0DE] bg-white">
+                        <div class="flex items-center gap-3 border-b border-[#D8E0DE] bg-[#F1F5F9] px-5 py-3"><ContactRound class="h-5 w-5 text-[#455A73]" /><div><h2 class="font-semibold">Contacto de emergencia</h2><p class="text-xs text-[#667085]">Persona a contactar ante una eventualidad.</p></div></div>
+                        <div class="grid gap-4 p-5 md:grid-cols-2">
+                            <label class="field md:col-span-2"><span>Nombre completo</span><input v-model="form.emergency_contact_name" /></label>
+                            <label class="field"><span>Teléfono</span><input v-model="form.emergency_contact_phone" type="tel" /></label>
+                            <label class="field"><span>Relación</span><input v-model="form.emergency_contact_relationship" placeholder="Ej. cónyuge, madre" /></label>
+                        </div>
+                    </section>
+
+                    <section class="border border-[#D8E0DE] bg-white">
+                        <div class="flex items-center gap-3 border-b border-[#D8E0DE] bg-[#F1F5F9] px-5 py-3"><BriefcaseMedical class="h-5 w-5 text-[#455A73]" /><div><h2 class="font-semibold">Cobertura y seguro</h2><p class="text-xs text-[#667085]">Información administrativa opcional.</p></div></div>
+                        <div class="grid gap-4 p-5 md:grid-cols-2">
+                            <label class="field"><span>Aseguradora</span><input v-model="form.insurance_company" /></label>
+                            <label class="field"><span>Número de póliza</span><input v-model="form.insurance_policy_number" /></label>
+                        </div>
+                    </section>
                 </div>
-            </div>
 
-            <form class="space-y-6" @submit.prevent="submit">
-                <!-- Seccion 1: Datos Personales -->
-                <div class="p-6 bg-slate-800/80 border border-slate-700/60 rounded-2xl space-y-4">
-                    <h2 class="text-base font-bold text-white flex items-center gap-2">
-                        <FileCheck class="w-5 h-5 text-teal-400" /> Datos de Identificación y Contacto
-                    </h2>
+                <section class="border border-[#D8E0DE] bg-white">
+                    <div class="flex items-center justify-between gap-3 border-b border-[#D8E0DE] bg-[#FFF9F8] px-5 py-3">
+                        <div class="flex items-center gap-3"><ShieldAlert class="h-5 w-5 text-[#B42318]" /><div><h2 class="font-semibold text-[#131B2E]">Alertas médicas y anamnesis</h2><p class="text-xs text-[#667085]">Información crítica visible durante la atención.</p></div></div>
+                        <span class="hidden border border-[#F5A3A0] bg-white px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-[#B42318] md:inline">Información sensible</span>
+                    </div>
+                    <div class="grid gap-5 p-5 lg:grid-cols-3">
+                        <div class="chip-editor"><label>Alergias</label><div class="flex gap-2"><input v-model="newAllergy" placeholder="Ej. Penicilina" @keydown.enter.prevent="addAllergy" /><button type="button" aria-label="Añadir alergia" @click="addAllergy"><Plus class="h-4 w-4" /></button></div><div class="chips"><span v-for="(item, index) in form.allergies" :key="item" class="chip chip-danger">{{ item }}<button type="button" :aria-label="`Quitar ${item}`" @click="form.allergies.splice(index, 1)"><X class="h-3 w-3" /></button></span><small v-if="!form.allergies.length">Sin alergias registradas</small></div></div>
+                        <div class="chip-editor"><label>Condiciones sistémicas</label><div class="flex gap-2"><input v-model="newCondition" placeholder="Ej. Hipertensión" @keydown.enter.prevent="addCondition" /><button type="button" aria-label="Añadir condición" @click="addCondition"><Plus class="h-4 w-4" /></button></div><div class="chips"><span v-for="(item, index) in form.systemic_conditions" :key="item" class="chip chip-warning">{{ item }}<button type="button" :aria-label="`Quitar ${item}`" @click="form.systemic_conditions.splice(index, 1)"><X class="h-3 w-3" /></button></span><small v-if="!form.systemic_conditions.length">Sin condiciones registradas</small></div></div>
+                        <div class="chip-editor"><label>Medicamentos actuales</label><div class="flex gap-2"><input v-model="newMedication" placeholder="Ej. Losartán 50 mg" @keydown.enter.prevent="addMedication" /><button type="button" aria-label="Añadir medicamento" @click="addMedication"><Plus class="h-4 w-4" /></button></div><div class="chips"><span v-for="(item, index) in form.current_medications" :key="item" class="chip chip-neutral">{{ item }}<button type="button" :aria-label="`Quitar ${item}`" @click="form.current_medications.splice(index, 1)"><X class="h-3 w-3" /></button></span><small v-if="!form.current_medications.length">Sin medicamentos registrados</small></div></div>
+                    </div>
+                    <div class="grid gap-3 border-t border-[#D8E0DE] bg-[#F8FAFC] p-5 md:grid-cols-3">
+                        <label class="check-card"><input v-model="form.has_pacemaker" type="checkbox" /><HeartPulse class="h-5 w-5" /><span><strong>Marcapasos</strong><small>Portador de dispositivo cardíaco</small></span></label>
+                        <label class="check-card"><input v-model="form.bleeding_disorders" type="checkbox" /><BadgeCheck class="h-5 w-5" /><span><strong>Coagulación</strong><small>Trastorno de sangrado registrado</small></span></label>
+                        <div class="space-y-2"><label class="check-card"><input v-model="form.is_pregnant" type="checkbox" /><UsersRound class="h-5 w-5" /><span><strong>Gestación</strong><small>Paciente actualmente embarazada</small></span></label><label v-if="form.is_pregnant" class="field"><span>Semanas de gestación</span><input v-model.number="form.pregnancy_weeks" type="number" min="1" max="42" /></label></div>
+                    </div>
+                    <div class="p-5 pt-0"><label class="field"><span>Notas médicas</span><textarea v-model="form.medical_notes" rows="3" placeholder="Antecedentes, observaciones o precauciones adicionales"></textarea></label></div>
+                </section>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Nombres *</label>
-                            <input v-model="form.first_name" type="text" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none" />
+                <section class="border border-[#D8E0DE] bg-white">
+                    <div class="flex items-center gap-3 border-b border-[#D8E0DE] bg-[#F1F5F9] px-5 py-3"><UsersRound class="h-5 w-5 text-[#455A73]" /><div><h2 class="font-semibold">Responsable y clasificación</h2><p class="text-xs text-[#667085]">Tutor legal, etiquetas operativas y notas internas.</p></div></div>
+                    <div class="space-y-5 p-5">
+                        <label class="inline-flex items-center gap-3 text-sm font-semibold text-[#344054]"><input v-model="form.is_minor" type="checkbox" class="h-4 w-4 accent-[#007D73]" /> Paciente menor de edad o bajo representación legal</label>
+                        <div v-if="form.is_minor" class="grid gap-4 border border-[#B7D9D4] bg-[#F1FAF8] p-4 md:grid-cols-3">
+                            <label class="field"><span>Nombre del tutor *</span><input v-model="form.guardian_name" :required="form.is_minor" /></label>
+                            <label class="field"><span>Identificación del tutor</span><input v-model="form.guardian_identification" /></label>
+                            <label class="field"><span>Teléfono del tutor *</span><input v-model="form.guardian_phone" type="tel" :required="form.is_minor" /></label>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Apellidos *</label>
-                            <input v-model="form.last_name" type="text" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Tipo de Documento</label>
-                            <select v-model="form.identification_type" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none">
-                                <option value="CEDULA">Cédula de Identidad</option>
-                                <option value="DNI">DNI</option>
-                                <option value="PASSPORT">Pasaporte</option>
-                                <option value="RUT">RUT</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Número de Documento</label>
-                            <input v-model="form.identification_number" type="text" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Fecha de Nacimiento</label>
-                            <input v-model="form.birth_date" type="date" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Género</label>
-                            <select v-model="form.gender" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none">
-                                <option value="male">Masculino</option>
-                                <option value="female">Femenino</option>
-                                <option value="other">Otro</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Teléfono Principal</label>
-                            <input v-model="form.phone" type="text" placeholder="+58 412 000-0000" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Teléfono Secundario</label>
-                            <input v-model="form.secondary_phone" type="text" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Correo Electrónico</label>
-                            <input v-model="form.email" type="email" placeholder="paciente@correo.com" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none" />
-                        </div>
-
-                        <div class="col-span-2">
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Dirección Residencial</label>
-                            <input v-model="form.address" type="text" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Grupo Sanguíneo</label>
-                            <select v-model="form.blood_type" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-teal-500 focus:outline-none">
-                                <option value="O+">O Positivo (O+)</option>
-                                <option value="O-">O Negativo (O-)</option>
-                                <option value="A+">A Positivo (A+)</option>
-                                <option value="A-">A Negativo (A-)</option>
-                                <option value="B+">B Positivo (B+)</option>
-                                <option value="B-">B Negativo (B-)</option>
-                                <option value="AB+">AB Positivo (AB+)</option>
-                                <option value="AB-">AB Negativo (AB-)</option>
-                            </select>
+                        <div class="grid gap-5 lg:grid-cols-2">
+                            <div class="chip-editor"><label>Etiquetas</label><div class="flex gap-2"><input v-model="newTag" placeholder="Ej. VIP, Ortodoncia" @keydown.enter.prevent="addTag" /><button type="button" aria-label="Añadir etiqueta" @click="addTag"><Plus class="h-4 w-4" /></button></div><div class="chips"><span v-for="(item, index) in form.tags" :key="item" class="chip chip-primary">{{ item }}<button type="button" :aria-label="`Quitar ${item}`" @click="form.tags.splice(index, 1)"><X class="h-3 w-3" /></button></span><small v-if="!form.tags.length">Sin etiquetas</small></div></div>
+                            <label class="field"><span>Notas administrativas</span><textarea v-model="form.notes" rows="3" placeholder="Preferencias, instrucciones o contexto administrativo"></textarea></label>
                         </div>
                     </div>
+                </section>
+
+                <div v-if="Object.keys(form.errors).length" class="flex items-start gap-3 border border-[#F5A3A0] bg-[#FFF1F0] p-4 text-sm text-[#912018]">
+                    <AlertCircle class="mt-0.5 h-5 w-5 shrink-0" />
+                    <div><strong>Revisa los campos marcados.</strong><p class="mt-1 text-xs">No se guardó información porque hay datos inválidos o incompletos.</p></div>
                 </div>
 
-                <!-- Seccion 2: Antecedentes y Alertas Médicas (Anamnesis) -->
-                <div class="p-6 bg-slate-800/80 border border-slate-700/60 rounded-2xl space-y-4">
-                    <h2 class="text-base font-bold text-white flex items-center gap-2">
-                        <ShieldAlert class="w-5 h-5 text-amber-400" /> Alertas Médicas y Anamnesis
-                    </h2>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- Alergias -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Alergias Medicamentosas / Materiales</label>
-                            <div class="flex gap-2 mb-2">
-                                <input v-model="form.new_allergy" type="text" placeholder="Ej. Penicilina" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white" @keydown.enter.prevent="addAllergy" />
-                                <button type="button" class="px-3 py-1.5 bg-amber-500/20 text-amber-300 text-xs font-bold rounded-lg border border-amber-500/30" @click="addAllergy">+</button>
-                            </div>
-                            <div class="flex flex-wrap gap-1.5">
-                                <span v-for="(al, i) in form.allergies" :key="i" class="px-2 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-lg text-xs flex items-center gap-1">
-                                    {{ al }} <button type="button" class="hover:text-white" @click="removeAllergy(i)">×</button>
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Condiciones Sistemicas -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Condiciones Sistémicas</label>
-                            <div class="flex gap-2 mb-2">
-                                <input v-model="form.new_condition" type="text" placeholder="Ej. Hipertensión" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white" @keydown.enter.prevent="addCondition" />
-                                <button type="button" class="px-3 py-1.5 bg-teal-500/20 text-teal-300 text-xs font-bold rounded-lg border border-teal-500/30" @click="addCondition">+</button>
-                            </div>
-                            <div class="flex flex-wrap gap-1.5">
-                                <span v-for="(cond, i) in form.systemic_conditions" :key="i" class="px-2 py-1 bg-teal-500/10 text-teal-400 border border-teal-500/30 rounded-lg text-xs flex items-center gap-1">
-                                    {{ cond }} <button type="button" class="hover:text-white" @click="removeCondition(i)">×</button>
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Medicacion Habitual -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Medicamentos Actuales</label>
-                            <div class="flex gap-2 mb-2">
-                                <input v-model="form.new_medication" type="text" placeholder="Ej. Aspirina 100mg" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white" @keydown.enter.prevent="addMedication" />
-                                <button type="button" class="px-3 py-1.5 bg-slate-700 text-slate-200 text-xs font-bold rounded-lg" @click="addMedication">+</button>
-                            </div>
-                            <div class="flex flex-wrap gap-1.5">
-                                <span v-for="(med, i) in form.current_medications" :key="i" class="px-2 py-1 bg-slate-900 text-slate-300 border border-slate-700 rounded-lg text-xs flex items-center gap-1">
-                                    {{ med }} <button type="button" class="hover:text-white" @click="removeMedication(i)">×</button>
-                                </span>
-                            </div>
-                        </div>
+                <footer class="sticky bottom-0 z-10 flex flex-col-reverse gap-3 border border-[#D8E0DE] bg-white/95 p-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-xs text-[#667085]">Los cambios clínicos quedan vinculados a la auditoría del tenant.</p>
+                    <div class="flex gap-3">
+                        <Link :href="returnUrl" class="inline-flex h-10 items-center justify-center border border-[#9AAEAA] bg-white px-5 text-sm font-semibold text-[#344054] hover:bg-[#F1F5F9]">Cancelar</Link>
+                        <button type="submit" :disabled="form.processing" class="inline-flex h-10 items-center justify-center gap-2 bg-[#005C55] px-5 text-sm font-semibold text-white hover:bg-[#004C47] disabled:cursor-not-allowed disabled:opacity-50">
+                            <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
+                            <Check v-else class="h-4 w-4" />
+                            {{ isEditing ? 'Guardar cambios' : 'Registrar y abrir Ficha 360' }}
+                        </button>
                     </div>
-
-                    <!-- Boolean Alerts -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-700/60">
-                        <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                            <input v-model="form.has_pacemaker" type="checkbox" class="rounded bg-slate-900 border-slate-700 text-teal-500" />
-                            Portador de Marcapasos
-                        </label>
-                        <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                            <input v-model="form.bleeding_disorders" type="checkbox" class="rounded bg-slate-900 border-slate-700 text-teal-500" />
-                            Trastornos de Coagulación / Sangrado
-                        </label>
-                        <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                            <input v-model="form.is_pregnant" type="checkbox" class="rounded bg-slate-900 border-slate-700 text-teal-500" />
-                            Paciente en Estado de Gestación
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Botones de Acción -->
-                <div class="flex justify-end gap-3 pt-4">
-                    <a :href="isEditing && props.patient ? `/patients/${props.patient.id}` : '/patients'" class="px-6 py-2.5 bg-slate-800 text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-700 transition">Cancelar</a>
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-sm font-bold rounded-xl shadow-lg shadow-teal-500/20 transition disabled:opacity-50"
-                    >
-                        {{ isEditing ? 'Guardar Cambios' : 'Guardar Paciente y Abrir Ficha 360' }}
-                    </button>
-                </div>
+                </footer>
             </form>
         </div>
-    </div>
+    </ClinicLayout>
 </template>
+
+<style scoped>
+.field { display: flex; flex-direction: column; gap: 0.375rem; }
+.field > span, .chip-editor > label { color: #52615e; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; }
+.field input, .field select, .field textarea, .chip-editor input { width: 100%; border: 1px solid #bdc9c6; border-radius: 0.25rem; background: #fff; color: #131b2e; font-size: 0.875rem; outline: none; transition: border-color 150ms; }
+.field input, .field select, .chip-editor input { height: 2.5rem; padding: 0 0.75rem; }
+.field textarea { padding: 0.625rem 0.75rem; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus, .chip-editor input:focus { border-color: #007d73; box-shadow: inset 0 0 0 1px #007d73; }
+.field small { color: #ba1a1a; font-size: 0.6875rem; }
+.chip-editor { display: flex; flex-direction: column; gap: 0.5rem; }
+.chip-editor > div:first-of-type > button { display: grid; height: 2.5rem; width: 2.5rem; flex: none; place-items: center; border-radius: 0.25rem; background: #005c55; color: #fff; }
+.chips { display: flex; min-height: 1.75rem; flex-wrap: wrap; gap: 0.375rem; }
+.chips > small { align-self: center; color: #667085; font-size: 0.75rem; }
+.chip { display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 600; }
+.chip button { opacity: 0.7; }
+.chip button:hover { opacity: 1; }
+.chip-danger { border-color: #f5a3a0; background: #fff1f0; color: #912018; }
+.chip-warning { border-color: #fec84b; background: #fffaeb; color: #93370d; }
+.chip-neutral { border-color: #bdc9c6; background: #f1f5f9; color: #344054; }
+.chip-primary { border-color: #9aaeaa; background: #d8ece9; color: #005c55; }
+.check-card { display: flex; min-height: 4rem; cursor: pointer; align-items: center; gap: 0.75rem; border: 1px solid #bdc9c6; background: #fff; padding: 0.75rem; color: #455653; }
+.check-card:has(input:checked) { border-color: #007d73; background: #f1faf8; color: #005c55; }
+.check-card input { height: 1rem; width: 1rem; accent-color: #007d73; }
+.check-card span { display: flex; flex-direction: column; }
+.check-card strong { font-size: 0.8125rem; }
+.check-card small { color: #667085; font-size: 0.6875rem; font-weight: 400; }
+</style>

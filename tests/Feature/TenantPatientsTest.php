@@ -76,12 +76,21 @@ test('[GATE PAT] Comprehensive patient lifecycle: creation, anamnesis, duplicate
         'gender' => 'female',
         'phone' => '+58 412 999-8877',
         'email' => 'valentina.ramos@email.test',
+        'city' => 'Caracas',
+        'emergency_contact_name' => 'María Ramos',
+        'emergency_contact_phone' => '+58 414 100-2000',
+        'emergency_contact_relationship' => 'Madre',
+        'insurance_company' => 'Seguro Dental Test',
+        'insurance_policy_number' => 'POL-2026-001',
+        'notes' => 'Prefiere citas en la mañana.',
+        'tags' => ['VIP', 'Seguimiento'],
         'blood_type' => 'O+',
         'allergies' => ['Penicilina', 'Látex'],
         'systemic_conditions' => ['Asma'],
         'current_medications' => ['Salbutamol'],
         'is_pregnant' => false,
         'has_pacemaker' => false,
+        'medical_notes' => 'Usar anestésico sin penicilina.',
     ]);
 
     $context->makeCurrent($this->tenant);
@@ -118,6 +127,10 @@ test('[GATE PAT] Comprehensive patient lifecycle: creation, anamnesis, duplicate
         ->assertInertia(fn (Assert $page) => $page
             ->component('Clinic/Patients/Create')
             ->where('patient.id', $patient->id)
+            ->where('patient.city', 'Caracas')
+            ->where('patient.emergency_contact_name', 'María Ramos')
+            ->where('patient.insurance_policy_number', 'POL-2026-001')
+            ->where('patient.tags.0', 'VIP')
             ->where('patient.medical_history.allergies.0', 'Penicilina'));
 
     $updateResponse = $this->put("http://pacientes.bsdental.test/patients/{$patient->id}", [
@@ -127,12 +140,21 @@ test('[GATE PAT] Comprehensive patient lifecycle: creation, anamnesis, duplicate
         'identification_number' => 'V-20111222',
         'phone' => '+58 412 999-8877',
         'email' => 'valentina.actualizada@email.test',
+        'city' => 'Valencia',
+        'emergency_contact_name' => 'María Ramos',
+        'emergency_contact_phone' => '+58 414 100-2000',
+        'emergency_contact_relationship' => 'Madre',
+        'insurance_company' => 'Seguro Dental Test',
+        'insurance_policy_number' => 'POL-2026-002',
+        'notes' => 'Preferencia actualizada.',
+        'tags' => ['VIP', 'Ortodoncia'],
         'allergies' => ['Penicilina', 'Látex'],
         'systemic_conditions' => ['Asma'],
         'current_medications' => ['Salbutamol'],
         'is_pregnant' => false,
         'bleeding_disorders' => false,
         'has_pacemaker' => false,
+        'medical_notes' => 'Anamnesis actualizada.',
     ]);
     $updateResponse->assertRedirect("http://pacientes.bsdental.test/patients/{$patient->id}");
 
@@ -140,6 +162,10 @@ test('[GATE PAT] Comprehensive patient lifecycle: creation, anamnesis, duplicate
     $patient->refresh();
     expect($patient->first_name)->toBe('Valentina María')
         ->and($patient->email)->toBe('valentina.actualizada@email.test')
+        ->and($patient->city)->toBe('Valencia')
+        ->and($patient->insurance_policy_number)->toBe('POL-2026-002')
+        ->and($patient->tags)->toBe(['VIP', 'Ortodoncia'])
+        ->and($patient->medicalHistory->medical_notes)->toBe('Anamnesis actualizada.')
         ->and(TenantAuditLog::where('action', 'patient.updated')->exists())->toBeTrue();
 
     // 6. Upload Clinical File / Radiography
@@ -163,4 +189,32 @@ test('[GATE PAT] Comprehensive patient lifecycle: creation, anamnesis, duplicate
     expect(Patient::count())->toBe(0)
         ->and(Patient::withTrashed()->count())->toBe(1)
         ->and(TenantAuditLog::where('action', 'patient.deleted')->exists())->toBeTrue();
+});
+
+test('[GATE PAT] Admission form exposes the clinical component and requires conditional safety fields', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+
+    $this->actingAs($this->user, 'web');
+
+    $this->get('http://pacientes.bsdental.test/patients/create')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Patients/Create')
+            ->where('suggestedRecordNumber', 'HC-00001')
+            ->missing('patient'));
+
+    $this->post('http://pacientes.bsdental.test/patients', [
+        'first_name' => 'Paciente',
+        'last_name' => 'Condicional',
+        'is_minor' => true,
+        'is_pregnant' => true,
+    ])->assertSessionHasErrors([
+        'guardian_name',
+        'guardian_phone',
+        'pregnancy_weeks',
+    ]);
+
+    $context->makeCurrent($this->tenant);
+    expect(Patient::count())->toBe(0);
 });
