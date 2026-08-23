@@ -49,6 +49,14 @@ class AppointmentController extends Controller
         $branches = Branch::where('is_active', true)->with('rooms')->get();
         $professionals = Professional::where('is_active', true)->with('specialties')->get();
         $appointmentTypes = AppointmentType::where('is_active', true)->get();
+        $requestedPatientId = $request->string('patient_id')->trim()->value();
+        $initialPatientId = $requestedPatientId !== '' && Patient::query()
+            ->whereKey($requestedPatientId)
+            ->where('status', 'active')
+            ->exists()
+                ? $requestedPatientId
+                : null;
+        $requestedAppointmentId = $request->string('appointment_id')->trim()->value();
 
         $firstBranch = $branches->first();
         $selectedBranchId = $branchId ?: ($firstBranch ? $firstBranch->id : '');
@@ -61,6 +69,9 @@ class AppointmentController extends Controller
             ->whereBetween('start_time', [$rangeStart, $rangeEnd])
             ->orderBy('start_time')
             ->get();
+        $initialAppointmentId = $appointments->contains('id', $requestedAppointmentId)
+            ? $requestedAppointmentId
+            : null;
 
         $blocks = ScheduleBlock::with(['professional', 'room'])
             ->when($selectedBranchId, fn ($q) => $q->where('branch_id', $selectedBranchId))
@@ -91,6 +102,9 @@ class AppointmentController extends Controller
                 'room_id' => $roomId,
                 'date' => $date,
                 'view' => $view,
+                'patient_id' => $initialPatientId,
+                'appointment_id' => $initialAppointmentId,
+                'open_create' => $request->boolean('create') && $initialPatientId !== null,
             ],
         ]);
     }

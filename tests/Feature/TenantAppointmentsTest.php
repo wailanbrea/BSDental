@@ -120,6 +120,20 @@ test('[GATE APP] Comprehensive appointment lifecycle, reception flow, conflict v
     expect($appointment->status)->toBe('scheduled')
         ->and($appointment->end_time->format('H:i:s'))->toBe('10:30:00');
 
+    // Patient 360 deep links preselect the patient for creation and open an existing appointment.
+    $this->get("http://agenda.bsdental.test/appointments?create=1&patient_id={$this->patient->id}&date={$targetDate}&view=day")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Appointments/Index')
+            ->where('filters.patient_id', $this->patient->id)
+            ->where('filters.open_create', true));
+
+    $this->get("http://agenda.bsdental.test/appointments?appointment_id={$appointment->id}&date={$targetDate}&view=day")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.appointment_id', $appointment->id)
+            ->has('appointments', 1));
+
     // 2. Conflict Validation: Attempt to book same professional at overlapping time
     $conflictResponse = $this->post('http://agenda.bsdental.test/appointments', [
         'patient_id' => $this->patient->id,

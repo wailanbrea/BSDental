@@ -2,7 +2,7 @@
 import { Head, useForm, router } from '@inertiajs/vue3'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { CalendarClock, Check, ChevronLeft, ChevronRight, Clock3, Filter, LockKeyhole, MapPin, Play, Plus, RotateCcw, UserCheck, X } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 interface PatientSummary { id: string; record_number: string; first_name: string; last_name: string; phone: string | null }
 interface ProfessionalSummary { id: string; full_name: string; color: string }
@@ -22,7 +22,7 @@ interface ScheduleBlockItem {
 const props = defineProps<{
     branches: BranchItem[]; professionals: ProfessionalSummary[]; appointmentTypes: AppointmentTypeSummary[]; patients: PatientSummary[]
     appointments: AppointmentItem[]; blocks: ScheduleBlockItem[]
-    filters: { branch_id: string; professional_id: string | null; room_id: string | null; date: string; view: 'day' | 'week' | 'month' }
+    filters: { branch_id: string; professional_id: string | null; room_id: string | null; date: string; view: 'day' | 'week' | 'month'; patient_id: string | null; appointment_id: string | null; open_create: boolean }
 }>()
 
 const selectedDate = ref(props.filters.date)
@@ -31,7 +31,7 @@ const selectedProfessional = ref(props.filters.professional_id || '')
 const selectedRoom = ref(props.filters.room_id || '')
 const view = ref(props.filters.view)
 const showFilters = ref(false)
-const isCreatingModal = ref(false)
+const isCreatingModal = ref(props.filters.open_create)
 const isBlockModal = ref(false)
 const selectedAppointment = ref<AppointmentItem | null>(null)
 const isRescheduling = ref(false)
@@ -41,7 +41,7 @@ const dayEnd = 19
 const hourHeight = 56
 
 const newAppointmentForm = useForm({
-    patient_id: '', professional_id: props.professionals[0]?.id || '', branch_id: props.filters.branch_id || props.branches[0]?.id || '',
+    patient_id: props.filters.patient_id || '', professional_id: props.professionals[0]?.id || '', branch_id: props.filters.branch_id || props.branches[0]?.id || '',
     room_id: '', appointment_type_id: props.appointmentTypes[0]?.id || '', start_time: `${props.filters.date}T09:00`, duration_minutes: 30, reason: '',
 })
 const blockForm = useForm({
@@ -52,6 +52,17 @@ const rescheduleForm = useForm({
     start_time: '', duration_minutes: 30, professional_id: '', room_id: '', reason: '',
 })
 const cancellationForm = useForm({ status: 'cancelled', cancellation_reason: '' })
+
+onMounted(() => {
+    if (props.filters.appointment_id) selectedAppointment.value = props.appointments.find((item) => item.id === props.filters.appointment_id) || null
+    if (props.filters.open_create || props.filters.appointment_id) {
+        const url = new URL(window.location.href)
+        url.searchParams.delete('create')
+        url.searchParams.delete('patient_id')
+        url.searchParams.delete('appointment_id')
+        window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`)
+    }
+})
 
 function asLocalDate(value: string) { const [year, month, day] = value.slice(0, 10).split('-').map(Number); return new Date(year, month - 1, day) }
 function isoDate(date: Date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` }
