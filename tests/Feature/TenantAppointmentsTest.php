@@ -14,6 +14,7 @@ use App\Platform\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     Schema::connection('landlord')->dropAllTables();
@@ -175,6 +176,16 @@ test('[GATE APP] Comprehensive appointment lifecycle, reception flow, conflict v
     ]);
     $blockResponse->assertRedirect();
 
+    $this->get("http://agenda.bsdental.test/appointments?date={$targetDate}&view=day&branch_id={$this->branch->id}&professional_id={$this->professional->id}&room_id={$this->room->id}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Appointments/Index')
+            ->where('filters.room_id', $this->room->id)
+            ->has('appointments', 1)
+            ->has('blocks', 1)
+            ->where('blocks.0.title', 'Reunión Clínica Médica')
+        );
+
     // Try booking appointment during block
     $blockedBookingResponse = $this->post('http://agenda.bsdental.test/appointments', [
         'patient_id' => $this->patient->id,
@@ -201,8 +212,27 @@ test('[GATE APP] Comprehensive appointment lifecycle, reception flow, conflict v
     expect($newApt->status)->toBe('scheduled')
         ->and($newApt->start_time->format('H:i:s'))->toBe('16:00:00');
 
-    // 6. Verify Audit Logs
+    // 6. Cancellation requires a clinical-operational reason.
+    $this->put("http://agenda.bsdental.test/appointments/{$newApt->id}/status", [
+        'status' => 'cancelled',
+    ])->assertSessionHasErrors('cancellation_reason');
+
+    $this->put("http://agenda.bsdental.test/appointments/{$newApt->id}/status", [
+        'status' => 'cancelled',
+        'cancellation_reason' => 'Paciente solicitó nueva fecha por viaje.',
+    ])->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $newApt->refresh();
+    expect($newApt->status)->toBe('cancelled')
+        ->and($newApt->cancelled_at)->not->toBeNull()
+        ->and($newApt->cancellation_reason)->toBe('Paciente solicitó nueva fecha por viaje.');
+
+    // 7. Verify Audit Logs, including the real previous status.
+    $firstStatusAudit = TenantAuditLog::where('action', 'appointment.status_updated')->oldest('created_at')->firstOrFail();
     expect(TenantAuditLog::where('action', 'appointment.created')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'appointment.status_updated')->exists())->toBeTrue()
-        ->and(TenantAuditLog::where('action', 'appointment.rescheduled')->exists())->toBeTrue();
+        ->and(TenantAuditLog::where('action', 'appointment.rescheduled')->exists())->toBeTrue()
+        ->and($firstStatusAudit->metadata['old_status'])->toBe('scheduled')
+        ->and($firstStatusAudit->metadata['new_status'])->toBe('checked_in');
 });

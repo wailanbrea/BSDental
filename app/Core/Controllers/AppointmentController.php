@@ -34,6 +34,7 @@ class AppointmentController extends Controller
     {
         $branchId = $request->input('branch_id');
         $professionalId = $request->input('professional_id');
+        $roomId = $request->input('room_id');
         $date = $request->input('date', now()->toDateString());
         $view = in_array($request->input('view'), ['day', 'week', 'month'], true)
             ? $request->input('view')
@@ -56,11 +57,19 @@ class AppointmentController extends Controller
         $appointments = Appointment::with(['patient', 'professional', 'room', 'appointmentType'])
             ->when($selectedBranchId, fn ($q) => $q->where('branch_id', $selectedBranchId))
             ->when($professionalId, fn ($q) => $q->where('professional_id', $professionalId))
+            ->when($roomId, fn ($q) => $q->where('room_id', $roomId))
             ->whereBetween('start_time', [$rangeStart, $rangeEnd])
             ->orderBy('start_time')
             ->get();
 
-        $blocks = ScheduleBlock::when($selectedBranchId, fn ($q) => $q->where('branch_id', $selectedBranchId))
+        $blocks = ScheduleBlock::with(['professional', 'room'])
+            ->when($selectedBranchId, fn ($q) => $q->where('branch_id', $selectedBranchId))
+            ->when($professionalId, fn ($q) => $q->where(fn ($scope) => $scope
+                ->whereNull('professional_id')
+                ->orWhere('professional_id', $professionalId)))
+            ->when($roomId, fn ($q) => $q->where(fn ($scope) => $scope
+                ->whereNull('room_id')
+                ->orWhere('room_id', $roomId)))
             ->whereBetween('start_time', [$rangeStart, $rangeEnd])
             ->get();
 
@@ -79,6 +88,7 @@ class AppointmentController extends Controller
             'filters' => [
                 'branch_id' => $selectedBranchId,
                 'professional_id' => $professionalId,
+                'room_id' => $roomId,
                 'date' => $date,
                 'view' => $view,
             ],
@@ -153,10 +163,11 @@ class AppointmentController extends Controller
 
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:scheduled,confirmed,checked_in,waiting,in_progress,completed,cancelled,no_show'],
-            'cancellation_reason' => ['nullable', 'string', 'max:500'],
+            'cancellation_reason' => ['required_if:status,cancelled', 'nullable', 'string', 'max:500'],
         ]);
 
         $newStatus = $validated['status'];
+        $oldStatus = $appointment->status;
         $now = now();
 
         $updateData = ['status' => $newStatus];
@@ -175,7 +186,7 @@ class AppointmentController extends Controller
         $appointment->update($updateData);
 
         $this->auditLogger->logTenant('appointment.status_updated', 'Appointment', $appointment->id, [
-            'old_status' => $appointment->getOriginal('status'),
+            'old_status' => $oldStatus,
             'new_status' => $newStatus,
         ]);
 
