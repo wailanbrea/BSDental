@@ -11,6 +11,7 @@ use App\Platform\Security\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,7 +27,7 @@ class OdontogramController extends Controller
      */
     public function show(string $patientId): Response
     {
-        $patient = Patient::findOrFail($patientId);
+        $patient = Patient::with('medicalHistory')->findOrFail($patientId);
         $odontogram = $this->odontogramService->getOrCreateForPatient($patientId);
         $matrix = $this->odontogramService->getToothMatrix($odontogram);
 
@@ -52,7 +53,7 @@ class OdontogramController extends Controller
         $odontogram = $this->odontogramService->getOrCreateForPatient($patientId);
 
         $validated = $request->validate([
-            'tooth_number' => ['required', 'integer', 'min:11', 'max:85'],
+            'tooth_number' => ['required', 'integer', Rule::in($this->validFdiToothNumbers())],
             'surface' => ['required', 'string', 'in:all,vestibular,lingual_palatal,mesial,distal,occlusal_incisal'],
             'condition' => ['required', 'string', 'in:caries,restored_composite,restored_amalgam,crown,endodontic,missing,implant,prosthesis,sealant,fracture,healthy'],
             'lifecycle_state' => ['required', 'string', 'in:initial_diagnosis,planned,approved,completed'],
@@ -82,5 +83,29 @@ class OdontogramController extends Controller
         ]);
 
         return redirect()->back()->with('success', "Pieza {$entry->tooth_number} actualizada ({$entry->condition}).");
+    }
+
+    /**
+     * Valid permanent and primary tooth numbers in FDI notation.
+     *
+     * @return list<int>
+     */
+    private function validFdiToothNumbers(): array
+    {
+        $teeth = [];
+
+        foreach ([1, 2, 3, 4] as $quadrant) {
+            foreach (range(1, 8) as $position) {
+                $teeth[] = ($quadrant * 10) + $position;
+            }
+        }
+
+        foreach ([5, 6, 7, 8] as $quadrant) {
+            foreach (range(1, 5) as $position) {
+                $teeth[] = ($quadrant * 10) + $position;
+            }
+        }
+
+        return $teeth;
     }
 }

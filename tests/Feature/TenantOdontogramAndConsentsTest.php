@@ -144,3 +144,32 @@ test('[GATE ODO] Comprehensive structured odontogram lifecycle, tooth-surface tr
     expect(TenantAuditLog::where('action', 'odontogram.entry_created')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'consent.signed')->exists())->toBeTrue();
 });
+
+test('[GATE ODO] Odontogram only accepts valid permanent and primary FDI tooth numbers', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    foreach ([19, 49, 56, 86] as $invalidTooth) {
+        $this->from("http://odontograma.bsdental.test/patients/{$this->patient->id}/odontogram")
+            ->post("http://odontograma.bsdental.test/patients/{$this->patient->id}/odontogram/entries", [
+                'tooth_number' => $invalidTooth,
+                'surface' => 'all',
+                'condition' => 'healthy',
+                'lifecycle_state' => 'initial_diagnosis',
+            ])
+            ->assertRedirect("http://odontograma.bsdental.test/patients/{$this->patient->id}/odontogram")
+            ->assertSessionHasErrors('tooth_number');
+    }
+
+    foreach ([11, 48, 51, 85] as $validTooth) {
+        $this->post("http://odontograma.bsdental.test/patients/{$this->patient->id}/odontogram/entries", [
+            'tooth_number' => $validTooth,
+            'surface' => 'all',
+            'condition' => 'healthy',
+            'lifecycle_state' => 'initial_diagnosis',
+        ])->assertRedirect();
+    }
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect(Odontogram::where('patient_id', $this->patient->id)->firstOrFail()->entries()->count())->toBe(4);
+});
