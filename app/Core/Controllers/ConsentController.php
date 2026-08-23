@@ -26,14 +26,37 @@ class ConsentController extends Controller
      */
     public function index(string $patientId): Response
     {
-        $patient = Patient::findOrFail($patientId);
-        $templates = ConsentTemplate::where('is_active', true)->get();
+        $patient = Patient::with('medicalHistory')->findOrFail($patientId);
+        $templates = ConsentTemplate::where('is_active', true)->orderBy('title')->get();
         $consents = PatientConsent::where('patient_id', $patientId)->orderBy('signed_at', 'desc')->get();
 
         return Inertia::render('Clinic/Consents/Index', [
             'patient' => $patient,
-            'templates' => $templates,
-            'consents' => $consents,
+            'templates' => $templates->map(fn (ConsentTemplate $template): array => [
+                'id' => $template->id,
+                'title' => $template->title,
+                'slug' => $template->slug,
+                'version' => $template->version,
+                'content' => $template->content,
+                'required_witness' => $template->required_witness,
+            ]),
+            'consents' => $consents->map(function (PatientConsent $consent): array {
+                $integrity = $this->consentService->verify($consent);
+
+                return [
+                    'id' => $consent->id,
+                    'title' => $consent->title,
+                    'template_version' => $consent->template_version,
+                    'signed_by_name' => $consent->signed_by_name,
+                    'signed_by_identification' => $consent->signed_by_identification,
+                    'relationship' => $consent->relationship,
+                    'signature_type' => $consent->signature_type,
+                    'signed_at' => $consent->signed_at->toIso8601String(),
+                    'integrity_hash' => $consent->integrity_hash,
+                    'rendered_content' => $consent->rendered_content,
+                    'integrity' => $integrity,
+                ];
+            }),
         ]);
     }
 
@@ -47,10 +70,11 @@ class ConsentController extends Controller
         $validated = $request->validate([
             'consent_template_id' => ['required', 'uuid', 'exists:tenant.consent_templates,id'],
             'signed_by_name' => ['required', 'string', 'max:255'],
-            'signed_by_identification' => ['nullable', 'string', 'max:50'],
-            'relationship' => ['required', 'string', 'max:50'],
+            'signed_by_identification' => ['required', 'string', 'max:50'],
+            'relationship' => ['required', 'string', 'in:patient,parent,guardian,legal_representative'],
             'signature_type' => ['required', 'string', 'in:drawn,digital,biometric'],
-            'signature_data' => ['required', 'string'],
+            'signature_data' => ['required', 'string', 'max:1500000', 'regex:/\Adata:image\/(?:png|svg\+xml);base64,/'],
+            'accepted_terms' => ['accepted'],
         ]);
 
         $template = ConsentTemplate::findOrFail($validated['consent_template_id']);

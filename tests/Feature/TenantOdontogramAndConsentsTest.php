@@ -6,6 +6,7 @@ use App\Core\Models\Odontogram;
 use App\Core\Models\Patient;
 use App\Core\Models\PatientConsent;
 use App\Core\Security\Models\TenantAuditLog;
+use App\Core\Services\ConsentSigningService;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
 use App\Platform\Tenancy\TenantContext;
@@ -129,6 +130,7 @@ test('[GATE ODO] Comprehensive structured odontogram lifecycle, tooth-surface tr
         'relationship' => 'patient',
         'signature_type' => 'drawn',
         'signature_data' => 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iNDAiPjxwYXRoIGQ9Ik0xMCAyMCBRIDUwIDUgOTAgMjAiIHN0cm9rZT0iYmxhY2siIGZpbGw9InRyYW5zcGFyZW50Ii8+PC9zdmc+',
+        'accepted_terms' => true,
     ]);
     $consentResponse->assertRedirect();
 
@@ -140,9 +142,68 @@ test('[GATE ODO] Comprehensive structured odontogram lifecycle, tooth-surface tr
         ->and($consent->integrity_hash)->not->toBeNull()
         ->and(strlen($consent->integrity_hash))->toBe(64);
 
+    $verification = app(ConsentSigningService::class)->verify($consent);
+    expect($verification['status'])->toBe('verified')
+        ->and($verification['algorithm'])->toBe('sha256-consent-v2');
+
     // 5. Verify Audit Logs
     expect(TenantAuditLog::where('action', 'odontogram.entry_created')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'consent.signed')->exists())->toBeTrue();
+});
+
+test('[GATE ODO] Consent integrity detects immutable snapshot tampering and listing never exposes signature data', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $consent = app(ConsentSigningService::class)->sign(
+        $this->patient,
+        $this->template,
+        'Carlos Castillo',
+        'V-18765432',
+        'patient',
+        'drawn',
+        'data:image/png;base64,c2lnbmF0dXJl',
+        '127.0.0.1'
+    );
+
+    $response = $this->get("http://odontograma.bsdental.test/patients/{$this->patient->id}/consents");
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Clinic/Consents/Index')
+            ->where('consents.0.integrity.status', 'verified')
+            ->missing('consents.0.signature_data')
+            ->missing('consents.0.signed_ip'));
+
+    $consent->rendered_content = 'Contenido alterado fuera del flujo de firma.';
+    expect(app(ConsentSigningService::class)->verify($consent)['status'])->toBe('mismatch');
+});
+
+test('[GATE ODO] Consent signing requires explicit acceptance, a valid private signature and blocks witness templates', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $payload = [
+        'consent_template_id' => $this->template->id,
+        'signed_by_name' => 'Carlos Castillo',
+        'signed_by_identification' => 'V-18765432',
+        'relationship' => 'patient',
+        'signature_type' => 'drawn',
+        'signature_data' => 'firma-fija-no-valida',
+    ];
+
+    $this->post("http://odontograma.bsdental.test/patients/{$this->patient->id}/consents", $payload)
+        ->assertSessionHasErrors(['signature_data', 'accepted_terms']);
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->template->update(['required_witness' => true]);
+    $payload['signature_data'] = 'data:image/png;base64,c2lnbmF0dXJl';
+    $payload['accepted_terms'] = true;
+
+    $this->post("http://odontograma.bsdental.test/patients/{$this->patient->id}/consents", $payload)
+        ->assertSessionHasErrors('error');
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect(PatientConsent::where('patient_id', $this->patient->id)->count())->toBe(0);
 });
 
 test('[GATE ODO] Odontogram only accepts valid permanent and primary FDI tooth numbers', function () {
