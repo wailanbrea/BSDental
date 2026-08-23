@@ -136,6 +136,71 @@ class BillingController extends Controller
     }
 
     /**
+     * Display a printable, auditable payment receipt.
+     */
+    public function showPayment(string $paymentId): Response
+    {
+        $payment = Payment::with([
+            'patient',
+            'splits',
+            'allocations.charge',
+            'refunds.createdBy',
+            'cashSession.cashRegister',
+            'createdBy',
+        ])->findOrFail($paymentId);
+
+        return Inertia::render('Clinic/Billing/Receipt', [
+            'payment' => [
+                'id' => $payment->id,
+                'payment_number' => $payment->payment_number,
+                'total_amount' => $payment->total_amount,
+                'allocated_amount' => $payment->allocated_amount,
+                'unallocated_amount' => $payment->unallocated_amount,
+                'refunded_amount' => $payment->refunded_amount,
+                'net_amount' => round($payment->total_amount - $payment->refunded_amount, 2),
+                'status' => $payment->status,
+                'paid_at' => $payment->paid_at,
+                'created_at' => $payment->created_at,
+                'created_by' => $payment->createdBy?->name,
+                'cash_register' => $payment->cashSession?->cashRegister?->name,
+                'patient' => [
+                    'id' => $payment->patient->id,
+                    'record_number' => $payment->patient->record_number,
+                    'full_name' => $payment->patient->full_name,
+                    'identification_number' => $payment->patient->identification_number,
+                    'phone' => $payment->patient->phone,
+                    'email' => $payment->patient->email,
+                ],
+                'splits' => $payment->splits->map(fn ($split) => [
+                    'id' => $split->id,
+                    'method' => $split->method,
+                    'amount' => $split->amount,
+                    'reference_code' => $split->reference_code,
+                ])->values(),
+                'allocations' => $payment->allocations->map(fn ($allocation) => [
+                    'id' => $allocation->id,
+                    'amount' => $allocation->amount,
+                    'allocated_at' => $allocation->allocated_at,
+                    'charge' => [
+                        'id' => $allocation->charge->id,
+                        'charge_number' => $allocation->charge->charge_number,
+                        'concept' => $allocation->charge->concept,
+                        'total_amount' => $allocation->charge->total_amount,
+                        'status' => $allocation->charge->status,
+                    ],
+                ])->values(),
+                'refunds' => $payment->refunds->map(fn ($refund) => [
+                    'id' => $refund->id,
+                    'amount' => $refund->amount,
+                    'reason' => $refund->reason,
+                    'refunded_at' => $refund->refunded_at,
+                    'created_by' => $refund->createdBy?->name,
+                ])->values(),
+            ],
+        ]);
+    }
+
+    /**
      * Allocate payment.
      */
     public function allocate(Request $request, string $paymentId): RedirectResponse

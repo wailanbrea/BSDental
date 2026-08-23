@@ -18,6 +18,7 @@ use App\Platform\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     Schema::connection('landlord')->dropAllTables();
@@ -171,6 +172,23 @@ test('[GATE-FIN] Comprehensive billing, multi-split payments, payment allocation
     expect($payment->refunded_amount)->toBe(20.0)
         ->and($payment->getRefundableBalance())->toBe(100.0)
         ->and($session->expected_cash)->toBe(150.0); // 170 - 20
+
+    $receiptResponse = $this->get("http://finanzas.bsdental.test/payments/{$payment->id}");
+    $receiptResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Billing/Receipt')
+            ->where('payment.payment_number', 'REC-00001')
+            ->where('payment.patient.record_number', 'HC-00001')
+            ->where('payment.total_amount', 120)
+            ->where('payment.allocated_amount', 120)
+            ->where('payment.refunded_amount', 20)
+            ->where('payment.net_amount', 100)
+            ->has('payment.splits', 2)
+            ->where('payment.splits.1.reference_code', 'AUTH-4567')
+            ->has('payment.allocations', 1)
+            ->where('payment.allocations.0.charge.charge_number', 'CHG-00001')
+            ->has('payment.refunds', 1)
+            ->where('payment.refunds.0.reason', 'Ajuste de cortesía clínica'));
 
     // 7. Invariant 36 & 38 & 39: Close Cash Session with Blind Count ($150 counted -> 0 difference)
     $closeResponse = $this->post("http://finanzas.bsdental.test/cash-sessions/{$session->id}/close", [

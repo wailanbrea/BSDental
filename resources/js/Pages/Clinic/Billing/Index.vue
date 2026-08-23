@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3'
+import { Head, Link, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { ArrowLeft, Plus, CreditCard, Receipt } from 'lucide-vue-next'
+import { ArrowLeft, Plus, CreditCard, ExternalLink, Receipt } from 'lucide-vue-next'
 
 interface PatientDetails {
     id: string
@@ -178,7 +178,7 @@ function submitCharge() {
                 <h2 class="text-xs font-bold text-teal-400 uppercase tracking-wider">Historial de Recibos de Cobro</h2>
 
                 <div class="space-y-2">
-                    <div v-for="pay in payments" :key="pay.id" class="p-4 bg-slate-900/80 border border-slate-700/40 rounded-2xl flex items-center justify-between text-xs">
+                    <Link v-for="pay in payments" :key="pay.id" :href="`/payments/${pay.id}`" class="p-4 bg-slate-900/80 border border-slate-700/40 rounded-2xl flex items-center justify-between gap-4 text-xs transition hover:border-teal-500/50 hover:bg-slate-900">
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="font-mono font-bold text-teal-400">{{ pay.payment_number }}</span>
@@ -188,11 +188,12 @@ function submitCharge() {
                             <div class="text-[11px] text-slate-500 mt-0.5">{{ pay.paid_at }}</div>
                         </div>
 
-                        <div class="text-right font-mono">
+                        <div class="ml-auto text-right font-mono">
                             <span class="text-emerald-400 font-bold block">Asignado: ${{ pay.allocated_amount.toFixed(2) }}</span>
                             <span v-if="pay.unallocated_amount > 0" class="text-slate-400 text-[10px]">Sin asignar: ${{ pay.unallocated_amount.toFixed(2) }}</span>
                         </div>
-                    </div>
+                        <ExternalLink class="h-4 w-4 shrink-0 text-teal-400" aria-hidden="true" />
+                    </Link>
                 </div>
             </div>
 
