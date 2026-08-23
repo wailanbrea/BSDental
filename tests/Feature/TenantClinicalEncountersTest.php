@@ -6,6 +6,7 @@ use App\Core\Models\ClinicalEncounter;
 use App\Core\Models\Patient;
 use App\Core\Models\Professional;
 use App\Core\Security\Models\TenantAuditLog;
+use App\Core\Services\ClinicalIntegrityService;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
 use App\Platform\Tenancy\TenantContext;
@@ -182,6 +183,25 @@ test('[GATE CL] Comprehensive clinical encounter lifecycle: draft, finalized inm
         ->and(strlen($encounter->integrity_hash))->toBe(64); // SHA-256
 
     $originalTreatment = $encounter->evolution->treatment_performed;
+    $integrityService = app(ClinicalIntegrityService::class);
+    expect($integrityService->verify($encounter)['status'])->toBe('verified')
+        ->and($integrityService->verify($encounter)['algorithm'])->toBe('sha256-full-clinical-v2');
+
+    $encounter->evolution->update(['treatment_performed' => 'Alteración directa fuera del flujo clínico']);
+    $encounter->refresh();
+    expect($integrityService->verify($encounter)['status'])->toBe('mismatch');
+
+    $encounter->evolution->update(['treatment_performed' => $originalTreatment]);
+    $encounter->refresh();
+    expect($integrityService->verify($encounter)['status'])->toBe('verified');
+
+    $this->get("http://historia.bsdental.test/encounters/{$encounter->id}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Encounters/Show')
+            ->where('integrity.status', 'verified')
+            ->where('integrity.algorithm', 'sha256-full-clinical-v2')
+        );
 
     // 3. Attempt direct modification of finalized encounter -> must fail / be rejected
     $updateAttemptResponse = $this->put("http://historia.bsdental.test/encounters/{$encounter->id}", [

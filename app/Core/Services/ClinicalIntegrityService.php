@@ -22,6 +22,93 @@ class ClinicalIntegrityService
     }
 
     /**
+     * Build the deterministic snapshot protected by the clinical seal.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildSnapshot(
+        ClinicalEncounter $encounter,
+        string $finalizedAt,
+        string $finalizedBy,
+        bool $includeClinicalContent = true
+    ): array {
+        $snapshot = [
+            'encounter_id' => $encounter->id,
+            'patient_id' => $encounter->patient_id,
+            'professional_id' => $encounter->professional_id,
+            'encounter_date' => $encounter->encounter_date->toIso8601String(),
+            'chief_complaint' => $encounter->chief_complaint,
+            'physical_examination' => $encounter->physical_examination,
+            'vital_signs' => $encounter->vital_signs,
+            'finalized_at' => $finalizedAt,
+            'finalized_by' => $finalizedBy,
+        ];
+
+        if (! $includeClinicalContent) {
+            return $snapshot;
+        }
+
+        $encounter->loadMissing(['evolution', 'diagnoses', 'prescriptions']);
+
+        $snapshot['evolution'] = $encounter->evolution === null ? null : [
+            'subjective' => $encounter->evolution->subjective,
+            'objective' => $encounter->evolution->objective,
+            'assessment' => $encounter->evolution->assessment,
+            'plan' => $encounter->evolution->plan,
+            'treatment_performed' => $encounter->evolution->treatment_performed,
+            'recommendations' => $encounter->evolution->recommendations,
+        ];
+        $snapshot['diagnoses'] = $encounter->diagnoses
+            ->sortBy('id')
+            ->values()
+            ->map(fn ($diagnosis) => [
+                'code' => $diagnosis->code,
+                'description' => $diagnosis->description,
+                'type' => $diagnosis->type,
+            ])->all();
+        $snapshot['prescriptions'] = $encounter->prescriptions
+            ->sortBy('id')
+            ->values()
+            ->map(fn ($prescription) => [
+                'medication_name' => $prescription->medication_name,
+                'dosage' => $prescription->dosage,
+                'frequency' => $prescription->frequency,
+                'duration' => $prescription->duration,
+                'instructions' => $prescription->instructions,
+            ])->all();
+
+        return $snapshot;
+    }
+
+    /**
+     * Verify the stored seal, preserving compatibility with legacy header-only seals.
+     *
+     * @return array{status: string, algorithm: string, checked_at: string}
+     */
+    public function verify(ClinicalEncounter $encounter): array
+    {
+        if ($encounter->integrity_hash === null || $encounter->finalized_at === null || $encounter->finalized_by_user_id === null) {
+            return ['status' => 'not_sealed', 'algorithm' => 'none', 'checked_at' => now()->toIso8601String()];
+        }
+
+        $finalizedAt = $encounter->finalized_at->toIso8601String();
+        $finalizedBy = $encounter->finalized_by_user_id;
+        $fullHash = $this->computeHash($this->buildSnapshot($encounter, $finalizedAt, $finalizedBy));
+
+        if (hash_equals($encounter->integrity_hash, $fullHash)) {
+            return ['status' => 'verified', 'algorithm' => 'sha256-full-clinical-v2', 'checked_at' => now()->toIso8601String()];
+        }
+
+        $legacyHash = $this->computeHash($this->buildSnapshot($encounter, $finalizedAt, $finalizedBy, false));
+
+        if (hash_equals($encounter->integrity_hash, $legacyHash)) {
+            return ['status' => 'legacy', 'algorithm' => 'sha256-header-v1', 'checked_at' => now()->toIso8601String()];
+        }
+
+        return ['status' => 'mismatch', 'algorithm' => 'sha256-full-clinical-v2', 'checked_at' => now()->toIso8601String()];
+    }
+
+    /**
      * Finalize an encounter, sealing it against direct modifications.
      */
     public function finalize(ClinicalEncounter $encounter, string $userId): ClinicalEncounter
@@ -32,17 +119,7 @@ class ClinicalIntegrityService
 
         $now = now();
 
-        $snapshot = [
-            'encounter_id' => $encounter->id,
-            'patient_id' => $encounter->patient_id,
-            'professional_id' => $encounter->professional_id,
-            'encounter_date' => $encounter->encounter_date->toIso8601String(),
-            'chief_complaint' => $encounter->chief_complaint,
-            'physical_examination' => $encounter->physical_examination,
-            'vital_signs' => $encounter->vital_signs,
-            'finalized_at' => $now->toIso8601String(),
-            'finalized_by' => $userId,
-        ];
+        $snapshot = $this->buildSnapshot($encounter, $now->toIso8601String(), $userId);
 
         $hash = $this->computeHash($snapshot);
 

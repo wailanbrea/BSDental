@@ -206,6 +206,7 @@ class ClinicalEncounterController extends Controller
 
         return Inertia::render('Clinic/Encounters/Show', [
             'encounter' => $encounter,
+            'integrity' => $this->integrityService->verify($encounter),
         ]);
     }
 
