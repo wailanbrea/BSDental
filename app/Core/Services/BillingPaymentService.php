@@ -173,6 +173,10 @@ class BillingPaymentService
         PatientCharge $charge,
         float $amount
     ): PaymentAllocation {
+        if ($payment->patient_id !== $charge->patient_id) {
+            throw new InvalidArgumentException('El pago y el cargo deben pertenecer al mismo paciente.');
+        }
+
         if ($amount <= 0) {
             throw new InvalidArgumentException('El monto a asignar debe ser mayor a cero.');
         }
@@ -227,6 +231,10 @@ class BillingPaymentService
         ?CashSession $cashSession = null,
         ?string $userId = null
     ): Refund {
+        if ($cashSession && $cashSession->status !== 'open') {
+            throw new InvalidArgumentException('La sesión de caja seleccionada no está abierta.');
+        }
+
         if ($amount <= 0) {
             throw new InvalidArgumentException('El monto del reembolso debe ser mayor a cero.');
         }

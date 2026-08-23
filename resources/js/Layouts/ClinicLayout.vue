@@ -59,7 +59,7 @@ const navItems = [
     { name: 'Pacientes', href: '/patients', icon: Users, pattern: /^\/patients/ },
     { name: 'Agenda', href: '/appointments', icon: Calendar, pattern: /^\/appointments/ },
     { name: 'Clínica', href: '/encounters', icon: Stethoscope, pattern: /^\/(encounters|odontogram)/ },
-    { name: 'Administración', href: '/cash-registers', icon: Briefcase, pattern: /^\/(cash-registers|payments|billing|branches|professionals|inventory|lab)/ },
+    { name: 'Administración', href: '/cash-registers', icon: Briefcase, pattern: /^\/(cash-registers|charges|payments|billing|branches|professionals|inventory|lab)/ },
     { name: 'CRM', href: '/crm', icon: Megaphone, pattern: /^\/crm/ },
     { name: 'Analítica', href: '/analytics', icon: BarChart3, pattern: /^\/analytics/ },
 ]

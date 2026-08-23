@@ -187,6 +187,7 @@ Route::group([], function () {
             Route::get('/patients/{patientId}/billing', [BillingController::class, 'index'])->name('clinic.billing.index');
             Route::post('/patients/{patientId}/billing/charges', [BillingController::class, 'storeCharge'])->name('clinic.billing.store_charge');
             Route::post('/patients/{patientId}/billing/payments', [BillingController::class, 'storePayment'])->name('clinic.billing.store_payment');
+            Route::get('/charges/{chargeId}', [BillingController::class, 'showCharge'])->name('clinic.billing.charge');
             Route::get('/payments/{paymentId}', [BillingController::class, 'showPayment'])->name('clinic.billing.payment');
             Route::post('/payments/{paymentId}/allocate', [BillingController::class, 'allocate'])->name('clinic.billing.allocate');
             Route::post('/payments/{paymentId}/refund', [BillingController::class, 'refund'])->name('clinic.billing.refund');

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { ref } from 'vue'
-import { ArrowLeft, Plus, CreditCard, ExternalLink, Receipt } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
+import { ArrowLeft, Plus, CreditCard, ExternalLink, Link2, Receipt, RotateCcw } from 'lucide-vue-next'
 
 interface PatientDetails {
     id: string
@@ -50,6 +50,8 @@ const props = defineProps<{
 
 const isPaymentModal = ref(false)
 const isChargeModal = ref(false)
+const allocationPayment = ref<PaymentDetails | null>(null)
+const refundPayment = ref<PaymentDetails | null>(null)
 
 const paymentForm = useForm({
     cash_session_id: props.activeCashSession?.id || '',
@@ -64,6 +66,68 @@ const chargeForm = useForm({
     amount: 0,
     tax_amount: 0,
 })
+
+const allocationForm = useForm({
+    patient_charge_id: '',
+    amount: 0,
+})
+
+const refundForm = useForm({
+    amount: 0,
+    reason: '',
+    cash_session_id: props.activeCashSession?.id || '',
+})
+
+const outstandingCharges = computed(() => props.charges.filter((charge) => charge.balance_due > 0))
+const selectedAllocationCharge = computed(() => props.charges.find((charge) => charge.id === allocationForm.patient_charge_id) || null)
+const allocationMaximum = computed(() => Math.min(
+    allocationPayment.value?.unallocated_amount || 0,
+    selectedAllocationCharge.value?.balance_due || 0,
+))
+const refundableMaximum = computed(() => Math.max(
+    0,
+    (refundPayment.value?.total_amount || 0) - (refundPayment.value?.refunded_amount || 0),
+))
+
+function openAllocation(payment: PaymentDetails) {
+    const firstCharge = outstandingCharges.value[0]
+    allocationPayment.value = payment
+    allocationForm.clearErrors()
+    allocationForm.patient_charge_id = firstCharge?.id || ''
+    allocationForm.amount = Math.min(payment.unallocated_amount, firstCharge?.balance_due || 0)
+}
+
+function updateAllocationAmount() {
+    allocationForm.amount = allocationMaximum.value
+}
+
+function submitAllocation() {
+    if (!allocationPayment.value) return
+    allocationForm.post(`/payments/${allocationPayment.value.id}/allocate`, {
+        onSuccess: () => {
+            allocationPayment.value = null
+            allocationForm.reset()
+        },
+    })
+}
+
+function openRefund(payment: PaymentDetails) {
+    refundPayment.value = payment
+    refundForm.clearErrors()
+    refundForm.amount = refundableMaximum.value
+    refundForm.reason = ''
+    refundForm.cash_session_id = props.activeCashSession?.id || ''
+}
+
+function submitRefund() {
+    if (!refundPayment.value) return
+    refundForm.post(`/payments/${refundPayment.value.id}/refund`, {
+        onSuccess: () => {
+            refundPayment.value = null
+            refundForm.reset()
+        },
+    })
+}
 
 function submitPayment() {
     paymentForm.post(`/patients/${props.patient.id}/billing/payments`, {
@@ -151,7 +215,7 @@ function submitCharge() {
                     </thead>
                     <tbody class="divide-y divide-slate-700/40 text-xs">
                         <tr v-for="chg in charges" :key="chg.id" class="hover:bg-slate-700/20 transition">
-                            <td class="px-4 py-3 font-mono font-bold text-teal-400">{{ chg.charge_number }}</td>
+                            <td class="px-4 py-3"><Link :href="`/charges/${chg.id}`" class="inline-flex items-center gap-1.5 font-mono font-bold text-teal-400 hover:text-teal-300">{{ chg.charge_number }} <ExternalLink class="h-3 w-3" /></Link></td>
                             <td class="px-4 py-3 font-semibold text-white">{{ chg.concept }}</td>
                             <td class="px-4 py-3 text-right font-mono">${{ chg.total_amount.toFixed(2) }}</td>
                             <td class="px-4 py-3 text-right font-mono text-emerald-400">${{ chg.paid_amount.toFixed(2) }}</td>
@@ -178,7 +242,7 @@ function submitCharge() {
                 <h2 class="text-xs font-bold text-teal-400 uppercase tracking-wider">Historial de Recibos de Cobro</h2>
 
                 <div class="space-y-2">
-                    <Link v-for="pay in payments" :key="pay.id" :href="`/payments/${pay.id}`" class="p-4 bg-slate-900/80 border border-slate-700/40 rounded-2xl flex items-center justify-between gap-4 text-xs transition hover:border-teal-500/50 hover:bg-slate-900">
+                    <div v-for="pay in payments" :key="pay.id" class="p-4 bg-slate-900/80 border border-slate-700/40 rounded-2xl flex flex-wrap items-center justify-between gap-4 text-xs transition hover:border-teal-500/50 hover:bg-slate-900">
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="font-mono font-bold text-teal-400">{{ pay.payment_number }}</span>
@@ -192,9 +256,40 @@ function submitCharge() {
                             <span class="text-emerald-400 font-bold block">Asignado: ${{ pay.allocated_amount.toFixed(2) }}</span>
                             <span v-if="pay.unallocated_amount > 0" class="text-slate-400 text-[10px]">Sin asignar: ${{ pay.unallocated_amount.toFixed(2) }}</span>
                         </div>
-                        <ExternalLink class="h-4 w-4 shrink-0 text-teal-400" aria-hidden="true" />
-                    </Link>
+                        <div class="flex shrink-0 items-center gap-2">
+                            <button v-if="pay.unallocated_amount > 0 && outstandingCharges.length" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/40 px-3 py-2 font-bold text-sky-300 hover:bg-sky-500/10" @click="openAllocation(pay)"><Link2 class="h-3.5 w-3.5" /> Asignar</button>
+                            <button v-if="pay.total_amount > pay.refunded_amount" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 px-3 py-2 font-bold text-rose-300 hover:bg-rose-500/10" @click="openRefund(pay)"><RotateCcw class="h-3.5 w-3.5" /> Reembolsar</button>
+                            <Link :href="`/payments/${pay.id}`" class="inline-flex items-center gap-1.5 rounded-lg border border-teal-500/40 px-3 py-2 font-bold text-teal-300 hover:bg-teal-500/10">Recibo <ExternalLink class="h-3.5 w-3.5" /></Link>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Allocation Modal -->
+            <div v-if="allocationPayment" class="p-6 bg-slate-800 border border-sky-500/30 rounded-2xl shadow-xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <div><h2 class="text-lg font-bold text-white">Asignar pago {{ allocationPayment.payment_number }}</h2><p class="text-xs text-slate-400">Disponible: ${{ allocationPayment.unallocated_amount.toFixed(2) }}</p></div>
+                    <button class="text-slate-400 hover:text-white" @click="allocationPayment = null">×</button>
+                </div>
+                <form class="space-y-4" @submit.prevent="submitAllocation">
+                    <div><label class="block text-xs font-medium text-slate-400 mb-1">Cargo pendiente</label><select v-model="allocationForm.patient_charge_id" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs" @change="updateAllocationAmount"><option v-for="charge in outstandingCharges" :key="charge.id" :value="charge.id">{{ charge.charge_number }} · {{ charge.concept }} · ${{ charge.balance_due.toFixed(2) }}</option></select><p v-if="allocationForm.errors.patient_charge_id" class="mt-1 text-xs text-rose-300">{{ allocationForm.errors.patient_charge_id }}</p></div>
+                    <div><label class="block text-xs font-medium text-slate-400 mb-1">Monto a asignar</label><input v-model.number="allocationForm.amount" type="number" step="0.01" min="0.01" :max="allocationMaximum" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono" /><p class="mt-1 text-[11px] text-slate-500">Máximo conciliable: ${{ allocationMaximum.toFixed(2) }}</p><p v-if="allocationForm.errors.amount" class="mt-1 text-xs text-rose-300">{{ allocationForm.errors.amount }}</p></div>
+                    <div class="flex justify-end gap-2"><button type="button" class="px-4 py-2 bg-slate-700 text-slate-300 text-xs font-medium rounded-lg" @click="allocationPayment = null">Cancelar</button><button type="submit" :disabled="allocationForm.processing || allocationMaximum <= 0" class="px-4 py-2 bg-sky-500 text-slate-950 text-xs font-bold rounded-lg disabled:opacity-50">Confirmar asignación</button></div>
+                </form>
+            </div>
+
+            <!-- Refund Modal -->
+            <div v-if="refundPayment" class="p-6 bg-slate-800 border border-rose-500/30 rounded-2xl shadow-xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <div><h2 class="text-lg font-bold text-white">Reembolsar {{ refundPayment.payment_number }}</h2><p class="text-xs text-slate-400">Reembolsable: ${{ refundableMaximum.toFixed(2) }}</p></div>
+                    <button class="text-slate-400 hover:text-white" @click="refundPayment = null">×</button>
+                </div>
+                <form class="space-y-4" @submit.prevent="submitRefund">
+                    <div><label class="block text-xs font-medium text-slate-400 mb-1">Monto del reembolso</label><input v-model.number="refundForm.amount" type="number" step="0.01" min="0.01" :max="refundableMaximum" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono" /><p v-if="refundForm.errors.amount" class="mt-1 text-xs text-rose-300">{{ refundForm.errors.amount }}</p></div>
+                    <div><label class="block text-xs font-medium text-slate-400 mb-1">Motivo obligatorio</label><textarea v-model="refundForm.reason" rows="3" maxlength="255" required placeholder="Explique la causa para la bitácora financiera" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"></textarea><p v-if="refundForm.errors.reason" class="mt-1 text-xs text-rose-300">{{ refundForm.errors.reason }}</p></div>
+                    <p class="border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">El reembolso reduce lo cobrado y queda registrado en auditoría. No elimina el pago ni el cargo original.</p>
+                    <div class="flex justify-end gap-2"><button type="button" class="px-4 py-2 bg-slate-700 text-slate-300 text-xs font-medium rounded-lg" @click="refundPayment = null">Cancelar</button><button type="submit" :disabled="refundForm.processing || refundableMaximum <= 0" class="px-4 py-2 bg-rose-500 text-white text-xs font-bold rounded-lg disabled:opacity-50">Confirmar reembolso</button></div>
+                </form>
             </div>
 
             <!-- Payment Modal -->

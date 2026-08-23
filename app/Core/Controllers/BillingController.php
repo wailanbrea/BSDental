@@ -12,6 +12,7 @@ use App\Platform\Security\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -52,6 +53,59 @@ class BillingController extends Controller
             'totalPaid' => $totalPaid,
             'balanceDue' => $balanceDue,
             'activeCashSession' => $activeCashSession,
+        ]);
+    }
+
+    /**
+     * Display one charge and the payments allocated to it.
+     */
+    public function showCharge(string $chargeId): Response
+    {
+        $charge = PatientCharge::with([
+            'patient',
+            'professional',
+            'treatmentPlanItem.procedure',
+            'allocations.payment.splits',
+            'allocations.payment.refunds',
+            'createdBy',
+        ])->findOrFail($chargeId);
+
+        return Inertia::render('Clinic/Billing/Charge', [
+            'charge' => [
+                'id' => $charge->id,
+                'charge_number' => $charge->charge_number,
+                'concept' => $charge->concept,
+                'amount' => $charge->amount,
+                'tax_amount' => $charge->tax_amount,
+                'total_amount' => $charge->total_amount,
+                'paid_amount' => $charge->paid_amount,
+                'balance_due' => $charge->balance_due,
+                'status' => $charge->status,
+                'due_date' => $charge->due_date,
+                'created_at' => $charge->created_at,
+                'created_by' => $charge->createdBy?->name,
+                'professional' => $charge->professional?->full_name,
+                'procedure' => $charge->treatmentPlanItem?->procedure?->name,
+                'patient' => [
+                    'id' => $charge->patient->id,
+                    'record_number' => $charge->patient->record_number,
+                    'full_name' => $charge->patient->full_name,
+                ],
+                'allocations' => $charge->allocations->map(fn ($allocation) => [
+                    'id' => $allocation->id,
+                    'amount' => $allocation->amount,
+                    'allocated_at' => $allocation->allocated_at,
+                    'payment' => [
+                        'id' => $allocation->payment->id,
+                        'payment_number' => $allocation->payment->payment_number,
+                        'total_amount' => $allocation->payment->total_amount,
+                        'refunded_amount' => $allocation->payment->refunded_amount,
+                        'status' => $allocation->payment->status,
+                        'paid_at' => $allocation->payment->paid_at,
+                        'methods' => $allocation->payment->splits->pluck('method')->values(),
+                    ],
+                ])->values(),
+            ],
         ]);
     }
 
@@ -99,12 +153,16 @@ class BillingController extends Controller
         $patient = Patient::findOrFail($patientId);
 
         $validated = $request->validate([
-            'cash_session_id' => ['nullable', 'uuid', 'exists:tenant.cash_sessions,id'],
+            'cash_session_id' => ['nullable', 'uuid', Rule::exists('tenant.cash_sessions', 'id')->where('status', 'open')],
             'splits' => ['required', 'array', 'min:1'],
             'splits.*.method' => ['required', 'string', 'in:cash,credit_card,debit_card,transfer,zelle,insurance'],
             'splits.*.amount' => ['required', 'numeric', 'min:0.01'],
             'splits.*.reference_code' => ['nullable', 'string', 'max:100'],
-            'auto_allocate_charge_id' => ['nullable', 'uuid', 'exists:tenant.patient_charges,id'],
+            'auto_allocate_charge_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('tenant.patient_charges', 'id')->where('patient_id', $patient->id),
+            ],
         ]);
 
         $cashSession = ! empty($validated['cash_session_id']) ? CashSession::find($validated['cash_session_id']) : null;
@@ -208,7 +266,11 @@ class BillingController extends Controller
         $payment = Payment::findOrFail($paymentId);
 
         $validated = $request->validate([
-            'patient_charge_id' => ['required', 'uuid', 'exists:tenant.patient_charges,id'],
+            'patient_charge_id' => [
+                'required',
+                'uuid',
+                Rule::exists('tenant.patient_charges', 'id')->where('patient_id', $payment->patient_id),
+            ],
             'amount' => ['required', 'numeric', 'min:0.01'],
         ]);
 
@@ -239,7 +301,7 @@ class BillingController extends Controller
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:0.01'],
             'reason' => ['required', 'string', 'max:255'],
-            'cash_session_id' => ['nullable', 'uuid', 'exists:tenant.cash_sessions,id'],
+            'cash_session_id' => ['nullable', 'uuid', Rule::exists('tenant.cash_sessions', 'id')->where('status', 'open')],
         ]);
 
         $cashSession = ! empty($validated['cash_session_id']) ? CashSession::find($validated['cash_session_id']) : null;

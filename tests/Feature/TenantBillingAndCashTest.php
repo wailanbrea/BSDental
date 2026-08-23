@@ -219,3 +219,83 @@ test('[GATE-FIN] Comprehensive billing, multi-split payments, payment allocation
         ->and(TenantAuditLog::where('action', 'billing.payment_refunded')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'cash.session_closed')->exists())->toBeTrue();
 });
+
+test('[GATE-FIN] Manual allocation is patient-scoped, charge detail is reconciled and closed sessions reject refunds', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $billingService = app(BillingPaymentService::class);
+    $charge = $billingService->createCharge($this->patient, 'Corona de zirconio', 80.00);
+    $payment = $billingService->recordPayment(
+        $this->patient,
+        [['method' => 'transfer', 'amount' => 50.00, 'reference_code' => 'TRX-9001']],
+        null,
+        (string) $this->user->id
+    );
+
+    $otherPatient = Patient::create([
+        'record_number' => 'HC-00002',
+        'first_name' => 'Paciente',
+        'last_name' => 'Distinto',
+        'status' => 'active',
+    ]);
+    $otherCharge = $billingService->createCharge($otherPatient, 'Consulta externa', 20.00);
+
+    $crossPatientResponse = $this->post("http://finanzas.bsdental.test/payments/{$payment->id}/allocate", [
+        'patient_charge_id' => $otherCharge->id,
+        'amount' => 10.00,
+    ]);
+    $crossPatientResponse->assertSessionHasErrors('patient_charge_id');
+    $context->makeCurrent($this->tenant);
+    expect($payment->fresh()->unallocated_amount)->toBe(50.0)
+        ->and($otherCharge->fresh()->paid_amount)->toBe(0.0)
+        ->and(fn () => $billingService->allocatePayment($payment, $otherCharge, 10.00))
+        ->toThrow(InvalidArgumentException::class, 'El pago y el cargo deben pertenecer al mismo paciente.');
+
+    $allocationResponse = $this->post("http://finanzas.bsdental.test/payments/{$payment->id}/allocate", [
+        'patient_charge_id' => $charge->id,
+        'amount' => 50.00,
+    ]);
+    $allocationResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $charge->refresh();
+    expect($charge->paid_amount)->toBe(50.0)
+        ->and($charge->balance_due)->toBe(30.0)
+        ->and($charge->status)->toBe('partially_paid');
+
+    $detailResponse = $this->get("http://finanzas.bsdental.test/charges/{$charge->id}");
+    $detailResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Billing/Charge')
+            ->where('charge.charge_number', $charge->charge_number)
+            ->where('charge.patient.record_number', 'HC-00001')
+            ->where('charge.paid_amount', 50)
+            ->where('charge.balance_due', 30)
+            ->has('charge.allocations', 1)
+            ->where('charge.allocations.0.payment.payment_number', $payment->payment_number)
+            ->where('charge.allocations.0.payment.methods.0', 'transfer'));
+
+    $context->makeCurrent($this->tenant);
+    $closedSession = CashSession::create([
+        'cash_register_id' => $this->register->id,
+        'opened_by_user_id' => $this->user->id,
+        'closed_by_user_id' => $this->user->id,
+        'status' => 'closed',
+        'opening_balance' => 0,
+        'expected_cash' => 0,
+        'counted_cash' => 0,
+        'difference' => 0,
+        'opened_at' => now()->subHour(),
+        'closed_at' => now(),
+    ]);
+
+    expect(fn () => $billingService->refundPayment(
+        $payment,
+        10.00,
+        'Intento sobre caja cerrada',
+        $closedSession,
+        (string) $this->user->id
+    ))->toThrow(InvalidArgumentException::class, 'La sesión de caja seleccionada no está abierta.');
+});
