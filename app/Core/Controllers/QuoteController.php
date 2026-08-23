@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -75,7 +76,7 @@ class QuoteController extends Controller
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.procedure_id' => ['required', 'uuid', 'exists:tenant.procedures,id'],
-            'items.*.tooth_number' => ['nullable', 'integer', 'min:11', 'max:85'],
+            'items.*.tooth_number' => ['nullable', 'integer', Rule::in($this->validFdiToothNumbers())],
             'items.*.surface' => ['nullable', 'string', 'max:30'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -132,7 +133,7 @@ class QuoteController extends Controller
      */
     public function show(string $id): Response
     {
-        $quote = Quote::with(['patient', 'professional', 'items.procedure'])->findOrFail($id);
+        $quote = Quote::with(['patient.medicalHistory', 'professional', 'items.procedure', 'treatmentPlan'])->findOrFail($id);
 
         return Inertia::render('Clinic/Quotes/Show', [
             'quote' => $quote,
@@ -144,11 +145,20 @@ class QuoteController extends Controller
      */
     public function approve(Request $request, string $id): RedirectResponse
     {
-        $quote = Quote::findOrFail($id);
+        $quote = Quote::with(['patient', 'treatmentPlan'])->findOrFail($id);
 
         $validated = $request->validate([
             'approved_by_name' => ['nullable', 'string', 'max:255'],
         ]);
+
+        if ($quote->treatmentPlan) {
+            return redirect()->route('clinic.treatment_plans.show', $quote->treatmentPlan->id)
+                ->with('info', 'Este presupuesto ya tiene un plan de tratamiento generado.');
+        }
+
+        if (! in_array($quote->status, ['draft', 'presented', 'partially_approved'], true)) {
+            return redirect()->back()->with('error', 'El estado actual del presupuesto no permite aprobarlo.');
+        }
 
         $userId = (string) Auth::guard('web')->id();
 
@@ -174,7 +184,11 @@ class QuoteController extends Controller
      */
     public function reject(Request $request, string $id): RedirectResponse
     {
-        $quote = Quote::findOrFail($id);
+        $quote = Quote::with('treatmentPlan')->findOrFail($id);
+
+        if ($quote->treatmentPlan || ! in_array($quote->status, ['draft', 'presented'], true)) {
+            return redirect()->back()->with('error', 'Este presupuesto ya no puede rechazarse.');
+        }
 
         $quote->update([
             'status' => 'rejected',
@@ -185,5 +199,29 @@ class QuoteController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Presupuesto marcado como rechazado.');
+    }
+
+    /**
+     * Valid permanent and primary tooth numbers in FDI notation.
+     *
+     * @return list<int>
+     */
+    private function validFdiToothNumbers(): array
+    {
+        $teeth = [];
+
+        foreach ([1, 2, 3, 4] as $quadrant) {
+            foreach (range(1, 8) as $position) {
+                $teeth[] = ($quadrant * 10) + $position;
+            }
+        }
+
+        foreach ([5, 6, 7, 8] as $quadrant) {
+            foreach (range(1, 5) as $position) {
+                $teeth[] = ($quadrant * 10) + $position;
+            }
+        }
+
+        return $teeth;
     }
 }

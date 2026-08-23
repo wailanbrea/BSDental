@@ -14,6 +14,7 @@ use App\Platform\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     Schema::connection('landlord')->dropAllTables();
@@ -128,7 +129,11 @@ test('[GATE QUO] Full lifecycle: procedure catalog, quote calculation, approval 
 
     // 2. View Quote
     $showResponse = $this->get("http://presupuestos.bsdental.test/quotes/{$quote->id}");
-    $showResponse->assertOk();
+    $showResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Quotes/Show')
+            ->where('quote.quote_number', 'PRE-00001')
+            ->where('quote.treatment_plan', null));
 
     // 3. Approve Quote -> Generates Treatment Plan
     $approveResponse = $this->post("http://presupuestos.bsdental.test/quotes/{$quote->id}/approve", [
@@ -147,7 +152,23 @@ test('[GATE QUO] Full lifecycle: procedure catalog, quote calculation, approval 
         ->and($plan->progress_percentage)->toBe(0.0)
         ->and($plan->items()->count())->toBe(2);
 
-    // 4. Attempting to approve again must NOT duplicate treatment plan
+    $showConvertedResponse = $this->get("http://presupuestos.bsdental.test/quotes/{$quote->id}");
+    $showConvertedResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('quote.status', 'converted')
+            ->where('quote.treatment_plan.id', $plan->id));
+
+    // 4. Attempting to approve again must NOT duplicate the plan or revert quote status
+    $repeatApproval = $this->post("http://presupuestos.bsdental.test/quotes/{$quote->id}/approve", [
+        'approved_by_name' => 'Elena Gómez',
+    ]);
+    $repeatApproval->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $quote->refresh();
+    expect($quote->status)->toBe('converted')
+        ->and(TreatmentPlan::where('quote_id', $quote->id)->count())->toBe(1);
+
     $planService = app(TreatmentPlanGeneratorService::class);
     $duplicatePlan = $planService->generateFromQuote($quote, (string) $this->user->id);
     expect($duplicatePlan->id)->toBe($plan->id)
@@ -185,4 +206,25 @@ test('[GATE QUO] Full lifecycle: procedure catalog, quote calculation, approval 
     expect(TenantAuditLog::where('action', 'quote.created')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'quote.approved')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'treatment_item.completed')->exists())->toBeTrue();
+});
+
+test('[GATE QUO] Quote items only accept valid permanent and primary FDI tooth numbers', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $response = $this->post("http://presupuestos.bsdental.test/patients/{$this->patient->id}/quotes", [
+        'alternative_name' => 'Presupuesto con pieza inválida',
+        'items' => [[
+            'procedure_id' => $this->procResina->id,
+            'tooth_number' => 19,
+            'surface' => 'occlusal_incisal',
+            'quantity' => 1,
+            'discount_percentage' => 0,
+        ]],
+    ]);
+
+    $response->assertSessionHasErrors('items.0.tooth_number');
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect(Quote::where('patient_id', $this->patient->id)->count())->toBe(0);
 });

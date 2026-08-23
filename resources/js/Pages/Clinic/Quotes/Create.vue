@@ -1,224 +1,89 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
-import { DollarSign, ArrowLeft, Plus, Trash2 } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
+import { Head, Link, useForm } from '@inertiajs/vue3'
+import { ArrowLeft, FilePlus2, Plus, ReceiptText, Stethoscope, Trash2 } from 'lucide-vue-next'
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 
-interface PatientDetails {
-    id: string
-    record_number: string
-    full_name: string
-}
+interface PatientDetails { id: string; record_number: string; full_name: string }
+interface ProfessionalDetails { id: string; full_name: string }
+interface ProcedureItem { id: string; code: string | null; name: string; price: number }
+interface CategoryItem { id: string; name: string; procedures: ProcedureItem[] }
+interface FormItem { procedure_id: string; tooth_number: number | null; surface: string; quantity: number; discount_percentage: number }
 
-interface ProfessionalDetails {
-    id: string
-    full_name: string
-}
-
-interface ProcedureItem {
-    id: string
-    name: string
-    price: number
-}
-
-interface CategoryItem {
-    id: string
-    name: string
-    procedures: ProcedureItem[]
-}
-
-const props = defineProps<{
-    patient: PatientDetails
-    professionals: ProfessionalDetails[]
-    categories: CategoryItem[]
-    suggestedNumber: string
-}>()
-
-interface FormItem {
-    procedure_id: string
-    tooth_number: number | null
-    surface: string
-    quantity: number
-    discount_percentage: number
-}
-
-const form = useForm({
-    professional_id: props.professionals[0]?.id || '',
-    alternative_name: 'Plan Principal',
-    notes: '',
-    items: [] as FormItem[],
-})
-
+const props = defineProps<{ patient: PatientDetails; professionals: ProfessionalDetails[]; categories: CategoryItem[]; suggestedNumber: string }>()
+const form = useForm({ professional_id: props.professionals[0]?.id || '', alternative_name: 'Plan principal', notes: '', items: [] as FormItem[] })
 const selectedProcId = ref('')
 const selectedTooth = ref<number | null>(null)
 const selectedSurface = ref('all')
+const validTeeth = [
+    ...[1, 2, 3, 4].flatMap(quadrant => Array.from({ length: 8 }, (_, index) => quadrant * 10 + index + 1)),
+    ...[5, 6, 7, 8].flatMap(quadrant => Array.from({ length: 5 }, (_, index) => quadrant * 10 + index + 1)),
+]
+const surfaces = [
+    { value: 'all', label: 'Todas / general' }, { value: 'vestibular', label: 'Vestibular' },
+    { value: 'lingual_palatal', label: 'Lingual / palatina' }, { value: 'mesial', label: 'Mesial' },
+    { value: 'distal', label: 'Distal' }, { value: 'occlusal_incisal', label: 'Oclusal / incisal' },
+]
 
+function findProcedure(id: string) { return props.categories.flatMap(category => category.procedures).find(procedure => procedure.id === id) }
 function addItem() {
     if (!selectedProcId.value) return
-
-    form.items.push({
-        procedure_id: selectedProcId.value,
-        tooth_number: selectedTooth.value,
-        surface: selectedSurface.value,
-        quantity: 1,
-        discount_percentage: 0,
-    })
-
+    form.items.push({ procedure_id: selectedProcId.value, tooth_number: selectedTooth.value, surface: selectedSurface.value, quantity: 1, discount_percentage: 0 })
+    selectedProcId.value = ''
     selectedTooth.value = null
     selectedSurface.value = 'all'
 }
-
-function removeItem(index: number) {
-    form.items.splice(index, 1)
-}
-
-function getProcedureName(procId: string) {
-    for (const cat of props.categories) {
-        const found = cat.procedures.find(p => p.id === procId)
-        if (found) return found.name
-    }
-    return 'Procedimiento'
-}
-
-function getProcedurePrice(procId: string) {
-    for (const cat of props.categories) {
-        const found = cat.procedures.find(p => p.id === procId)
-        if (found) return found.price
-    }
-    return 0
-}
-
-const totalEstimated = computed(() => {
-    return form.items.reduce((sum, item) => {
-        const p = getProcedurePrice(item.procedure_id)
-        const sub = (p * item.quantity) * (1 - (item.discount_percentage / 100))
-        return sum + sub
-    }, 0)
-})
-
-function submit() {
-    form.post(`/patients/${props.patient.id}/quotes`)
-}
+function removeItem(index: number) { form.items.splice(index, 1) }
+function lineTotal(item: FormItem) { return (findProcedure(item.procedure_id)?.price || 0) * item.quantity * (1 - item.discount_percentage / 100) }
+const totalEstimated = computed(() => form.items.reduce((sum, item) => sum + lineTotal(item), 0))
+const money = (value: number) => new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(value || 0)
+function submit() { form.post(`/patients/${props.patient.id}/quotes`) }
 </script>
 
 <template>
-    <Head :title="`Crear Presupuesto — ${patient.full_name}`" />
+    <Head :title="`Nuevo presupuesto — ${patient.full_name}`" />
+    <ClinicLayout>
+        <div class="mx-auto max-w-[1400px] space-y-5 p-4 md:p-7">
+            <header class="flex flex-col justify-between gap-4 border-b border-[#D8E0DE] pb-5 md:flex-row md:items-end">
+                <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-[#006B63]">Presupuestos</p><h1 class="mt-1 text-2xl font-bold text-[#131B2E]">Nueva alternativa de tratamiento</h1><p class="mt-1 text-sm text-[#667085]">{{ patient.full_name }} · {{ patient.record_number }} · <span class="font-mono">{{ suggestedNumber }}</span></p></div>
+                <Link :href="`/patients/${patient.id}/quotes`" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><ArrowLeft class="h-4 w-4" /> Presupuestos</Link>
+            </header>
 
-    <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
-        <div class="max-w-5xl mx-auto space-y-6">
-            <!-- Header -->
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                        <DollarSign class="w-6 h-6 text-teal-400" /> Nuevo Presupuesto / Cotización
-                    </h1>
-                    <p class="text-sm text-slate-400">
-                        Paciente: <span class="text-white font-semibold">{{ patient.full_name }}</span> ({{ patient.record_number }}) | 
-                        Nº Sugerido: <span class="font-mono text-teal-400">{{ suggestedNumber }}</span>
-                    </p>
+            <form class="grid gap-5 xl:grid-cols-[1fr_340px]" @submit.prevent="submit">
+                <div class="space-y-5">
+                    <section class="border border-[#D8E0DE] bg-white p-5">
+                        <h2 class="flex items-center gap-2 font-semibold text-[#131B2E]"><ReceiptText class="h-5 w-5 text-[#006B63]" /> Datos del presupuesto</h2>
+                        <div class="mt-4 grid gap-4 md:grid-cols-2">
+                            <label class="text-sm font-semibold text-[#455653]">Nombre de la alternativa *<input v-model="form.alternative_name" required maxlength="255" class="mt-1.5 h-11 w-full border border-[#9AAEAA] bg-white px-3 text-sm text-[#131B2E] outline-none focus:border-[#007D73]" /></label>
+                            <label class="text-sm font-semibold text-[#455653]">Profesional tratante<select v-model="form.professional_id" class="mt-1.5 h-11 w-full border border-[#9AAEAA] bg-white px-3 text-sm text-[#131B2E] outline-none focus:border-[#007D73]"><option value="">Sin profesional asignado</option><option v-for="professional in professionals" :key="professional.id" :value="professional.id">{{ professional.full_name }}</option></select></label>
+                        </div>
+                    </section>
+
+                    <section class="border border-[#D8E0DE] bg-white p-5">
+                        <div class="flex items-center justify-between gap-3"><div><h2 class="font-semibold text-[#131B2E]">Procedimientos</h2><p class="mt-1 text-sm text-[#667085]">Añade prestaciones desde el catálogo vigente.</p></div><span class="bg-[#D8ECE9] px-2 py-1 font-mono text-xs font-bold text-[#006B63]">{{ form.items.length }} ítems</span></div>
+                        <div class="mt-4 grid gap-3 border border-[#D8E0DE] bg-[#F8FAFC] p-4 lg:grid-cols-[2fr_110px_1.4fr_auto] lg:items-end">
+                            <label class="text-xs font-bold uppercase tracking-[0.08em] text-[#455653]">Procedimiento<select v-model="selectedProcId" class="mt-1.5 h-10 w-full border border-[#9AAEAA] bg-white px-3 text-sm font-normal normal-case tracking-normal text-[#131B2E]"><option value="">Seleccionar…</option><optgroup v-for="category in categories" :key="category.id" :label="category.name"><option v-for="procedure in category.procedures" :key="procedure.id" :value="procedure.id">{{ procedure.code || 'S/C' }} · {{ procedure.name }} · {{ money(procedure.price) }}</option></optgroup></select></label>
+                            <label class="text-xs font-bold uppercase tracking-[0.08em] text-[#455653]">Pieza FDI<select v-model="selectedTooth" class="mt-1.5 h-10 w-full border border-[#9AAEAA] bg-white px-3 text-sm font-normal text-[#131B2E]"><option :value="null">General</option><option v-for="tooth in validTeeth" :key="tooth" :value="tooth">{{ tooth }}</option></select></label>
+                            <label class="text-xs font-bold uppercase tracking-[0.08em] text-[#455653]">Superficie<select v-model="selectedSurface" class="mt-1.5 h-10 w-full border border-[#9AAEAA] bg-white px-3 text-sm font-normal normal-case tracking-normal text-[#131B2E]"><option v-for="surface in surfaces" :key="surface.value" :value="surface.value">{{ surface.label }}</option></select></label>
+                            <button type="button" class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#005C55] px-4 text-sm font-semibold text-white disabled:opacity-50" :disabled="!selectedProcId" @click="addItem"><Plus class="h-4 w-4" /> Añadir</button>
+                        </div>
+
+                        <div v-if="form.items.length" class="mt-4 overflow-x-auto border border-[#D8E0DE]">
+                            <table class="w-full min-w-[760px] text-left text-sm"><thead class="bg-[#F2F6F5] text-xs font-bold uppercase tracking-[0.08em] text-[#455653]"><tr><th class="px-3 py-3">Procedimiento</th><th class="px-3 py-3">Pieza</th><th class="px-3 py-3 text-center">Cantidad</th><th class="px-3 py-3 text-center">Descuento</th><th class="px-3 py-3 text-right">Total</th><th class="w-12"></th></tr></thead><tbody class="divide-y divide-[#E2E8F0]"><tr v-for="(item, index) in form.items" :key="`${item.procedure_id}-${index}`"><td class="px-3 py-3"><p class="font-semibold text-[#131B2E]">{{ findProcedure(item.procedure_id)?.name }}</p><p class="font-mono text-xs text-[#667085]">{{ money(findProcedure(item.procedure_id)?.price || 0) }}</p></td><td class="px-3 py-3 font-mono text-[#006B63]">{{ item.tooth_number || 'General' }}</td><td class="px-3 py-3 text-center"><input v-model.number="item.quantity" type="number" min="1" max="99" class="h-9 w-16 border border-[#9AAEAA] text-center" /></td><td class="px-3 py-3 text-center"><input v-model.number="item.discount_percentage" type="number" min="0" max="100" class="h-9 w-16 border border-[#9AAEAA] text-center" />%</td><td class="px-3 py-3 text-right font-mono font-bold">{{ money(lineTotal(item)) }}</td><td><button type="button" class="p-2 text-red-700" aria-label="Eliminar procedimiento" @click="removeItem(index)"><Trash2 class="h-4 w-4" /></button></td></tr></tbody></table>
+                        </div>
+                        <div v-else class="mt-4 border border-dashed border-[#9AAEAA] p-8 text-center text-sm text-[#667085]">Selecciona un procedimiento para comenzar el presupuesto.</div>
+                    </section>
+
+                    <section class="border border-[#D8E0DE] bg-white p-5"><label class="text-sm font-semibold text-[#455653]">Notas clínicas y administrativas<textarea v-model="form.notes" rows="4" maxlength="2000" class="mt-1.5 w-full resize-y border border-[#9AAEAA] p-3 text-sm text-[#131B2E] outline-none focus:border-[#007D73]" placeholder="Vigencia, consideraciones o indicaciones para el paciente…"></textarea></label></section>
                 </div>
 
-                <a :href="`/patients/${patient.id}`" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-400 hover:text-white transition">
-                    <ArrowLeft class="w-4 h-4" /> Volver a Ficha 360
-                </a>
-            </div>
-
-            <form class="space-y-6" @submit.prevent="submit">
-                <!-- General Info -->
-                <div class="p-6 bg-slate-800/80 border border-slate-700/60 rounded-3xl space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Nombre de la Alternativa / Plan *</label>
-                            <input v-model="form.alternative_name" type="text" required placeholder="Ej. Plan Integral / Plan Alternativo B" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Odontólogo / Profesional Tratante</label>
-                            <select v-model="form.professional_id" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs">
-                                <option value="">Sin profesional asignado</option>
-                                <option v-for="p in professionals" :key="p.id" :value="p.id">Dr(a). {{ p.full_name }}</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Add Items Form -->
-                <div class="p-6 bg-slate-800/80 border border-slate-700/60 rounded-3xl space-y-4">
-                    <h2 class="text-xs font-bold text-teal-400 uppercase tracking-wider">Agregar Prestaciones al Presupuesto</h2>
-
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Procedimiento del Arancel</label>
-                            <select v-model="selectedProcId" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs">
-                                <option value="">Seleccione un procedimiento...</option>
-                                <optgroup v-for="cat in categories" :key="cat.id" :label="cat.name">
-                                    <option v-for="pr in cat.procedures" :key="pr.id" :value="pr.id">{{ pr.name }} (${{ pr.price.toFixed(2) }})</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Pieza FDI (opcional)</label>
-                            <input v-model.number="selectedTooth" type="number" min="11" max="85" placeholder="Ej. 16" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs" />
-                        </div>
-                        <div>
-                            <button type="button" class="w-full py-2 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/30 font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition" @click="addItem">
-                                <Plus class="w-4 h-4" /> Agregar
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Items Table -->
-                    <div v-if="form.items.length > 0" class="space-y-2 pt-4">
-                        <div v-for="(it, idx) in form.items" :key="idx" class="p-4 bg-slate-900/80 border border-slate-700/40 rounded-xl flex items-center justify-between text-xs">
-                            <div class="flex items-center gap-3">
-                                <span v-if="it.tooth_number" class="px-2 py-1 bg-teal-500/10 text-teal-400 font-mono font-bold rounded border border-teal-500/20">
-                                    Pz {{ it.tooth_number }}
-                                </span>
-                                <div>
-                                    <div class="font-bold text-white">{{ getProcedureName(it.procedure_id) }}</div>
-                                    <div class="text-slate-500">Precio base: ${{ getProcedurePrice(it.procedure_id).toFixed(2) }}</div>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center gap-4">
-                                <div>
-                                    <label class="block text-[10px] text-slate-500">Cant.</label>
-                                    <input v-model.number="it.quantity" type="number" min="1" class="w-14 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-center text-white text-xs" />
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] text-slate-500">Desc %</label>
-                                    <input v-model.number="it.discount_percentage" type="number" min="0" max="100" class="w-14 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-center text-white text-xs" />
-                                </div>
-                                <div class="text-right w-24">
-                                    <div class="font-mono font-bold text-teal-400 text-sm">
-                                        ${{ ((getProcedurePrice(it.procedure_id) * it.quantity) * (1 - (it.discount_percentage / 100))).toFixed(2) }}
-                                    </div>
-                                </div>
-                                <button type="button" class="text-rose-400 hover:text-rose-300" @click="removeItem(idx)">
-                                    <Trash2 class="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total & Submit -->
-                <div class="p-6 bg-slate-800/80 border border-slate-700/60 rounded-3xl flex items-center justify-between">
-                    <div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider">Total Estimado del Presupuesto</div>
-                        <div class="text-3xl font-black text-teal-400 font-mono">${{ totalEstimated.toFixed(2) }}</div>
-                    </div>
-
-                    <div class="flex gap-3">
-                        <a :href="`/patients/${patient.id}`" class="px-6 py-2.5 bg-slate-800 text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-700 transition">Cancelar</a>
-                        <button
-                            type="submit"
-                            :disabled="form.processing || form.items.length === 0"
-                            class="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-sm font-bold rounded-xl shadow-lg shadow-teal-500/20 transition disabled:opacity-50"
-                        >
-                            Guardar Presupuesto
-                        </button>
-                    </div>
-                </div>
+                <aside class="h-fit border border-[#BDC9C6] bg-white p-5 xl:sticky xl:top-24">
+                    <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#667085]">Resumen estimado</p><p class="mt-2 font-mono text-3xl font-bold text-[#005C55]">{{ money(totalEstimated) }}</p><p class="mt-1 text-sm text-[#667085]">{{ form.items.length }} procedimientos incluidos</p>
+                    <div class="mt-5 space-y-2 border-t border-[#D8E0DE] pt-4 text-sm"><p class="flex items-center gap-2 text-[#455653]"><Stethoscope class="h-4 w-4 text-[#006B63]" /> {{ professionals.find(p => p.id === form.professional_id)?.full_name || 'Sin profesional asignado' }}</p><p class="text-xs leading-5 text-[#667085]">Los precios se fijarán al guardar este presupuesto para conservar su evidencia histórica.</p></div>
+                    <button type="submit" :disabled="form.processing || !form.items.length" class="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#005C55] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"><FilePlus2 class="h-4 w-4" /> Guardar presupuesto</button>
+                    <Link :href="`/patients/${patient.id}/quotes`" class="mt-2 inline-flex h-10 w-full items-center justify-center text-sm font-semibold text-[#005C55]">Cancelar</Link>
+                </aside>
             </form>
         </div>
-    </div>
+    </ClinicLayout>
 </template>

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -33,6 +34,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property Patient $patient
  * @property Professional|null $professional
  * @property Collection<int, QuoteItem> $items
+ * @property TreatmentPlan|null $treatmentPlan
  */
 class Quote extends Model
 {
@@ -122,5 +124,15 @@ class Quote extends Model
     public function items(): HasMany
     {
         return $this->hasMany(QuoteItem::class, 'quote_id');
+    }
+
+    /**
+     * Treatment plan generated from this quote.
+     *
+     * @return HasOne<TreatmentPlan, $this>
+     */
+    public function treatmentPlan(): HasOne
+    {
+        return $this->hasOne(TreatmentPlan::class, 'quote_id');
     }
 }

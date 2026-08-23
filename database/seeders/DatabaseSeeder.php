@@ -396,7 +396,7 @@ class DatabaseSeeder extends Seeder
                 'title' => 'Plan de Rehabilitación Integral',
                 'total_estimated' => 726.75,
                 'total_performed' => 65.00,
-                'progress_percentage' => 8.94,
+                'progress_percentage' => 50.00,
                 'status' => 'in_progress',
             ]);
 
