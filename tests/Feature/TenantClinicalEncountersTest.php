@@ -97,6 +97,15 @@ test('[GATE CL] Clinical navigation lists all encounters and patient encounters 
             ->component('Clinic/Encounters/Index')
             ->where('patient.id', $this->patient->id)
         );
+
+    $this->get("http://historia.bsdental.test/patients/{$this->patient->id}/encounters/create")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Encounters/Create')
+            ->where('patient.id', $this->patient->id)
+            ->where('patient.record_number', 'HC-00001')
+            ->has('professionals', 1)
+        );
 });
 
 test('[GATE CL] Comprehensive clinical encounter lifecycle: draft, finalized inmutability and signed amendments', function () {
@@ -105,6 +114,17 @@ test('[GATE CL] Comprehensive clinical encounter lifecycle: draft, finalized inm
 
     $this->actingAs($this->user, 'web');
 
+    $this->post('http://historia.bsdental.test/encounters', [
+        'patient_id' => $this->patient->id,
+        'professional_id' => $this->professional->id,
+        'encounter_date' => now()->toDateTimeString(),
+        'vital_signs' => [
+            'heart_rate' => 400,
+            'temperature' => 36.7,
+            'oxygen_saturation' => 98,
+        ],
+    ])->assertSessionHasErrors('vital_signs.heart_rate');
+
     // 1. Create Draft Clinical Encounter with SOAP, Diagnoses and Prescriptions
     $createResponse = $this->post('http://historia.bsdental.test/encounters', [
         'patient_id' => $this->patient->id,
@@ -112,11 +132,18 @@ test('[GATE CL] Comprehensive clinical encounter lifecycle: draft, finalized inm
         'encounter_date' => now()->toDateTimeString(),
         'chief_complaint' => 'Dolor intenso en pieza 16 con sensibilidad térmica',
         'physical_examination' => 'Caries oclusal profunda en 16 con compromiso pulpar',
+        'vital_signs' => [
+            'blood_pressure' => '128/82',
+            'heart_rate' => 72,
+            'temperature' => 36.7,
+            'oxygen_saturation' => 98,
+        ],
         'subjective' => 'Refiere dolor nocturno pulsátil',
         'objective' => 'Percusión vertical positiva',
         'assessment' => 'Pulpitis irreversible sintomática',
         'plan' => 'Tratamiento de conducto (Endodoncia) pieza 16',
         'treatment_performed' => 'Acceso cameral, localización de 3 conductos, instrumentación biomecánica y medicación intraconducto con Ca(OH)2',
+        'recommendations' => 'Evitar masticar del lado tratado durante 24 horas.',
         'diagnoses' => [
             ['code' => 'K04.0', 'description' => 'Pulpitis irreversible', 'type' => 'definitive'],
         ],
@@ -135,7 +162,10 @@ test('[GATE CL] Comprehensive clinical encounter lifecycle: draft, finalized inm
     $context->makeCurrent($this->tenant);
     $encounter = ClinicalEncounter::where('patient_id', $this->patient->id)->firstOrFail();
     expect($encounter->status)->toBe('draft')
+        ->and($encounter->vital_signs['blood_pressure'])->toBe('128/82')
+        ->and($encounter->vital_signs['oxygen_saturation'])->toBe(98)
         ->and($encounter->evolution)->not->toBeNull()
+        ->and($encounter->evolution->recommendations)->toContain('24 horas')
         ->and($encounter->diagnoses)->toHaveCount(1)
         ->and($encounter->prescriptions)->toHaveCount(1)
         ->and($encounter->integrity_hash)->toBeNull();
