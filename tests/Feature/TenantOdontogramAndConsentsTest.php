@@ -166,10 +166,11 @@ test('[GATE ODO] Consent integrity detects immutable snapshot tampering and list
         '127.0.0.1'
     );
 
-    $response = $this->get("http://odontograma.bsdental.test/patients/{$this->patient->id}/consents");
+    $response = $this->get("http://odontograma.bsdental.test/patients/{$this->patient->id}/consents?consent_id={$consent->id}");
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Clinic/Consents/Index')
+            ->where('selectedConsentId', $consent->id)
             ->where('consents.0.integrity.status', 'verified')
             ->missing('consents.0.signature_data')
             ->missing('consents.0.signed_ip'));

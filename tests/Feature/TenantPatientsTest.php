@@ -178,8 +178,29 @@ test('[GATE PAT] Comprehensive patient lifecycle: creation, anamnesis, duplicate
     $uploadResponse->assertRedirect();
 
     $context->makeCurrent($this->tenant);
+    $patientFile = $patient->files()->firstOrFail();
     expect($patient->files()->count())->toBe(1)
-        ->and($patient->files()->first()->category)->toBe('radiography');
+        ->and($patientFile->category)->toBe('radiography');
+
+    $this->get("http://pacientes.bsdental.test/patients/{$patient->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('patient.files.0.id', $patientFile->id)
+            ->missing('patient.files.0.filename')
+            ->missing('patient.files.0.stored_path'));
+
+    $viewFileResponse = $this->get("http://pacientes.bsdental.test/patient-files/{$patientFile->id}/view");
+    $viewFileResponse->assertOk()->assertHeader('content-type', 'image/png');
+    expect($viewFileResponse->headers->get('content-disposition'))->toContain('inline');
+
+    $downloadResponse = $this->get("http://pacientes.bsdental.test/patient-files/{$patientFile->id}/download");
+    $downloadResponse->assertOk();
+    expect($downloadResponse->headers->get('content-disposition'))
+        ->toContain('attachment')
+        ->toContain('panoramica_inicial.png');
+
+    $context->makeCurrent($this->tenant);
+    expect(TenantAuditLog::where('action', 'patient.file_viewed')->exists())->toBeTrue()
+        ->and(TenantAuditLog::where('action', 'patient.file_downloaded')->exists())->toBeTrue();
 
     // 7. Soft Delete with Audit Log
     $deleteResponse = $this->delete("http://pacientes.bsdental.test/patients/{$patient->id}");

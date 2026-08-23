@@ -123,6 +123,8 @@ Route::group([], function () {
             Route::get('/patients/{id}', [PatientController::class, 'show'])->name('clinic.patients.show');
             Route::put('/patients/{id}', [PatientController::class, 'update'])->name('clinic.patients.update');
             Route::post('/patients/{id}/files', [PatientController::class, 'uploadFile'])->name('clinic.patients.upload_file');
+            Route::get('/patient-files/{id}/view', [PatientController::class, 'viewFile'])->name('clinic.patient_files.view');
+            Route::get('/patient-files/{id}/download', [PatientController::class, 'downloadFile'])->name('clinic.patient_files.download');
             Route::delete('/patients/{id}', [PatientController::class, 'destroy'])->name('clinic.patients.destroy');
 
             // Agenda & Appointments

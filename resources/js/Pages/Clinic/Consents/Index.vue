@@ -16,9 +16,9 @@ interface ConsentItem {
 }
 interface DocumentBlock { type: 'heading' | 'bullet' | 'paragraph'; text: string }
 
-const props = defineProps<{ patient: PatientDetails; templates: TemplateItem[]; consents: ConsentItem[] }>()
+const props = defineProps<{ patient: PatientDetails; templates: TemplateItem[]; consents: ConsentItem[]; selectedConsentId: string | null }>()
 const selectedTemplate = ref<TemplateItem | null>(null)
-const selectedConsent = ref<ConsentItem | null>(null)
+const selectedConsent = ref<ConsentItem | null>(props.consents.find((consent) => consent.id === props.selectedConsentId) || null)
 const isSigningModal = ref(false)
 const signatureCanvas = ref<HTMLCanvasElement | null>(null)
 const isDrawing = ref(false)

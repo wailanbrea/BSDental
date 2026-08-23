@@ -63,6 +63,16 @@ class PatientFile extends Model
     ];
 
     /**
+     * Private storage details must never be serialized to the browser.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'filename',
+        'stored_path',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

@@ -24,11 +24,12 @@ class ConsentController extends Controller
     /**
      * Display patient's consents and available templates.
      */
-    public function index(string $patientId): Response
+    public function index(Request $request, string $patientId): Response
     {
         $patient = Patient::with('medicalHistory')->findOrFail($patientId);
         $templates = ConsentTemplate::where('is_active', true)->orderBy('title')->get();
         $consents = PatientConsent::where('patient_id', $patientId)->orderBy('signed_at', 'desc')->get();
+        $selectedConsentId = $request->string('consent_id')->trim()->value();
 
         return Inertia::render('Clinic/Consents/Index', [
             'patient' => $patient,
@@ -57,6 +58,7 @@ class ConsentController extends Controller
                     'integrity' => $integrity,
                 ];
             }),
+            'selectedConsentId' => $consents->contains('id', $selectedConsentId) ? $selectedConsentId : null,
         ]);
     }
 

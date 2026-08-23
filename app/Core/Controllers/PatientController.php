@@ -4,19 +4,23 @@ namespace App\Core\Controllers;
 
 use App\Core\Models\Branch;
 use App\Core\Models\Patient;
+use App\Core\Models\PatientFile;
 use App\Core\Models\PatientMedicalHistory;
 use App\Core\Services\PatientDuplicateDetector;
 use App\Core\Services\PatientRecordNumberGenerator;
 use App\Http\Controllers\Controller;
 use App\Platform\Security\AuditLogger;
 use App\Platform\Security\Uploads\SecureUploadService;
+use App\Platform\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PatientController extends Controller
 {
@@ -24,7 +28,8 @@ class PatientController extends Controller
         protected PatientRecordNumberGenerator $recordNumberGenerator,
         protected PatientDuplicateDetector $duplicateDetector,
         protected SecureUploadService $uploadService,
-        protected AuditLogger $auditLogger
+        protected AuditLogger $auditLogger,
+        protected TenantContext $tenantContext,
     ) {}
 
     /**
@@ -410,6 +415,48 @@ class PatientController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Archivo clínico subido y adjuntado con éxito.');
+    }
+
+    /** Display a private clinical file inline when the browser supports its MIME type. */
+    public function viewFile(string $id): StreamedResponse
+    {
+        return $this->serveFile($id, 'inline');
+    }
+
+    /** Download a private clinical file through the authenticated tenant context. */
+    public function downloadFile(string $id): StreamedResponse
+    {
+        return $this->serveFile($id, 'attachment');
+    }
+
+    private function serveFile(string $id, string $disposition): StreamedResponse
+    {
+        $file = PatientFile::findOrFail($id);
+        $tenant = $this->tenantContext->requireCurrent();
+        $expectedPrefix = "tenants/{$tenant->id}/uploads/";
+
+        if (! str_starts_with($file->stored_path, $expectedPrefix)) {
+            abort(404);
+        }
+
+        $disk = Storage::disk('local');
+        if (! $disk->exists($file->stored_path)) {
+            abort(404);
+        }
+
+        $this->auditLogger->logTenant(
+            $disposition === 'attachment' ? 'patient.file_downloaded' : 'patient.file_viewed',
+            'PatientFile',
+            $file->id,
+            ['patient_id' => $file->patient_id, 'mime_type' => $file->mime_type]
+        );
+
+        return $disk->response(
+            $file->stored_path,
+            $file->original_name,
+            ['Content-Type' => $file->mime_type, 'X-Content-Type-Options' => 'nosniff'],
+            $disposition
+        );
     }
 
     /**
