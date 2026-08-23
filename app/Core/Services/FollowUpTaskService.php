@@ -9,6 +9,10 @@ use InvalidArgumentException;
 
 class FollowUpTaskService
 {
+    public function __construct(
+        protected UserNotificationService $notificationService
+    ) {}
+
     /**
      * Create a clinical recall or follow-up task.
      */
@@ -22,7 +26,7 @@ class FollowUpTaskService
         ?string $assignedUserId = null,
         ?string $notes = null
     ): FollowUpTask {
-        return FollowUpTask::create([
+        $task = FollowUpTask::create([
             'patient_id' => $patient->id,
             'appointment_id' => $appointmentId,
             'type' => $type,
@@ -33,6 +37,20 @@ class FollowUpTaskService
             'notes' => $notes,
             'assigned_to_user_id' => $assignedUserId,
         ]);
+
+        if ($assignedUserId !== null) {
+            $this->notificationService->notifyUser(
+                $assignedUserId,
+                'follow_up',
+                $priority === 'high' ? 'warning' : 'info',
+                'Nueva tarea de seguimiento',
+                "{$title} · {$patient->full_name}",
+                '/crm',
+                ['follow_up_task_id' => $task->id, 'patient_id' => $patient->id]
+            );
+        }
+
+        return $task;
     }
 
     /**

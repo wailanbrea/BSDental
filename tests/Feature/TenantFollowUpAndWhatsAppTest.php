@@ -9,6 +9,7 @@ use App\Core\Models\NotificationLog;
 use App\Core\Models\Patient;
 use App\Core\Models\Professional;
 use App\Core\Models\Room;
+use App\Core\Models\UserNotification;
 use App\Core\Security\Models\TenantAuditLog;
 use App\Core\Services\WhatsApp\AppointmentReminderScheduler;
 use App\Platform\Tenancy\Models\Tenant;
@@ -117,7 +118,13 @@ test('[GATE WA / GATE CRM] Follow-up task lifecycle and strict reminder invalida
     $context->makeCurrent($this->tenant);
     $task = FollowUpTask::where('patient_id', $this->patient->id)->firstOrFail();
     expect($task->status)->toBe('pending')
-        ->and($task->priority)->toBe('high');
+        ->and($task->priority)->toBe('high')
+        ->and(UserNotification::where('user_id', $this->user->id)
+            ->where('type', 'follow_up')
+            ->where('severity', 'warning')
+            ->where('action_url', '/crm')
+            ->whereNull('read_at')
+            ->exists())->toBeTrue();
 
     // 2. Complete Task
     $completeResponse = $this->post("http://crm.bsdental.test/crm/tasks/{$task->id}/complete");

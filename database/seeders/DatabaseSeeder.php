@@ -38,6 +38,7 @@ use App\Core\Models\Room;
 use App\Core\Models\StockMovement;
 use App\Core\Models\TreatmentPlan;
 use App\Core\Models\TreatmentPlanItem;
+use App\Core\Models\UserNotification;
 use App\Core\Models\Warehouse;
 use App\Platform\Auth\Models\PlatformUser;
 use App\Platform\Plans\Models\Plan;
@@ -643,6 +644,37 @@ class DatabaseSeeder extends Seeder
                 'channel' => 'whatsapp',
                 'body_template' => 'Hola {{patient_name}}, te recordamos tu cita mañana a las {{appointment_time}} en BSDental con el {{doctor_name}}. ¿Confirmas tu asistencia? Responde SI para confirmar.',
                 'is_active' => true,
+            ]);
+
+            UserNotification::create([
+                'user_id' => $owner->id,
+                'type' => 'inventory',
+                'severity' => 'critical',
+                'title' => 'Stock crítico en almacén',
+                'message' => 'La resina fotocurable está por debajo del nivel mínimo configurado.',
+                'action_url' => '/inventory',
+                'data' => ['source' => 'demo_seed'],
+            ]);
+
+            UserNotification::create([
+                'user_id' => $owner->id,
+                'type' => 'follow_up',
+                'severity' => 'warning',
+                'title' => 'Seguimiento próximo a vencer',
+                'message' => 'El control postoperatorio de Carlos Mendoza vence mañana.',
+                'action_url' => '/crm',
+                'data' => ['source' => 'demo_seed'],
+            ]);
+
+            UserNotification::create([
+                'user_id' => $owner->id,
+                'type' => 'appointment',
+                'severity' => 'info',
+                'title' => 'Agenda clínica actualizada',
+                'message' => 'Hay citas pendientes de confirmación para las próximas 48 horas.',
+                'action_url' => '/appointments',
+                'data' => ['source' => 'demo_seed'],
+                'read_at' => now(),
             ]);
 
             $stageNew = CrmStage::create(['name' => 'Lead / Paciente Nuevo', 'slug' => 'lead-nuevo', 'color' => '#06b6d4', 'order_index' => 1, 'is_active' => true]);

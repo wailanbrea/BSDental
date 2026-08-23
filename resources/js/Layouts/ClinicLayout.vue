@@ -23,17 +23,34 @@ import {
     AlertCircle
 } from 'lucide-vue-next'
 
+interface LayoutNotification {
+    id: string
+    type: string
+    severity: 'info' | 'success' | 'warning' | 'critical'
+    title: string
+    message: string
+    action_url: string | null
+    read_at: string | null
+    created_at: string
+}
+
 type ClinicPageProps = PageProps<{
     clinic?: { trade_name?: string | null; name?: string | null; clinic_name?: string | null }
+    notifications?: {
+        items: LayoutNotification[]
+        unread_count: number
+    }
 }>
 
 const page = usePage<ClinicPageProps>()
 const isMobileMenuOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
+const isNotificationsOpen = ref(false)
 
 const user = computed(() => page.props.auth?.user || { name: 'Usuario', email: 'usuario@bsdental.com' })
 const clinic = computed(() => page.props.clinic || { trade_name: 'BSDental', name: 'BSDental Clinic', clinic_name: 'BSDental Clinic' })
 const flash = computed(() => page.props.flash || {})
+const notificationCenter = computed(() => page.props.notifications || { items: [], unread_count: 0 })
 
 const currentUrl = computed(() => page.url)
 
@@ -60,6 +77,46 @@ function onSearchSubmit() {
 
 function logout() {
     router.post('/logout')
+}
+
+function toggleNotifications() {
+    isNotificationsOpen.value = !isNotificationsOpen.value
+    isProfileDropdownOpen.value = false
+}
+
+function openNotification(notification: LayoutNotification) {
+    isNotificationsOpen.value = false
+
+    if (notification.read_at) {
+        if (notification.action_url) router.visit(notification.action_url)
+        return
+    }
+
+    router.patch(`/notifications/${notification.id}/read`, {}, {
+        preserveScroll: true,
+        only: ['notifications'],
+        onSuccess: () => {
+            if (notification.action_url) router.visit(notification.action_url)
+        },
+    })
+}
+
+function markAllNotificationsRead() {
+    router.patch('/notifications/read-all', {}, {
+        preserveScroll: true,
+        only: ['notifications'],
+    })
+}
+
+function formatNotificationDate(value: string) {
+    return new Intl.DateTimeFormat('es-DO', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
+}
+
+function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical') {
+    if (severity === 'critical') return 'bg-[#FFF1F0] text-[#B42318] border-[#F5A3A0]'
+    if (severity === 'warning') return 'bg-[#FFFAEB] text-[#93370D] border-[#FEC84B]'
+    if (severity === 'success') return 'bg-[#F1FAF8] text-[#006B63] border-[#B7D9D4]'
+    return 'bg-[#F0F2FF] text-[#2458C6] border-[#B4C5FF]'
 }
 </script>
 
@@ -157,18 +214,40 @@ function logout() {
                     </Link>
 
                     <!-- Notifications -->
-                    <button 
-                        class="p-2 text-[#505F76] hover:text-[#005C55] hover:bg-[#F1F5F9] rounded-full transition relative"
-                        title="Notificaciones"
-                    >
-                        <Bell class="w-4 h-4" />
-                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-[#BA1A1A] rounded-full"></span>
-                    </button>
+                    <div class="relative">
+                        <button
+                            class="relative rounded-full p-2 text-[#505F76] transition hover:bg-[#F1F5F9] hover:text-[#005C55]"
+                            title="Notificaciones"
+                            aria-label="Abrir notificaciones"
+                            :aria-expanded="isNotificationsOpen"
+                            @click="toggleNotifications"
+                        >
+                            <Bell class="h-4 w-4" />
+                            <span v-if="notificationCenter.unread_count" class="absolute -right-1 -top-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-[#BA1A1A] px-1 text-[9px] font-bold text-white">{{ Math.min(notificationCenter.unread_count, 99) }}</span>
+                        </button>
+
+                        <div v-if="isNotificationsOpen" class="absolute right-0 z-50 mt-2 w-[min(380px,calc(100vw-2rem))] overflow-hidden border border-[#D8E0DE] bg-white shadow-[0_4px_12px_rgba(15,23,42,0.08)]">
+                            <div class="flex items-center justify-between border-b border-[#D8E0DE] bg-[#F1F5F9] px-4 py-3">
+                                <div><p class="text-sm font-bold text-[#131B2E]">Notificaciones</p><p class="text-[11px] text-[#667085]">{{ notificationCenter.unread_count }} pendientes</p></div>
+                                <button v-if="notificationCenter.unread_count" type="button" class="text-[11px] font-bold text-[#006B63] hover:underline" @click="markAllNotificationsRead">Marcar todas</button>
+                            </div>
+
+                            <div v-if="notificationCenter.items.length" class="max-h-[420px] overflow-y-auto">
+                                <button v-for="notification in notificationCenter.items" :key="notification.id" type="button" class="grid w-full grid-cols-[32px_1fr] gap-3 border-b border-[#E2E8F0] p-3 text-left last:border-0 hover:bg-[#F8FAFC]" :class="notification.read_at ? 'opacity-70' : 'bg-white'" @click="openNotification(notification)">
+                                    <span class="grid h-8 w-8 place-items-center border" :class="notificationTone(notification.severity)"><AlertCircle v-if="notification.severity === 'critical' || notification.severity === 'warning'" class="h-4 w-4" /><CheckCircle2 v-else-if="notification.severity === 'success'" class="h-4 w-4" /><Bell v-else class="h-4 w-4" /></span>
+                                    <span class="min-w-0"><span class="flex items-start gap-2"><strong class="flex-1 text-xs text-[#131B2E]">{{ notification.title }}</strong><span v-if="!notification.read_at" class="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#007D73]"></span></span><span class="mt-1 line-clamp-2 block text-[11px] leading-4 text-[#52615E]">{{ notification.message }}</span><span class="mt-1 block font-mono text-[10px] text-[#667085]">{{ formatNotificationDate(notification.created_at) }}</span></span>
+                                </button>
+                            </div>
+                            <div v-else class="px-5 py-10 text-center"><CheckCircle2 class="mx-auto h-7 w-7 text-[#007D73]" /><p class="mt-2 text-sm font-semibold text-[#131B2E]">Todo al día</p><p class="mt-1 text-xs text-[#667085]">No tienes notificaciones pendientes.</p></div>
+
+                            <Link href="/notifications" class="flex h-10 items-center justify-center border-t border-[#D8E0DE] text-xs font-bold text-[#006B63] hover:bg-[#F1FAF8]" @click="isNotificationsOpen = false">Ver centro de notificaciones</Link>
+                        </div>
+                    </div>
 
                     <!-- User Profile Dropdown -->
                     <div class="relative ml-2">
                         <button 
-                            @click="isProfileDropdownOpen = !isProfileDropdownOpen"
+                            @click="isProfileDropdownOpen = !isProfileDropdownOpen; isNotificationsOpen = false"
                             class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F1F5F9] transition"
                         >
                             <div class="w-8 h-8 rounded-full bg-[#005C55] text-white flex items-center justify-center font-bold text-xs shadow-xs">

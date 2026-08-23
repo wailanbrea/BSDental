@@ -2,10 +2,12 @@
 
 namespace App\Core\Auth\Models;
 
+use App\Core\Models\UserNotification;
 use App\Platform\Tenancy\Exceptions\NoCurrentTenantException;
 use App\Platform\Tenancy\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -138,5 +140,13 @@ class User extends Authenticatable
     public function hasTwoFactorEnabled(): bool
     {
         return $this->two_factor_confirmed_at !== null && $this->two_factor_secret !== null;
+    }
+
+    /**
+     * @return HasMany<UserNotification, $this>
+     */
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
     }
 }

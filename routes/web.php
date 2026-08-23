@@ -15,6 +15,7 @@ use App\Core\Controllers\ConsentController;
 use App\Core\Controllers\CrmFollowUpController;
 use App\Core\Controllers\DentalLabController;
 use App\Core\Controllers\InventoryController;
+use App\Core\Controllers\NotificationCenterController;
 use App\Core\Controllers\OdontogramController;
 use App\Core\Controllers\PatientController;
 use App\Core\Controllers\ProcedureCatalogController;
@@ -86,6 +87,10 @@ Route::group([], function () {
 
         Route::middleware([RequireTenantTwoFactor::class])->group(function () {
             Route::get('/dashboard', [ClinicDashboardController::class, 'index'])->name('clinic.dashboard');
+
+            Route::get('/notifications', [NotificationCenterController::class, 'index'])->name('clinic.notifications.index');
+            Route::patch('/notifications/read-all', [NotificationCenterController::class, 'markAllRead'])->name('clinic.notifications.read_all');
+            Route::patch('/notifications/{id}/read', [NotificationCenterController::class, 'markRead'])->name('clinic.notifications.read');
 
             // Clinic Core Management
             Route::get('/settings', [ClinicSettingsController::class, 'edit'])->name('clinic.settings');

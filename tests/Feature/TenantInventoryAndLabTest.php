@@ -14,6 +14,7 @@ use App\Core\Models\ProcedureMaterialRule;
 use App\Core\Models\StockMovement;
 use App\Core\Models\TreatmentPlan;
 use App\Core\Models\TreatmentPlanItem;
+use App\Core\Models\UserNotification;
 use App\Core\Models\Warehouse;
 use App\Core\Security\Models\TenantAuditLog;
 use App\Core\Services\InventoryStockService;
@@ -225,7 +226,30 @@ test('[GATE INV] Reconciliable stock ledger, purchase != consumption and dental 
         ->and($order->final_cost)->toBe(0.0)
         ->and($order->payable_status)->toBe('unpaid');
 
-    // 5. Transition order to 'sent' -> 'received' with recognized final cost (Costo != Pago)
+    // 5. A ready lab order creates one internal alert for its owner, without duplicates.
+    $readyResponse = $this->post("http://inventario.bsdental.test/lab/orders/{$order->id}/status", [
+        'status' => 'ready',
+    ]);
+    $readyResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    expect(UserNotification::where('user_id', $this->user->id)
+        ->where('type', 'lab')
+        ->where('severity', 'success')
+        ->where('action_url', '/lab')
+        ->count())->toBe(1);
+
+    $duplicateReadyResponse = $this->post("http://inventario.bsdental.test/lab/orders/{$order->id}/status", [
+        'status' => 'ready',
+    ]);
+    $duplicateReadyResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    expect(UserNotification::where('user_id', $this->user->id)
+        ->where('type', 'lab')
+        ->count())->toBe(1);
+
+    // 6. Transition order to 'received' with recognized final cost (Costo != Pago)
     $statusResponse = $this->post("http://inventario.bsdental.test/lab/orders/{$order->id}/status", [
         'status' => 'received',
         'final_cost' => 50.00, // Recognized cost increased
@@ -238,7 +262,7 @@ test('[GATE INV] Reconciliable stock ledger, purchase != consumption and dental 
         ->and($order->final_cost)->toBe(50.0)
         ->and($order->payable_status)->toBe('unpaid'); // Cost recognized but not yet paid
 
-    // 6. Verify Audit Logs
+    // 7. Verify Audit Logs
     expect(TenantAuditLog::where('action', 'inventory.purchase_recorded')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'lab_order.created')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'lab_order.status_updated')->exists())->toBeTrue();

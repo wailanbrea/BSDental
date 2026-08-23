@@ -10,6 +10,10 @@ use InvalidArgumentException;
 
 class DentalLabService
 {
+    public function __construct(
+        protected UserNotificationService $notificationService
+    ) {}
+
     /**
      * Generate sequential lab order number.
      */
@@ -74,6 +78,7 @@ class DentalLabService
             throw new InvalidArgumentException("Estado de orden inválido: {$newStatus}");
         }
 
+        $previousStatus = $order->status;
         $updates = ['status' => $newStatus];
 
         if ($newStatus === 'sent' && ! $order->sent_date) {
@@ -89,6 +94,33 @@ class DentalLabService
         }
 
         $order->update($updates);
+
+        if ($newStatus === 'ready' && $previousStatus !== 'ready') {
+            $title = "Trabajo de laboratorio {$order->order_number} listo";
+            $message = "El laboratorio marcó como listo el trabajo de {$order->patient->full_name}.";
+            $data = ['lab_order_id' => $order->id, 'patient_id' => $order->patient_id];
+
+            if ($order->created_by_user_id !== null) {
+                $this->notificationService->notifyUser(
+                    $order->created_by_user_id,
+                    'lab',
+                    'success',
+                    $title,
+                    $message,
+                    '/lab',
+                    $data
+                );
+            } else {
+                $this->notificationService->notifyActiveUsers(
+                    'lab',
+                    'success',
+                    $title,
+                    $message,
+                    '/lab',
+                    $data
+                );
+            }
+        }
 
         return $order;
     }
