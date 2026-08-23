@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { Activity, AlertTriangle, Calendar, CheckCircle2, ClipboardList, CreditCard, DollarSign, FileHeart, FileText, FolderOpen, Mail, MoreVertical, Phone, Plus, ReceiptText, ShieldAlert, Stethoscope, Upload } from 'lucide-vue-next'
+import { Activity, AlertTriangle, Calendar, CheckCircle2, ClipboardList, CreditCard, DollarSign, FileHeart, FileText, FolderOpen, Mail, Pencil, Phone, Plus, ReceiptText, ShieldAlert, Stethoscope, Upload } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 interface Professional { full_name: string }
@@ -58,7 +58,7 @@ function uploadFile() { if (!fileForm.file) return; fileForm.post(`/patients/${p
                         <div class="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-[#2458C6] text-xl font-bold text-white">{{ patient.first_name[0] }}{{ patient.last_name[0] }}</div>
                         <div><div class="flex flex-wrap items-center gap-2"><h1 class="text-2xl font-bold text-[#131B2E]">{{ patient.full_name }}</h1><span class="bg-[#D8ECE9] px-2 py-1 text-xs font-bold text-[#006B63]">● Activo</span></div><div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#52615E]"><span class="font-mono"># {{ patient.record_number }}</span><span>• {{ patient.age ? `${patient.age} años` : 'Edad no registrada' }}</span><span v-if="patient.phone" class="inline-flex items-center gap-1"><Phone class="h-3.5 w-3.5" /> {{ patient.phone }}</span><span v-if="patient.email" class="inline-flex items-center gap-1"><Mail class="h-3.5 w-3.5" /> {{ patient.email }}</span></div></div>
                     </div>
-                    <div class="flex flex-wrap gap-2"><Link :href="`/appointments?patient_id=${patient.id}`" class="inline-flex h-10 items-center gap-2 bg-[#005C55] px-4 text-sm font-semibold text-white"><Calendar class="h-4 w-4" /> Agendar cita</Link><Link :href="`/patients/${patient.id}/quotes/create`" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><FileText class="h-4 w-4" /> Nuevo presupuesto</Link><button class="grid h-10 w-10 place-items-center border border-[#9AAEAA] bg-white"><MoreVertical class="h-4 w-4" /></button></div>
+                    <div class="flex flex-wrap gap-2"><Link :href="`/appointments?patient_id=${patient.id}`" class="inline-flex h-10 items-center gap-2 bg-[#005C55] px-4 text-sm font-semibold text-white"><Calendar class="h-4 w-4" /> Agendar cita</Link><Link :href="`/patients/${patient.id}/quotes/create`" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><FileText class="h-4 w-4" /> Nuevo presupuesto</Link><Link :href="`/patients/${patient.id}/edit`" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-3 text-sm font-semibold text-[#344054]" aria-label="Editar paciente"><Pencil class="h-4 w-4" /> Editar</Link></div>
                 </div>
             </section>
 

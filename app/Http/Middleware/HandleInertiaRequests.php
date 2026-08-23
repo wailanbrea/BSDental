@@ -2,7 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Platform\Tenancy\Models\ClinicProfile;
+use App\Platform\Tenancy\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -37,7 +40,40 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            //
+            'auth' => [
+                'user' => function () use ($request): ?array {
+                    if ($request->routeIs('platform.*')) {
+                        return Auth::guard('platform')->user()?->only(['id', 'name', 'email']);
+                    }
+
+                    if (! app(TenantContext::class)->check()) {
+                        return null;
+                    }
+
+                    return Auth::guard('web')->user()?->only(['id', 'name', 'email']);
+                },
+            ],
+            'clinic' => function (): ?array {
+                $context = app(TenantContext::class);
+                if (! $context->check()) {
+                    return null;
+                }
+
+                $profile = ClinicProfile::query()->first(['clinic_name', 'trade_name']);
+
+                return [
+                    'name' => $profile !== null
+                        ? $profile->clinic_name
+                        : $context->requireCurrent()->name,
+                    'trade_name' => $profile !== null ? $profile->trade_name : null,
+                ];
+            },
+            'flash' => [
+                'success' => fn (): mixed => $request->session()->get('success'),
+                'error' => fn (): mixed => $request->session()->get('error'),
+                'warning' => fn (): mixed => $request->session()->get('warning'),
+                'info' => fn (): mixed => $request->session()->get('info'),
+            ],
         ];
     }
 }

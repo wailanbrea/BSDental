@@ -24,7 +24,7 @@ import {
 } from 'lucide-vue-next'
 
 type ClinicPageProps = PageProps<{
-    clinic?: { trade_name?: string | null; name?: string | null }
+    clinic?: { trade_name?: string | null; name?: string | null; clinic_name?: string | null }
 }>
 
 const page = usePage<ClinicPageProps>()
@@ -32,7 +32,7 @@ const isMobileMenuOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
 
 const user = computed(() => page.props.auth?.user || { name: 'Usuario', email: 'usuario@bsdental.com' })
-const clinic = computed(() => page.props.clinic || { trade_name: 'BSDental', name: 'BSDental Clinic' })
+const clinic = computed(() => page.props.clinic || { trade_name: 'BSDental', name: 'BSDental Clinic', clinic_name: 'BSDental Clinic' })
 const flash = computed(() => page.props.flash || {})
 
 const currentUrl = computed(() => page.url)
@@ -144,7 +144,7 @@ function logout() {
                     <!-- Branch Badge / Selector -->
                     <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-xs text-[#505F76]">
                         <Building2 class="w-3.5 h-3.5 text-[#005C55]" />
-                        <span class="font-medium text-[#131B2E]">{{ clinic.trade_name || 'Sede Principal' }}</span>
+                        <span class="font-medium text-[#131B2E]">{{ clinic.trade_name || clinic.name || clinic.clinic_name || 'Sede Principal' }}</span>
                     </div>
 
                     <!-- Inventory / Lab Quick Link -->

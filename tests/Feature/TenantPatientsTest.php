@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     Schema::connection('landlord')->dropAllTables();
@@ -105,9 +106,43 @@ test('[GATE PAT] Comprehensive patient lifecycle: creation, anamnesis, duplicate
 
     // 4. View 360 Profile
     $showResponse = $this->get("http://pacientes.bsdental.test/patients/{$patient->id}");
-    $showResponse->assertOk();
+    $showResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Patients/Show')
+            ->where('auth.user.name', 'Dr. Fernando Odontólogo')
+            ->where('clinic.name', 'Clínica Dental Pacientes'));
 
-    // 5. Upload Clinical File / Radiography
+    // 5. Edit Patient with preloaded medical history
+    $editResponse = $this->get("http://pacientes.bsdental.test/patients/{$patient->id}/edit");
+    $editResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Patients/Create')
+            ->where('patient.id', $patient->id)
+            ->where('patient.medical_history.allergies.0', 'Penicilina'));
+
+    $updateResponse = $this->put("http://pacientes.bsdental.test/patients/{$patient->id}", [
+        'first_name' => 'Valentina María',
+        'last_name' => 'Ramos',
+        'identification_type' => 'CEDULA',
+        'identification_number' => 'V-20111222',
+        'phone' => '+58 412 999-8877',
+        'email' => 'valentina.actualizada@email.test',
+        'allergies' => ['Penicilina', 'Látex'],
+        'systemic_conditions' => ['Asma'],
+        'current_medications' => ['Salbutamol'],
+        'is_pregnant' => false,
+        'bleeding_disorders' => false,
+        'has_pacemaker' => false,
+    ]);
+    $updateResponse->assertRedirect("http://pacientes.bsdental.test/patients/{$patient->id}");
+
+    $context->makeCurrent($this->tenant);
+    $patient->refresh();
+    expect($patient->first_name)->toBe('Valentina María')
+        ->and($patient->email)->toBe('valentina.actualizada@email.test')
+        ->and(TenantAuditLog::where('action', 'patient.updated')->exists())->toBeTrue();
+
+    // 6. Upload Clinical File / Radiography
     $file = UploadedFile::fake()->image('panoramica_inicial.png', 800, 600);
     $uploadResponse = $this->post("http://pacientes.bsdental.test/patients/{$patient->id}/files", [
         'category' => 'radiography',
@@ -120,7 +155,7 @@ test('[GATE PAT] Comprehensive patient lifecycle: creation, anamnesis, duplicate
     expect($patient->files()->count())->toBe(1)
         ->and($patient->files()->first()->category)->toBe('radiography');
 
-    // 6. Soft Delete with Audit Log
+    // 7. Soft Delete with Audit Log
     $deleteResponse = $this->delete("http://pacientes.bsdental.test/patients/{$patient->id}");
     $deleteResponse->assertRedirect('http://pacientes.bsdental.test/patients');
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
-import { UserPlus, ArrowLeft, AlertCircle, ShieldAlert, FileCheck } from 'lucide-vue-next'
+import { UserPlus, ArrowLeft, AlertCircle, ShieldAlert, FileCheck, UserRoundPen } from 'lucide-vue-next'
 
 interface DuplicateCandidate {
     id: string
@@ -11,45 +11,88 @@ interface DuplicateCandidate {
     phone: string | null
 }
 
+interface EditablePatient {
+    id: string
+    record_number: string
+    first_name: string
+    last_name: string
+    identification_type: string | null
+    identification_number: string | null
+    birth_date: string | null
+    gender: string | null
+    phone: string | null
+    secondary_phone: string | null
+    email: string | null
+    address: string | null
+    city: string | null
+    blood_type: string | null
+    emergency_contact_name: string | null
+    emergency_contact_phone: string | null
+    emergency_contact_relationship: string | null
+    is_minor: boolean
+    guardian_name: string | null
+    guardian_identification: string | null
+    guardian_phone: string | null
+    insurance_company: string | null
+    insurance_policy_number: string | null
+    notes: string | null
+    tags: string[] | null
+    medical_history: {
+        allergies: string[] | null
+        systemic_conditions: string[] | null
+        current_medications: string[] | null
+        is_pregnant: boolean
+        pregnancy_weeks: number | null
+        bleeding_disorders: boolean
+        has_pacemaker: boolean
+        medical_notes: string | null
+    } | null
+}
+
 const props = defineProps<{
     suggestedRecordNumber: string
+    patient?: EditablePatient
 }>()
 
+const isEditing = Boolean(props.patient)
+const medicalHistory = props.patient?.medical_history
+
 const form = useForm({
-    first_name: '',
-    last_name: '',
-    identification_type: 'CEDULA',
-    identification_number: '',
-    birth_date: '',
-    gender: 'male',
-    phone: '',
-    secondary_phone: '',
-    email: '',
-    address: '',
-    city: '',
-    blood_type: 'O+',
-    emergency_contact_name: '',
-    emergency_contact_phone: '',
-    emergency_contact_relationship: '',
-    is_minor: false,
-    guardian_name: '',
-    guardian_identification: '',
-    guardian_phone: '',
-    insurance_company: '',
-    insurance_policy_number: '',
-    notes: '',
+    first_name: props.patient?.first_name ?? '',
+    last_name: props.patient?.last_name ?? '',
+    identification_type: props.patient?.identification_type ?? 'CEDULA',
+    identification_number: props.patient?.identification_number ?? '',
+    birth_date: props.patient?.birth_date?.slice(0, 10) ?? '',
+    gender: props.patient?.gender ?? 'male',
+    phone: props.patient?.phone ?? '',
+    secondary_phone: props.patient?.secondary_phone ?? '',
+    email: props.patient?.email ?? '',
+    address: props.patient?.address ?? '',
+    city: props.patient?.city ?? '',
+    blood_type: props.patient?.blood_type ?? 'O+',
+    emergency_contact_name: props.patient?.emergency_contact_name ?? '',
+    emergency_contact_phone: props.patient?.emergency_contact_phone ?? '',
+    emergency_contact_relationship: props.patient?.emergency_contact_relationship ?? '',
+    is_minor: props.patient?.is_minor ?? false,
+    guardian_name: props.patient?.guardian_name ?? '',
+    guardian_identification: props.patient?.guardian_identification ?? '',
+    guardian_phone: props.patient?.guardian_phone ?? '',
+    insurance_company: props.patient?.insurance_company ?? '',
+    insurance_policy_number: props.patient?.insurance_policy_number ?? '',
+    notes: props.patient?.notes ?? '',
+    tags: props.patient?.tags ?? [],
     // Anamnesis / Alertas
-    allergies: [] as string[],
+    allergies: medicalHistory?.allergies ?? [] as string[],
     new_allergy: '',
-    systemic_conditions: [] as string[],
+    systemic_conditions: medicalHistory?.systemic_conditions ?? [] as string[],
     new_condition: '',
-    current_medications: [] as string[],
+    current_medications: medicalHistory?.current_medications ?? [] as string[],
     new_medication: '',
-    is_pregnant: false,
-    pregnancy_weeks: null as number | null,
-    bleeding_disorders: false,
-    has_pacemaker: false,
-    medical_notes: '',
+    is_pregnant: medicalHistory?.is_pregnant ?? false,
+    pregnancy_weeks: medicalHistory?.pregnancy_weeks ?? null as number | null,
+    bleeding_disorders: medicalHistory?.bleeding_disorders ?? false,
+    has_pacemaker: medicalHistory?.has_pacemaker ?? false,
+    medical_notes: medicalHistory?.medical_notes ?? '',
 })
 
 const duplicateCandidates = ref<DuplicateCandidate[]>([])
@@ -67,7 +110,14 @@ function triggerDuplicateCheck() {
 
         checkingDuplicates.value = true
         try {
-            const res = await fetch(`/patients/check-duplicates?identification_number=${encodeURIComponent(form.identification_number)}&phone=${encodeURIComponent(form.phone)}&first_name=${encodeURIComponent(form.first_name)}&last_name=${encodeURIComponent(form.last_name)}`)
+            const params = new URLSearchParams({
+                identification_number: form.identification_number,
+                phone: form.phone,
+                first_name: form.first_name,
+                last_name: form.last_name,
+            })
+            if (props.patient) params.set('ignore_id', props.patient.id)
+            const res = await fetch(`/patients/check-duplicates?${params.toString()}`)
             const data = await res.json()
             duplicateCandidates.value = data.candidates || []
         } catch {
@@ -116,12 +166,17 @@ function removeMedication(index: number) {
 }
 
 function submit() {
+    if (props.patient) {
+        form.put(`/patients/${props.patient.id}`)
+        return
+    }
+
     form.post('/patients')
 }
 </script>
 
 <template>
-    <Head title="Registrar Nuevo Paciente — BSDental" />
+    <Head :title="isEditing ? 'Editar Paciente — BSDental' : 'Registrar Nuevo Paciente — BSDental'" />
 
     <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
         <div class="max-w-5xl mx-auto space-y-6">
@@ -129,16 +184,17 @@ function submit() {
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="p-3 bg-teal-500/10 rounded-xl text-teal-400 border border-teal-500/20">
-                        <UserPlus class="w-6 h-6" />
+                        <UserRoundPen v-if="isEditing" class="w-6 h-6" />
+                        <UserPlus v-else class="w-6 h-6" />
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold text-white tracking-tight">Nuevo Paciente</h1>
-                        <p class="text-sm text-slate-400">Historia Clínica sugerida: <span class="font-mono font-bold text-teal-400">{{ props.suggestedRecordNumber }}</span></p>
+                        <h1 class="text-2xl font-bold text-white tracking-tight">{{ isEditing ? 'Editar Paciente' : 'Nuevo Paciente' }}</h1>
+                        <p class="text-sm text-slate-400">Historia Clínica: <span class="font-mono font-bold text-teal-400">{{ props.suggestedRecordNumber }}</span></p>
                     </div>
                 </div>
 
-                <a href="/patients" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-400 hover:text-white transition">
-                    <ArrowLeft class="w-4 h-4" /> Volver al Directorio
+                <a :href="isEditing && props.patient ? `/patients/${props.patient.id}` : '/patients'" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-400 hover:text-white transition">
+                    <ArrowLeft class="w-4 h-4" /> {{ isEditing ? 'Volver a la Ficha 360' : 'Volver al Directorio' }}
                 </a>
             </div>
 
@@ -305,13 +361,13 @@ function submit() {
 
                 <!-- Botones de Acción -->
                 <div class="flex justify-end gap-3 pt-4">
-                    <a href="/patients" class="px-6 py-2.5 bg-slate-800 text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-700 transition">Cancelar</a>
+                    <a :href="isEditing && props.patient ? `/patients/${props.patient.id}` : '/patients'" class="px-6 py-2.5 bg-slate-800 text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-700 transition">Cancelar</a>
                     <button
                         type="submit"
                         :disabled="form.processing"
                         class="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-sm font-bold rounded-xl shadow-lg shadow-teal-500/20 transition disabled:opacity-50"
                     >
-                        Guardar Paciente y Abrir Ficha 360
+                        {{ isEditing ? 'Guardar Cambios' : 'Guardar Paciente y Abrir Ficha 360' }}
                     </button>
                 </div>
             </form>

@@ -109,6 +109,7 @@ Route::group([], function () {
             Route::get('/patients/create', [PatientController::class, 'create'])->name('clinic.patients.create');
             Route::get('/patients/check-duplicates', [PatientController::class, 'checkDuplicates'])->name('clinic.patients.check_duplicates');
             Route::post('/patients', [PatientController::class, 'store'])->name('clinic.patients.store');
+            Route::get('/patients/{id}/edit', [PatientController::class, 'edit'])->name('clinic.patients.edit');
             Route::get('/patients/{id}', [PatientController::class, 'show'])->name('clinic.patients.show');
             Route::put('/patients/{id}', [PatientController::class, 'update'])->name('clinic.patients.update');
             Route::post('/patients/{id}/files', [PatientController::class, 'uploadFile'])->name('clinic.patients.upload_file');

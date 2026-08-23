@@ -261,6 +261,19 @@ class PatientController extends Controller
     }
 
     /**
+     * Show the form for editing a patient and their medical history.
+     */
+    public function edit(string $id): Response
+    {
+        $patient = Patient::with('medicalHistory')->findOrFail($id);
+
+        return Inertia::render('Clinic/Patients/Create', [
+            'suggestedRecordNumber' => $patient->record_number,
+            'patient' => $patient,
+        ]);
+    }
+
+    /**
      * Update the patient data.
      */
     public function update(Request $request, string $id): RedirectResponse
@@ -348,7 +361,8 @@ class PatientController extends Controller
             'name' => $patient->full_name,
         ]);
 
-        return redirect()->back()->with('success', 'Ficha clínica del paciente actualizada.');
+        return redirect()->route('clinic.patients.show', $patient->id)
+            ->with('success', 'Ficha clínica del paciente actualizada.');
     }
 
     /**
