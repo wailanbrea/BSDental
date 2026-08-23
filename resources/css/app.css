@@ -1,5 +1,71 @@
 @import 'tailwindcss';
 
+/* Transitional Clinical Precision skin for the remaining operational modules. */
+.clinical-precision-page {
+    color: #131b2e;
+}
+
+.clinical-precision-page > .min-h-screen {
+    min-height: auto;
+    padding: 0;
+    background-color: transparent;
+}
+
+.clinical-precision-page .bg-slate-900,
+.clinical-precision-page .bg-slate-800,
+.clinical-precision-page .bg-slate-800\/80,
+.clinical-precision-page .bg-slate-800\/60 {
+    background-color: #fff;
+}
+
+.clinical-precision-page .bg-slate-900\/60,
+.clinical-precision-page .bg-slate-900\/40,
+.clinical-precision-page .bg-slate-700\/30 {
+    background-color: #f7faf9;
+}
+
+.clinical-precision-page .border-slate-700,
+.clinical-precision-page .border-slate-700\/60,
+.clinical-precision-page .border-slate-700\/40,
+.clinical-precision-page .border-slate-600 {
+    border-color: #bdc9c6;
+}
+
+.clinical-precision-page .text-slate-100,
+.clinical-precision-page .text-white {
+    color: #131b2e;
+}
+
+.clinical-precision-page .text-slate-200,
+.clinical-precision-page .text-slate-300,
+.clinical-precision-page .text-slate-400 {
+    color: #455653;
+}
+
+.clinical-precision-page .text-slate-500 {
+    color: #667085;
+}
+
+.clinical-precision-page input,
+.clinical-precision-page select,
+.clinical-precision-page textarea {
+    border-color: #bdc9c6;
+    background-color: #fff;
+    color: #131b2e;
+}
+
+.clinical-precision-page .bg-teal-500,
+.clinical-precision-page .bg-teal-600 {
+    background-color: #005c55;
+    color: #fff;
+}
+
+.clinical-precision-page button.bg-rose-500,
+.clinical-precision-page a.bg-rose-500,
+.clinical-precision-page button.bg-slate-700 {
+    color: #fff;
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';

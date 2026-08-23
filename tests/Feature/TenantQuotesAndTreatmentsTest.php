@@ -59,6 +59,7 @@ beforeEach(function () {
             'password' => Hash::make('Password123!'),
             'status' => 'active',
         ]);
+        grantTenantOwnerAccess($this->user);
 
         $this->patient = Patient::create([
             'record_number' => 'HC-00001',

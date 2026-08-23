@@ -41,15 +41,18 @@ class TenantRbacSeeder extends Seeder
             'odontogram.write',
 
             // Presupuestos y Cotizaciones
+            'quotes.view',
             'quotes.create',
             'quotes.approve',
             'quotes.discount',
 
             // Pagos y Facturación
+            'payments.view',
             'payments.create',
             'payments.refund',
 
             // Caja
+            'cash.view',
             'cash.open',
             'cash.close',
             'cash.reopen',
@@ -67,6 +70,10 @@ class TenantRbacSeeder extends Seeder
             'lab.view',
             'lab.order',
             'lab.receive',
+
+            // CRM y seguimiento
+            'crm.view',
+            'crm.manage',
 
             // Configuración y Usuarios de la Clínica
             'settings.view',
@@ -88,11 +95,13 @@ class TenantRbacSeeder extends Seeder
                 'appointments.view', 'appointments.create', 'appointments.update', 'appointments.cancel',
                 'clinical.view', 'clinical.write', 'clinical.finalize',
                 'odontogram.view', 'odontogram.write',
-                'quotes.create', 'quotes.approve', 'quotes.discount',
-                'payments.create',
+                'quotes.view', 'quotes.create', 'quotes.approve', 'quotes.discount',
+                'payments.view', 'payments.create',
+                'cash.view',
                 'finance.view', 'finance.reports',
                 'inventory.view', 'inventory.purchase',
                 'lab.view', 'lab.order',
+                'crm.view', 'crm.manage',
                 'users.view',
             ],
 
@@ -101,7 +110,7 @@ class TenantRbacSeeder extends Seeder
                 'appointments.view', 'appointments.create', 'appointments.update',
                 'clinical.view', 'clinical.write',
                 'odontogram.view', 'odontogram.write',
-                'quotes.create',
+                'quotes.view', 'quotes.create',
             ],
 
             'SpecialistDentist' => [
@@ -109,26 +118,29 @@ class TenantRbacSeeder extends Seeder
                 'appointments.view', 'appointments.create',
                 'clinical.view', 'clinical.write',
                 'odontogram.view', 'odontogram.write',
+                'quotes.view',
             ],
 
             'Hygienist' => [
                 'patients.view',
                 'appointments.view', 'appointments.create',
                 'clinical.view', 'clinical.write',
+                'quotes.view',
             ],
 
             'Receptionist' => [
                 'patients.view', 'patients.create', 'patients.update',
                 'appointments.view', 'appointments.create', 'appointments.update', 'appointments.cancel',
-                'quotes.create',
-                'payments.create',
-                'cash.open', 'cash.close',
+                'quotes.view', 'quotes.create',
+                'payments.view', 'payments.create',
+                'cash.view', 'cash.open', 'cash.close',
+                'crm.view', 'crm.manage',
             ],
 
             'Cashier' => [
                 'patients.view',
-                'payments.create', 'payments.refund',
-                'cash.open', 'cash.close', 'cash.reopen',
+                'payments.view', 'payments.create', 'payments.refund',
+                'cash.view', 'cash.open', 'cash.close', 'cash.reopen',
                 'finance.view',
             ],
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { UserCheck, Plus, Trash2, Phone, Mail, X } from 'lucide-vue-next'
@@ -64,6 +65,8 @@ function deleteProfessional(pro: Professional) {
 </script>
 
 <template>
+    <ClinicLayout>
+<div class="clinical-precision-page">
     <Head title="Equipo Médico y Especialistas — BSDental" />
 
     <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
@@ -189,4 +192,6 @@ function deleteProfessional(pro: Professional) {
             </div>
         </div>
     </div>
+    </div>
+</ClinicLayout>
 </template>

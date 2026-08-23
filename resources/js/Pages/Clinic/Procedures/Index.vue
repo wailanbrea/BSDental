@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { DollarSign, Plus, Clock } from 'lucide-vue-next'
@@ -47,6 +48,8 @@ function submitProcedure() {
 </script>
 
 <template>
+    <ClinicLayout>
+<div class="clinical-precision-page">
     <Head title="Arancel de Procedimientos Odontológicos — BSDental" />
 
     <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
@@ -135,4 +138,6 @@ function submitProcedure() {
             </div>
         </div>
     </div>
+    </div>
+</ClinicLayout>
 </template>

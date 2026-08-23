@@ -1,5 +1,6 @@
 <?php
 
+use App\Core\Auth\Middleware\EnsureTenantBranchAccess;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Platform\Security\Middleware\SetSecurityHeaders;
 use App\Platform\Tenancy\Middleware\EnsureTenantContextCleaned;
@@ -7,6 +8,8 @@ use App\Platform\Tenancy\Middleware\ResolveTenantFromHost;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,6 +18,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'permission' => PermissionMiddleware::class,
+            'role' => RoleMiddleware::class,
+            'branch.access' => EnsureTenantBranchAccess::class,
+        ]);
+
         $middleware->web(
             append: [
                 SetSecurityHeaders::class,

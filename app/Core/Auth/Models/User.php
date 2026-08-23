@@ -2,6 +2,7 @@
 
 namespace App\Core\Auth\Models;
 
+use App\Core\Models\Branch;
 use App\Core\Models\UserNotification;
 use App\Platform\Tenancy\Exceptions\NoCurrentTenantException;
 use App\Platform\Tenancy\TenantContext;
@@ -9,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -150,5 +152,31 @@ class User extends Authenticatable implements CanResetPasswordContract
     public function notifications(): HasMany
     {
         return $this->hasMany(UserNotification::class);
+    }
+
+    /**
+     * Branches explicitly assigned to this user. An empty assignment means all branches.
+     *
+     * @return BelongsToMany<Branch, $this>
+     */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class, 'branch_user');
+    }
+
+    /**
+     * Return null for clinic-wide access, otherwise the allowed branch UUIDs.
+     *
+     * @return list<string>|null
+     */
+    public function branchScopeIds(): ?array
+    {
+        if ($this->hasRole('Owner')) {
+            return null;
+        }
+
+        $ids = $this->branches()->pluck('branches.id')->values()->all();
+
+        return $ids === [] ? null : $ids;
     }
 }

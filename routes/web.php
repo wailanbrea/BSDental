@@ -12,6 +12,7 @@ use App\Core\Controllers\CashRegisterController;
 use App\Core\Controllers\ClinicalEncounterController;
 use App\Core\Controllers\ClinicDashboardController;
 use App\Core\Controllers\ClinicSettingsController;
+use App\Core\Controllers\ClinicUserController;
 use App\Core\Controllers\ConsentController;
 use App\Core\Controllers\CrmFollowUpController;
 use App\Core\Controllers\DentalLabController;
@@ -90,7 +91,7 @@ Route::group([], function () {
         Route::post('/two-factor', [TenantAuthController::class, 'verifyTwoFactor']);
         Route::post('/logout', [TenantAuthController::class, 'logout'])->name('logout');
 
-        Route::middleware([RequireTenantTwoFactor::class])->group(function () {
+        Route::middleware([RequireTenantTwoFactor::class, 'branch.access'])->group(function () {
             Route::get('/dashboard', [ClinicDashboardController::class, 'index'])->name('clinic.dashboard');
 
             Route::get('/notifications', [NotificationCenterController::class, 'index'])->name('clinic.notifications.index');
@@ -98,114 +99,119 @@ Route::group([], function () {
             Route::patch('/notifications/{id}/read', [NotificationCenterController::class, 'markRead'])->name('clinic.notifications.read');
 
             // Clinic Core Management
-            Route::get('/settings', [ClinicSettingsController::class, 'edit'])->name('clinic.settings');
-            Route::put('/settings', [ClinicSettingsController::class, 'update']);
+            Route::get('/settings', [ClinicSettingsController::class, 'edit'])->middleware('permission:settings.view')->name('clinic.settings');
+            Route::put('/settings', [ClinicSettingsController::class, 'update'])->middleware('permission:settings.update');
 
-            Route::get('/branches', [BranchController::class, 'index'])->name('clinic.branches');
-            Route::post('/branches', [BranchController::class, 'store']);
-            Route::put('/branches/{branch}', [BranchController::class, 'update']);
-            Route::delete('/branches/{branch}', [BranchController::class, 'destroy']);
+            Route::get('/users', [ClinicUserController::class, 'index'])->middleware('permission:users.view')->name('clinic.users.index');
+            Route::post('/users', [ClinicUserController::class, 'store'])->middleware('permission:users.manage')->name('clinic.users.store');
+            Route::put('/users/{id}', [ClinicUserController::class, 'update'])->middleware('permission:users.manage')->name('clinic.users.update');
+            Route::put('/roles/{id}/permissions', [ClinicUserController::class, 'updateRole'])->middleware('permission:users.manage')->name('clinic.roles.update_permissions');
 
-            Route::post('/branches/{branch}/rooms', [RoomController::class, 'store']);
-            Route::delete('/rooms/{room}', [RoomController::class, 'destroy']);
+            Route::get('/branches', [BranchController::class, 'index'])->middleware('permission:settings.view')->name('clinic.branches');
+            Route::post('/branches', [BranchController::class, 'store'])->middleware('permission:settings.update');
+            Route::put('/branches/{branch}', [BranchController::class, 'update'])->middleware('permission:settings.update');
+            Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])->middleware('permission:settings.update');
 
-            Route::get('/professionals', [ProfessionalController::class, 'index'])->name('clinic.professionals');
-            Route::post('/professionals', [ProfessionalController::class, 'store']);
-            Route::put('/professionals/{professional}', [ProfessionalController::class, 'update']);
-            Route::delete('/professionals/{professional}', [ProfessionalController::class, 'destroy']);
+            Route::post('/branches/{branch}/rooms', [RoomController::class, 'store'])->middleware('permission:settings.update');
+            Route::delete('/rooms/{room}', [RoomController::class, 'destroy'])->middleware('permission:settings.update');
+
+            Route::get('/professionals', [ProfessionalController::class, 'index'])->middleware('permission:settings.view')->name('clinic.professionals');
+            Route::post('/professionals', [ProfessionalController::class, 'store'])->middleware('permission:settings.update');
+            Route::put('/professionals/{professional}', [ProfessionalController::class, 'update'])->middleware('permission:settings.update');
+            Route::delete('/professionals/{professional}', [ProfessionalController::class, 'destroy'])->middleware('permission:settings.update');
 
             // Patients & Clinical Records
-            Route::get('/patients', [PatientController::class, 'index'])->name('clinic.patients.index');
-            Route::get('/patients/create', [PatientController::class, 'create'])->name('clinic.patients.create');
-            Route::get('/patients/check-duplicates', [PatientController::class, 'checkDuplicates'])->name('clinic.patients.check_duplicates');
-            Route::post('/patients', [PatientController::class, 'store'])->name('clinic.patients.store');
-            Route::get('/patients/{id}/edit', [PatientController::class, 'edit'])->name('clinic.patients.edit');
-            Route::get('/patients/{id}', [PatientController::class, 'show'])->name('clinic.patients.show');
-            Route::put('/patients/{id}', [PatientController::class, 'update'])->name('clinic.patients.update');
-            Route::post('/patients/{id}/files', [PatientController::class, 'uploadFile'])->name('clinic.patients.upload_file');
-            Route::get('/patient-files/{id}/view', [PatientController::class, 'viewFile'])->name('clinic.patient_files.view');
-            Route::get('/patient-files/{id}/download', [PatientController::class, 'downloadFile'])->name('clinic.patient_files.download');
-            Route::delete('/patients/{id}', [PatientController::class, 'destroy'])->name('clinic.patients.destroy');
+            Route::get('/patients', [PatientController::class, 'index'])->middleware('permission:patients.view')->name('clinic.patients.index');
+            Route::get('/patients/create', [PatientController::class, 'create'])->middleware('permission:patients.create')->name('clinic.patients.create');
+            Route::get('/patients/check-duplicates', [PatientController::class, 'checkDuplicates'])->middleware('permission:patients.create')->name('clinic.patients.check_duplicates');
+            Route::post('/patients', [PatientController::class, 'store'])->middleware('permission:patients.create')->name('clinic.patients.store');
+            Route::get('/patients/{id}/edit', [PatientController::class, 'edit'])->middleware('permission:patients.update')->name('clinic.patients.edit');
+            Route::get('/patients/{id}', [PatientController::class, 'show'])->middleware('permission:patients.view')->name('clinic.patients.show');
+            Route::put('/patients/{id}', [PatientController::class, 'update'])->middleware('permission:patients.update')->name('clinic.patients.update');
+            Route::post('/patients/{id}/files', [PatientController::class, 'uploadFile'])->middleware('permission:patients.update')->name('clinic.patients.upload_file');
+            Route::get('/patient-files/{id}/view', [PatientController::class, 'viewFile'])->middleware('permission:patients.view')->name('clinic.patient_files.view');
+            Route::get('/patient-files/{id}/download', [PatientController::class, 'downloadFile'])->middleware('permission:patients.view')->name('clinic.patient_files.download');
+            Route::delete('/patients/{id}', [PatientController::class, 'destroy'])->middleware('permission:patients.delete')->name('clinic.patients.destroy');
 
             // Agenda & Appointments
-            Route::get('/appointments', [AppointmentController::class, 'index'])->name('clinic.appointments.index');
-            Route::post('/appointments', [AppointmentController::class, 'store'])->name('clinic.appointments.store');
-            Route::put('/appointments/{id}/status', [AppointmentController::class, 'updateStatus'])->name('clinic.appointments.update_status');
-            Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule'])->name('clinic.appointments.reschedule');
-            Route::post('/appointments/blocks', [AppointmentController::class, 'createBlock'])->name('clinic.appointments.create_block');
+            Route::get('/appointments', [AppointmentController::class, 'index'])->middleware('permission:appointments.view')->name('clinic.appointments.index');
+            Route::post('/appointments', [AppointmentController::class, 'store'])->middleware('permission:appointments.create')->name('clinic.appointments.store');
+            Route::put('/appointments/{id}/status', [AppointmentController::class, 'updateStatus'])->middleware('permission:appointments.update|appointments.cancel')->name('clinic.appointments.update_status');
+            Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule'])->middleware('permission:appointments.update')->name('clinic.appointments.reschedule');
+            Route::post('/appointments/blocks', [AppointmentController::class, 'createBlock'])->middleware('permission:appointments.update')->name('clinic.appointments.create_block');
 
             // Clinical Encounters & Medical Records (Inmutable & Amendments)
-            Route::get('/encounters', [ClinicalEncounterController::class, 'index'])->name('clinic.encounters.all');
-            Route::get('/patients/{patientId}/encounters', [ClinicalEncounterController::class, 'index'])->name('clinic.encounters.index');
-            Route::get('/patients/{patientId}/encounters/create', [ClinicalEncounterController::class, 'create'])->name('clinic.encounters.create');
-            Route::post('/encounters', [ClinicalEncounterController::class, 'store'])->name('clinic.encounters.store');
-            Route::get('/encounters/{id}', [ClinicalEncounterController::class, 'show'])->name('clinic.encounters.show');
-            Route::put('/encounters/{id}', [ClinicalEncounterController::class, 'update'])->name('clinic.encounters.update');
-            Route::post('/encounters/{id}/finalize', [ClinicalEncounterController::class, 'finalize'])->name('clinic.encounters.finalize');
-            Route::post('/encounters/{id}/amend', [ClinicalEncounterController::class, 'amend'])->name('clinic.encounters.amend');
+            Route::get('/encounters', [ClinicalEncounterController::class, 'index'])->middleware('permission:clinical.view')->name('clinic.encounters.all');
+            Route::get('/patients/{patientId}/encounters', [ClinicalEncounterController::class, 'index'])->middleware('permission:clinical.view')->name('clinic.encounters.index');
+            Route::get('/patients/{patientId}/encounters/create', [ClinicalEncounterController::class, 'create'])->middleware('permission:clinical.write')->name('clinic.encounters.create');
+            Route::post('/encounters', [ClinicalEncounterController::class, 'store'])->middleware('permission:clinical.write')->name('clinic.encounters.store');
+            Route::get('/encounters/{id}', [ClinicalEncounterController::class, 'show'])->middleware('permission:clinical.view')->name('clinic.encounters.show');
+            Route::put('/encounters/{id}', [ClinicalEncounterController::class, 'update'])->middleware('permission:clinical.write')->name('clinic.encounters.update');
+            Route::post('/encounters/{id}/finalize', [ClinicalEncounterController::class, 'finalize'])->middleware('permission:clinical.finalize')->name('clinic.encounters.finalize');
+            Route::post('/encounters/{id}/amend', [ClinicalEncounterController::class, 'amend'])->middleware('permission:clinical.finalize')->name('clinic.encounters.amend');
 
             // Odontogram FDI
-            Route::get('/patients/{patientId}/odontogram', [OdontogramController::class, 'show'])->name('clinic.odontogram.show');
-            Route::post('/patients/{patientId}/odontogram/entries', [OdontogramController::class, 'storeEntry'])->name('clinic.odontogram.store_entry');
+            Route::get('/patients/{patientId}/odontogram', [OdontogramController::class, 'show'])->middleware('permission:odontogram.view')->name('clinic.odontogram.show');
+            Route::post('/patients/{patientId}/odontogram/entries', [OdontogramController::class, 'storeEntry'])->middleware('permission:odontogram.write')->name('clinic.odontogram.store_entry');
 
             // Informed Consents
-            Route::get('/patients/{patientId}/consents', [ConsentController::class, 'index'])->name('clinic.consents.index');
-            Route::post('/patients/{patientId}/consents', [ConsentController::class, 'store'])->name('clinic.consents.store');
+            Route::get('/patients/{patientId}/consents', [ConsentController::class, 'index'])->middleware('permission:clinical.view')->name('clinic.consents.index');
+            Route::post('/patients/{patientId}/consents', [ConsentController::class, 'store'])->middleware('permission:clinical.write')->name('clinic.consents.store');
 
             // Procedures Catalog & Pricing
-            Route::get('/procedures', [ProcedureCatalogController::class, 'index'])->name('clinic.procedures.index');
-            Route::post('/procedures', [ProcedureCatalogController::class, 'store'])->name('clinic.procedures.store');
+            Route::get('/procedures', [ProcedureCatalogController::class, 'index'])->middleware('permission:quotes.view|settings.view')->name('clinic.procedures.index');
+            Route::post('/procedures', [ProcedureCatalogController::class, 'store'])->middleware('permission:settings.update')->name('clinic.procedures.store');
 
             // Quotes / Presupuestos
-            Route::get('/quotes', [QuoteController::class, 'allIndex'])->name('clinic.quotes.all');
-            Route::get('/quotes/quick-create', [QuoteController::class, 'quickCreate'])->name('clinic.quotes.quick_create');
-            Route::post('/quotes/quick', [QuoteController::class, 'storeQuick'])->name('clinic.quotes.store_quick');
-            Route::get('/patients/{patientId}/quotes', [QuoteController::class, 'index'])->name('clinic.quotes.index');
-            Route::get('/patients/{patientId}/quotes/create', [QuoteController::class, 'create'])->name('clinic.quotes.create');
-            Route::post('/patients/{patientId}/quotes', [QuoteController::class, 'store'])->name('clinic.quotes.store');
-            Route::get('/quotes/{id}', [QuoteController::class, 'show'])->name('clinic.quotes.show');
-            Route::post('/quotes/{id}/convert-to-patient', [QuoteController::class, 'convertToPatient'])->name('clinic.quotes.convert_to_patient');
-            Route::post('/quotes/{id}/approve', [QuoteController::class, 'approve'])->name('clinic.quotes.approve');
-            Route::post('/quotes/{id}/reject', [QuoteController::class, 'reject'])->name('clinic.quotes.reject');
+            Route::get('/quotes', [QuoteController::class, 'allIndex'])->middleware('permission:quotes.view')->name('clinic.quotes.all');
+            Route::get('/quotes/quick-create', [QuoteController::class, 'quickCreate'])->middleware('permission:quotes.create')->name('clinic.quotes.quick_create');
+            Route::post('/quotes/quick', [QuoteController::class, 'storeQuick'])->middleware('permission:quotes.create')->name('clinic.quotes.store_quick');
+            Route::get('/patients/{patientId}/quotes', [QuoteController::class, 'index'])->middleware('permission:quotes.view')->name('clinic.quotes.index');
+            Route::get('/patients/{patientId}/quotes/create', [QuoteController::class, 'create'])->middleware('permission:quotes.create')->name('clinic.quotes.create');
+            Route::post('/patients/{patientId}/quotes', [QuoteController::class, 'store'])->middleware('permission:quotes.create')->name('clinic.quotes.store');
+            Route::get('/quotes/{id}', [QuoteController::class, 'show'])->middleware('permission:quotes.view')->name('clinic.quotes.show');
+            Route::post('/quotes/{id}/convert-to-patient', [QuoteController::class, 'convertToPatient'])->middleware('permission:quotes.create')->name('clinic.quotes.convert_to_patient');
+            Route::post('/quotes/{id}/approve', [QuoteController::class, 'approve'])->middleware('permission:quotes.approve')->name('clinic.quotes.approve');
+            Route::post('/quotes/{id}/reject', [QuoteController::class, 'reject'])->middleware('permission:quotes.approve')->name('clinic.quotes.reject');
 
             // Treatment Plans
-            Route::get('/patients/{patientId}/treatment-plans', [TreatmentPlanController::class, 'index'])->name('clinic.treatment_plans.index');
-            Route::get('/treatment-plans/{id}', [TreatmentPlanController::class, 'show'])->name('clinic.treatment_plans.show');
-            Route::post('/treatment-items/{itemId}/complete', [TreatmentPlanController::class, 'completeItem'])->name('clinic.treatment_items.complete');
+            Route::get('/patients/{patientId}/treatment-plans', [TreatmentPlanController::class, 'index'])->middleware('permission:quotes.view')->name('clinic.treatment_plans.index');
+            Route::get('/treatment-plans/{id}', [TreatmentPlanController::class, 'show'])->middleware('permission:quotes.view')->name('clinic.treatment_plans.show');
+            Route::post('/treatment-items/{itemId}/complete', [TreatmentPlanController::class, 'completeItem'])->middleware('permission:clinical.write')->name('clinic.treatment_items.complete');
 
             // Inventory & Stock Ledger
-            Route::get('/inventory', [InventoryController::class, 'index'])->name('clinic.inventory.index');
-            Route::post('/inventory/items', [InventoryController::class, 'storeItem'])->name('clinic.inventory.store_item');
-            Route::post('/inventory/purchases', [InventoryController::class, 'recordPurchase'])->name('clinic.inventory.record_purchase');
+            Route::get('/inventory', [InventoryController::class, 'index'])->middleware('permission:inventory.view')->name('clinic.inventory.index');
+            Route::post('/inventory/items', [InventoryController::class, 'storeItem'])->middleware('permission:inventory.adjust')->name('clinic.inventory.store_item');
+            Route::post('/inventory/purchases', [InventoryController::class, 'recordPurchase'])->middleware('permission:inventory.purchase')->name('clinic.inventory.record_purchase');
 
             // Dental Laboratory & Prosthesis
-            Route::get('/lab', [DentalLabController::class, 'index'])->name('clinic.lab.index');
-            Route::post('/lab/orders', [DentalLabController::class, 'storeOrder'])->name('clinic.lab.store_order');
-            Route::post('/lab/orders/{id}/status', [DentalLabController::class, 'updateStatus'])->name('clinic.lab.update_status');
+            Route::get('/lab', [DentalLabController::class, 'index'])->middleware('permission:lab.view')->name('clinic.lab.index');
+            Route::post('/lab/orders', [DentalLabController::class, 'storeOrder'])->middleware('permission:lab.order')->name('clinic.lab.store_order');
+            Route::post('/lab/orders/{id}/status', [DentalLabController::class, 'updateStatus'])->middleware('permission:lab.receive')->name('clinic.lab.update_status');
 
             // Patient Billing & Invoicing
-            Route::get('/patients/{patientId}/billing', [BillingController::class, 'index'])->name('clinic.billing.index');
-            Route::post('/patients/{patientId}/billing/charges', [BillingController::class, 'storeCharge'])->name('clinic.billing.store_charge');
-            Route::post('/patients/{patientId}/billing/payments', [BillingController::class, 'storePayment'])->name('clinic.billing.store_payment');
-            Route::get('/charges/{chargeId}', [BillingController::class, 'showCharge'])->name('clinic.billing.charge');
-            Route::get('/payments/{paymentId}', [BillingController::class, 'showPayment'])->name('clinic.billing.payment');
-            Route::post('/payments/{paymentId}/allocate', [BillingController::class, 'allocate'])->name('clinic.billing.allocate');
-            Route::post('/payments/{paymentId}/refund', [BillingController::class, 'refund'])->name('clinic.billing.refund');
+            Route::get('/patients/{patientId}/billing', [BillingController::class, 'index'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.index');
+            Route::post('/patients/{patientId}/billing/charges', [BillingController::class, 'storeCharge'])->middleware('permission:payments.create')->name('clinic.billing.store_charge');
+            Route::post('/patients/{patientId}/billing/payments', [BillingController::class, 'storePayment'])->middleware('permission:payments.create')->name('clinic.billing.store_payment');
+            Route::get('/charges/{chargeId}', [BillingController::class, 'showCharge'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.charge');
+            Route::get('/payments/{paymentId}', [BillingController::class, 'showPayment'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.payment');
+            Route::post('/payments/{paymentId}/allocate', [BillingController::class, 'allocate'])->middleware('permission:payments.create')->name('clinic.billing.allocate');
+            Route::post('/payments/{paymentId}/refund', [BillingController::class, 'refund'])->middleware('permission:payments.refund')->name('clinic.billing.refund');
 
             // Cash Registers & Sessions
-            Route::get('/cash-registers', [CashRegisterController::class, 'index'])->name('clinic.cash.index');
-            Route::post('/cash-registers/{id}/open', [CashRegisterController::class, 'open'])->name('clinic.cash.open');
-            Route::post('/cash-sessions/{id}/movements', [CashRegisterController::class, 'storeMovement'])->name('clinic.cash.movement');
-            Route::post('/cash-sessions/{id}/close', [CashRegisterController::class, 'close'])->name('clinic.cash.close');
+            Route::get('/cash-registers', [CashRegisterController::class, 'index'])->middleware('permission:cash.view')->name('clinic.cash.index');
+            Route::post('/cash-registers/{id}/open', [CashRegisterController::class, 'open'])->middleware('permission:cash.open')->name('clinic.cash.open');
+            Route::post('/cash-sessions/{id}/movements', [CashRegisterController::class, 'storeMovement'])->middleware('permission:cash.open|cash.close')->name('clinic.cash.movement');
+            Route::post('/cash-sessions/{id}/close', [CashRegisterController::class, 'close'])->middleware('permission:cash.close')->name('clinic.cash.close');
 
             // CRM, Recalls & Follow-up
-            Route::get('/crm', [CrmFollowUpController::class, 'index'])->name('clinic.crm.index');
-            Route::post('/crm/tasks', [CrmFollowUpController::class, 'storeTask'])->name('clinic.crm.store_task');
-            Route::post('/crm/tasks/{id}/complete', [CrmFollowUpController::class, 'completeTask'])->name('clinic.crm.complete_task');
+            Route::get('/crm', [CrmFollowUpController::class, 'index'])->middleware('permission:crm.view')->name('clinic.crm.index');
+            Route::post('/crm/tasks', [CrmFollowUpController::class, 'storeTask'])->middleware('permission:crm.manage')->name('clinic.crm.store_task');
+            Route::post('/crm/tasks/{id}/complete', [CrmFollowUpController::class, 'completeTask'])->middleware('permission:crm.manage')->name('clinic.crm.complete_task');
 
             // Executive Analytics & Reports
-            Route::get('/analytics', [AnalyticsDashboardController::class, 'index'])->name('clinic.analytics.index');
-            Route::get('/analytics/export', [AnalyticsDashboardController::class, 'export'])->name('clinic.analytics.export');
+            Route::get('/analytics', [AnalyticsDashboardController::class, 'index'])->middleware('permission:finance.reports')->name('clinic.analytics.index');
+            Route::get('/analytics/export', [AnalyticsDashboardController::class, 'export'])->middleware('permission:finance.reports')->name('clinic.analytics.export');
         });
 
         // WhatsApp Webhook (Signed & Idempotent)

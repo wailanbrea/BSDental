@@ -47,11 +47,14 @@ class ClinicDashboardController extends Controller
 
         $today = Carbon::today();
         $branchId = $request->input('branch_id');
+        $branchIds = $user->branchScopeIds();
 
         // Base queries
         $appQuery = Appointment::whereDate('start_time', $today);
         if ($branchId) {
             $appQuery->where('branch_id', $branchId);
+        } elseif ($branchIds !== null) {
+            $appQuery->whereIn('branch_id', $branchIds);
         }
 
         $appointmentsToday = (clone $appQuery)->count();
@@ -112,6 +115,7 @@ class ClinicDashboardController extends Controller
         $pendingLabOrdersCount = LabOrder::whereIn('status', ['sent', 'in_progress'])->count();
 
         $branches = Branch::where('is_active', true)
+            ->when($branchIds !== null, fn ($query) => $query->whereIn('id', $branchIds))
             ->select('id', 'name', 'is_main')
             ->orderByDesc('is_main')
             ->get();
@@ -138,15 +142,15 @@ class ClinicDashboardController extends Controller
                 'collected_trend' => '+12%',
                 'accounts_receivable' => $accountsReceivable,
             ],
-            'today_appointments' => $todayAppointments,
-            'financial_chart' => $financialChart,
+            'todayAppointments' => $todayAppointments,
+            'financialChart' => $financialChart,
             'alerts' => [
                 'overdue_accounts_count' => $overdueAccountsCount,
                 'low_stock_count' => $lowStockCount,
                 'pending_lab_orders_count' => $pendingLabOrdersCount,
             ],
             'branches' => $branches,
-            'selected_branch_id' => $branchId,
+            'selectedBranchId' => $branchId,
         ]);
     }
 }

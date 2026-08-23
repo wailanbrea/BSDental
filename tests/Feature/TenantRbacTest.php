@@ -4,12 +4,15 @@ use App\Core\Auth\Database\Seeders\TenantRbacSeeder;
 use App\Core\Auth\Models\Permission;
 use App\Core\Auth\Models\Role;
 use App\Core\Auth\Models\User;
+use App\Core\Models\Branch;
+use App\Core\Security\Models\TenantAuditLog;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
 use App\Platform\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -191,4 +194,72 @@ test('rbac data is physically isolated between tenants', function () {
 
         expect(User::where('email', 'usera@clinica-a.com')->exists())->toBeFalse();
     });
+});
+
+test('route permissions and user administration are enforced end to end', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenantA);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    $branch = Branch::create(['name' => 'Sede Norte', 'is_main' => true, 'is_active' => true]);
+    $otherBranch = Branch::create(['name' => 'Sede Sur', 'is_main' => false, 'is_active' => true]);
+    $owner = User::create([
+        'name' => 'Owner Operativo', 'email' => 'owner.routes@test.com',
+        'password' => Hash::make('Password123!'), 'status' => 'active',
+    ]);
+    $owner->assignRole('Owner');
+
+    $dentist = User::create([
+        'name' => 'Odontóloga Restringida', 'email' => 'dentist.routes@test.com',
+        'password' => Hash::make('Password123!'), 'status' => 'active',
+    ]);
+    $dentist->assignRole('GeneralDentist');
+    $dentist->branches()->sync([$branch->id]);
+
+    $this->actingAs($dentist, 'web')
+        ->get('http://a.bsdental.test/patients')
+        ->assertOk();
+    $this->get('http://a.bsdental.test/appointments')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('branches', 1)
+            ->where('branches.0.id', $branch->id));
+    $this->get('http://a.bsdental.test/cash-registers')->assertForbidden();
+    $this->get('http://a.bsdental.test/users')->assertForbidden();
+    $this->post('http://a.bsdental.test/appointments', ['branch_id' => $otherBranch->id])->assertForbidden();
+
+    $this->actingAs($owner, 'web')
+        ->get('http://a.bsdental.test/users')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Users/Index')
+            ->has('roles', 9)
+            ->has('branches', 2));
+
+    $this->post('http://a.bsdental.test/users', [
+        'name' => 'Nueva Recepción',
+        'email' => 'recepcion.nueva@test.com',
+        'phone' => '809-555-0101',
+        'status' => 'active',
+        'password' => 'SecurePassword123!',
+        'role' => 'Receptionist',
+        'branch_ids' => [$branch->id],
+    ])->assertRedirect();
+
+    $context->makeCurrent($this->tenantA);
+    $created = User::where('email', 'recepcion.nueva@test.com')->firstOrFail();
+    expect($created->hasRole('Receptionist'))->toBeTrue()
+        ->and($created->branches()->pluck('branches.id')->all())->toBe([$branch->id])
+        ->and(TenantAuditLog::where('action', 'users.created')->where('resource_id', $created->id)->exists())->toBeTrue();
+
+    $receptionRole = Role::where('name', 'Receptionist')->firstOrFail();
+    $permissions = $receptionRole->permissions()->pluck('name')->push('clinical.view')->unique()->values()->all();
+    $this->put("http://a.bsdental.test/roles/{$receptionRole->id}/permissions", [
+        'permissions' => $permissions,
+    ])->assertRedirect();
+
+    $context->makeCurrent($this->tenantA);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    expect($created->fresh()->can('clinical.view'))->toBeTrue()
+        ->and(TenantAuditLog::where('action', 'roles.permissions_updated')->where('resource_id', $receptionRole->id)->exists())->toBeTrue();
 });

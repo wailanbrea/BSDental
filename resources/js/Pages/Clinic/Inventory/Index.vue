@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { Layers, Plus, ShoppingCart, AlertTriangle, ArrowDownRight, ArrowUpRight } from 'lucide-vue-next'
@@ -97,6 +98,8 @@ function submitPurchase() {
 </script>
 
 <template>
+    <ClinicLayout>
+<div class="clinical-precision-page">
     <Head title="Inventario Clínico & Insumos — BSDental" />
 
     <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
@@ -286,4 +289,6 @@ function submitPurchase() {
             </div>
         </div>
     </div>
+    </div>
+</ClinicLayout>
 </template>

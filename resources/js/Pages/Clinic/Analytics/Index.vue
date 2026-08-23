@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { BarChart3, Download, TrendingUp, DollarSign, Users, Clock, AlertCircle } from 'lucide-vue-next'
@@ -69,6 +70,8 @@ function exportCsv() {
 </script>
 
 <template>
+    <ClinicLayout>
+<div class="clinical-precision-page">
     <Head title="Analytics & Métricas Gerenciales — BSDental" />
 
     <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
@@ -240,4 +243,6 @@ function exportCsv() {
             </div>
         </div>
     </div>
+    </div>
+</ClinicLayout>
 </template>

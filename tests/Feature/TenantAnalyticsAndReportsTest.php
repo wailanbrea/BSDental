@@ -70,6 +70,7 @@ beforeEach(function () {
             'password' => Hash::make('Password123!'),
             'status' => 'active',
         ]);
+        grantTenantOwnerAccess($this->user);
 
         $this->branch = Branch::create([
             'name' => 'Sede Analytics Central',

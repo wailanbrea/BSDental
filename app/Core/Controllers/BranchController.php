@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Platform\Security\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,7 +22,9 @@ class BranchController extends Controller
      */
     public function index(): Response
     {
+        $branchIds = Auth::guard('web')->user()?->branchScopeIds();
         $branches = Branch::with(['rooms'])
+            ->when($branchIds !== null, fn ($query) => $query->whereIn('id', $branchIds))
             ->withCount(['rooms', 'professionals'])
             ->orderByDesc('is_main')
             ->orderBy('name')

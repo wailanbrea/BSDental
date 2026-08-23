@@ -7,14 +7,11 @@ import {
     CreditCard, 
     Wallet, 
     TrendingUp, 
-    TrendingDown, 
     AlertTriangle, 
     Clock, 
     Users, 
     Package, 
-    Plus, 
     ArrowRight,
-    Building2,
     FlaskConical
 } from 'lucide-vue-next'
 
@@ -40,7 +37,7 @@ interface Props {
         collected_trend: string
         accounts_receivable: number
     }
-    today_appointments: Array<{
+    todayAppointments: Array<{
         id: string
         time: string
         patient_id: string
@@ -52,7 +49,7 @@ interface Props {
         status: string
         duration_minutes: number
     }>
-    financial_chart: Array<{
+    financialChart: Array<{
         day: string
         date: string
         production: number
@@ -68,7 +65,7 @@ interface Props {
         name: string
         is_main: boolean
     }>
-    selected_branch_id?: string | null
+    selectedBranchId?: string | null
 }
 
 const props = defineProps<Props>()
@@ -130,9 +127,9 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                 <!-- Filters toolbar -->
                 <div class="flex items-center gap-3">
                     <select 
-                        :value="selected_branch_id || ''"
-                        @change="onBranchChange"
+                        :value="selectedBranchId || ''"
                         class="bg-white border border-[#BDC9C6] text-[#131B2E] rounded-lg px-3 py-1.5 text-xs font-medium focus:border-[#005C55] focus:ring-1 focus:ring-[#005C55] transition"
+                        @change="onBranchChange"
                     >
                         <option value="">Todas las Sedes</option>
                         <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
@@ -225,7 +222,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         </div>
 
                         <div class="overflow-x-auto">
-                            <table v-if="today_appointments.length > 0" class="w-full text-left border-collapse">
+                            <table v-if="todayAppointments.length > 0" class="w-full text-left border-collapse">
                                 <thead class="bg-[#F8FAFC] font-label-caps text-[#505F76] border-b border-[#E2E8F0]">
                                     <tr>
                                         <th class="px-4 py-2.5 font-semibold">Hora</th>
@@ -237,7 +234,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                 </thead>
                                 <tbody class="text-xs divide-y divide-[#E2E8F0]">
                                     <tr 
-                                        v-for="app in today_appointments" 
+                                        v-for="app in todayAppointments"
                                         :key="app.id"
                                         class="hover:bg-[#F8FAFC] transition-colors h-11"
                                     >
@@ -288,7 +285,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         <!-- Visual Bar Chart -->
                         <div class="grid grid-cols-7 gap-3 pt-4 border-t border-[#E2E8F0]">
                             <div 
-                                v-for="d in financial_chart" 
+                                v-for="d in financialChart"
                                 :key="d.date"
                                 class="flex flex-col items-center gap-2"
                             >

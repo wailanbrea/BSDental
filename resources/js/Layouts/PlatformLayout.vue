@@ -74,8 +74,8 @@ function logout() {
             <!-- Logout / Bottom Action -->
             <div class="px-3 pt-3 border-t border-[#E2E8F0] mt-auto">
                 <button 
-                    @click="logout"
                     class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-[#BA1A1A] hover:bg-[#FFDAD6]/30 transition-colors text-left"
+                    @click="logout"
                 >
                     <LogOut class="w-4 h-4 shrink-0" />
                     <span>Cerrar Sesión</span>
@@ -106,8 +106,8 @@ function logout() {
                 <div class="flex items-center gap-3">
                     <div class="relative">
                         <button 
-                            @click="isProfileDropdownOpen = !isProfileDropdownOpen"
                             class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F1F5F9] transition"
+                            @click="isProfileDropdownOpen = !isProfileDropdownOpen"
                         >
                             <div class="w-8 h-8 rounded-full bg-[#131B2E] text-white flex items-center justify-center font-bold text-xs shadow-xs">
                                 SA
@@ -121,12 +121,12 @@ function logout() {
 
                         <div 
                             v-if="isProfileDropdownOpen"
-                            @click="isProfileDropdownOpen = false"
                             class="absolute right-0 mt-2 w-48 bg-white border border-[#E2E8F0] rounded-xl shadow-lg py-2 z-50"
+                            @click="isProfileDropdownOpen = false"
                         >
                             <button 
-                                @click="logout" 
                                 class="w-full flex items-center gap-2 px-4 py-2 text-xs text-[#BA1A1A] hover:bg-[#FFDAD6]/30 text-left"
+                                @click="logout"
                             >
                                 <LogOut class="w-3.5 h-3.5" /> Cerrar Sesión
                             </button>

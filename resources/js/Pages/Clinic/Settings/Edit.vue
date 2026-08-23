@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { Settings, Save, ArrowLeft, Building, Globe, DollarSign, Phone, MapPin } from 'lucide-vue-next'
 
@@ -33,6 +34,8 @@ function submit() {
 </script>
 
 <template>
+    <ClinicLayout>
+<div class="clinical-precision-page">
     <Head title="Configuración de la Clínica — BSDental" />
 
     <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
@@ -125,4 +128,6 @@ function submit() {
             </form>
         </div>
     </div>
+    </div>
+</ClinicLayout>
 </template>

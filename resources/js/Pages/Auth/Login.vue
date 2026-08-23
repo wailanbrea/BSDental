@@ -19,7 +19,7 @@ interface Props {
     }
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const showPassword = ref(false)
 
@@ -104,8 +104,8 @@ const submit = () => {
                             />
                             <button 
                                 type="button"
-                                @click="showPassword = !showPassword"
                                 class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#505F76] hover:text-[#005C55] transition-colors focus:outline-none"
+                                @click="showPassword = !showPassword"
                             >
                                 <EyeOff v-if="showPassword" class="w-4 h-4" />
                                 <Eye v-else class="w-4 h-4" />

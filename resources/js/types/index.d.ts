@@ -4,6 +4,9 @@
     email: string;
     email_verified_at?: string | null;
     role?: string;
+    roles?: string[];
+    permissions?: string[];
+    branch_ids?: string[];
 }
 
 export interface Tenant {

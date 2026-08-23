@@ -59,6 +59,7 @@ beforeEach(function () {
             'password' => Hash::make('Password123!'),
             'status' => 'active',
         ]);
+        grantTenantOwnerAccess($this->owner);
 
         $this->specialty = Specialty::create([
             'name' => 'Ortodoncia',

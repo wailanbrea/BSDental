@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { ArrowLeft, Plus, CreditCard, ExternalLink, Link2, Receipt, RotateCcw, Trash2 } from 'lucide-vue-next'
@@ -159,6 +160,8 @@ function submitCharge() {
 </script>
 
 <template>
+    <ClinicLayout>
+<div class="clinical-precision-page">
     <Head :title="`Estado de Cuenta — ${patient.full_name}`" />
 
     <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
@@ -366,4 +369,6 @@ function submitCharge() {
             </div>
         </div>
     </div>
+    </div>
+</ClinicLayout>
 </template>

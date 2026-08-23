@@ -32,6 +32,7 @@ class AppointmentController extends Controller
      */
     public function index(Request $request): Response
     {
+        $branchIds = Auth::guard('web')->user()?->branchScopeIds();
         $branchId = $request->input('branch_id');
         $professionalId = $request->input('professional_id');
         $roomId = $request->input('room_id');
@@ -46,8 +47,10 @@ class AppointmentController extends Controller
             default => [$selectedDate->copy()->startOfWeek(), $selectedDate->copy()->endOfWeek()],
         };
 
-        $branches = Branch::where('is_active', true)->with('rooms')->get();
-        $professionals = Professional::where('is_active', true)->with('specialties')->get();
+        $branches = Branch::where('is_active', true)->when($branchIds !== null, fn ($query) => $query->whereIn('id', $branchIds))->with('rooms')->get();
+        $professionals = Professional::where('is_active', true)
+            ->when($branchIds !== null, fn ($query) => $query->whereHas('branches', fn ($branchQuery) => $branchQuery->whereIn('branches.id', $branchIds)))
+            ->with('specialties')->get();
         $appointmentTypes = AppointmentType::where('is_active', true)->get();
         $requestedPatientId = $request->string('patient_id')->trim()->value();
         $initialPatientId = $requestedPatientId !== '' && Patient::query()

@@ -21,6 +21,8 @@ import {
     Building2,
     CheckCircle2,
     AlertCircle
+    ,ShieldCheck
+    ,ReceiptText
 } from 'lucide-vue-next'
 
 interface LayoutNotification {
@@ -47,24 +49,33 @@ const isMobileMenuOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
 const isNotificationsOpen = ref(false)
 
-const user = computed(() => page.props.auth?.user || { name: 'Usuario', email: 'usuario@bsdental.com' })
+const user = computed(() => page.props.auth?.user || { id: '', name: 'Usuario', email: 'usuario@bsdental.com', permissions: [], roles: [], branch_ids: [] })
 const clinic = computed(() => page.props.clinic || { trade_name: 'BSDental', name: 'BSDental Clinic', clinic_name: 'BSDental Clinic' })
 const flash = computed(() => page.props.flash || {})
 const notificationCenter = computed(() => page.props.notifications || { items: [], unread_count: 0 })
+const permissions = computed(() => new Set(user.value.permissions || []))
+const isOwner = computed(() => (user.value.roles || []).includes('Owner'))
+
+function canAny(required: string[] = []) {
+    return required.length === 0 || isOwner.value || required.some((permission) => permissions.value.has(permission))
+}
 
 const currentUrl = computed(() => page.url)
 
-const navItems = [
+const navItems = computed(() => [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, pattern: /^\/dashboard/ },
-    { name: 'Pacientes', href: '/patients', icon: Users, pattern: /^\/patients/ },
-    { name: 'Agenda', href: '/appointments', icon: Calendar, pattern: /^\/appointments/ },
-    { name: 'Clínica', href: '/encounters', icon: Stethoscope, pattern: /^\/(encounters|odontogram)/ },
-    { name: 'Administración', href: '/cash-registers', icon: Briefcase, pattern: /^\/(cash-registers|charges|payments|billing|branches|professionals|inventory|lab)/ },
-    { name: 'CRM', href: '/crm', icon: Megaphone, pattern: /^\/crm/ },
-    { name: 'Analítica', href: '/analytics', icon: BarChart3, pattern: /^\/analytics/ },
-]
+    { name: 'Pacientes', href: '/patients', icon: Users, pattern: /^\/patients/, permissions: ['patients.view'] },
+    { name: 'Agenda', href: '/appointments', icon: Calendar, pattern: /^\/appointments/, permissions: ['appointments.view'] },
+    { name: 'Clínica', href: '/encounters', icon: Stethoscope, pattern: /^\/(encounters|odontogram)/, permissions: ['clinical.view', 'odontogram.view'] },
+    { name: 'Presupuestos', href: '/quotes', icon: Briefcase, pattern: /^\/(quotes|treatment-plans)/, permissions: ['quotes.view'] },
+    { name: 'Facturación', href: '/cash-registers', icon: ReceiptText, pattern: /^\/(cash-registers|charges|payments)/, permissions: ['cash.view', 'payments.view', 'finance.view'] },
+    { name: 'Operaciones', href: '/inventory', icon: Package, pattern: /^\/(inventory|lab|procedures)/, permissions: ['inventory.view', 'lab.view', 'settings.view'] },
+    { name: 'CRM', href: '/crm', icon: Megaphone, pattern: /^\/crm/, permissions: ['crm.view'] },
+    { name: 'Analítica', href: '/analytics', icon: BarChart3, pattern: /^\/analytics/, permissions: ['finance.reports'] },
+    { name: 'Usuarios', href: '/users', icon: ShieldCheck, pattern: /^\/users/, permissions: ['users.view'] },
+].filter((item) => canAny(item.permissions)))
 
-function isActive(item: typeof navItems[0]) {
+function isActive(item: { pattern: RegExp }) {
     return item.pattern.test(currentUrl.value)
 }
 
@@ -155,7 +166,8 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
 
             <!-- Settings & Bottom Action -->
             <div class="px-3 pt-3 border-t border-[#E2E8F0] mt-auto">
-                <Link 
+                <Link
+v-if="canAny(['settings.view'])"
                     href="/settings"
                     :class="[
                         'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors',
@@ -185,7 +197,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                     </button>
 
                     <!-- Global Patient Search Bar -->
-                    <form @submit.prevent="onSearchSubmit" class="relative hidden sm:flex items-center w-full max-w-md">
+                    <form class="relative hidden sm:flex items-center w-full max-w-md" @submit.prevent="onSearchSubmit">
                         <Search class="w-4 h-4 absolute left-3.5 text-[#505F76] pointer-events-none" />
                         <input 
                             v-model="searchQuery"
@@ -247,8 +259,8 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                     <!-- User Profile Dropdown -->
                     <div class="relative ml-2">
                         <button 
-                            @click="isProfileDropdownOpen = !isProfileDropdownOpen; isNotificationsOpen = false"
                             class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F1F5F9] transition"
+                            @click="isProfileDropdownOpen = !isProfileDropdownOpen; isNotificationsOpen = false"
                         >
                             <div class="w-8 h-8 rounded-full bg-[#005C55] text-white flex items-center justify-center font-bold text-xs shadow-xs">
                                 {{ user.name?.charAt(0) || 'U' }}
@@ -263,8 +275,8 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                         <!-- Dropdown Menu -->
                         <div 
                             v-if="isProfileDropdownOpen"
-                            @click="isProfileDropdownOpen = false"
                             class="absolute right-0 mt-2 w-52 bg-white border border-[#E2E8F0] rounded-xl shadow-lg py-2 z-50"
+                            @click="isProfileDropdownOpen = false"
                         >
                             <div class="px-4 py-2 border-b border-[#E2E8F0]">
                                 <p class="text-xs font-bold text-[#131B2E]">{{ user.name }}</p>
@@ -274,8 +286,8 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                                 <Settings class="w-3.5 h-3.5" /> Configuración de Clínica
                             </Link>
                             <button 
-                                @click="logout" 
                                 class="w-full flex items-center gap-2 px-4 py-2 text-xs text-[#BA1A1A] hover:bg-[#FFDAD6]/30 text-left"
+                                @click="logout"
                             >
                                 <LogOut class="w-3.5 h-3.5" /> Cerrar Sesión
                             </button>
@@ -290,18 +302,18 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                     v-for="item in navItems" 
                     :key="item.href" 
                     :href="item.href"
-                    @click="isMobileMenuOpen = false"
                     :class="[
                         'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
                         isActive(item) ? 'bg-[#F2F3FF] text-[#005C55] font-bold' : 'text-[#505F76]'
                     ]"
+                    @click="isMobileMenuOpen = false"
                 >
                     <component :is="item.icon" class="w-4 h-4" />
                     <span>{{ item.name }}</span>
                 </Link>
                 <button 
-                    @click="logout" 
                     class="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#BA1A1A] text-left"
+                    @click="logout"
                 >
                     <LogOut class="w-4 h-4" /> Cerrar Sesión
                 </button>

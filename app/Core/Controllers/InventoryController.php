@@ -27,9 +27,12 @@ class InventoryController extends Controller
      */
     public function index(): Response
     {
+        $branchIds = Auth::guard('web')->user()?->branchScopeIds();
         $categories = InventoryCategory::all();
-        $warehouses = Warehouse::with('branch')->get();
-        $items = InventoryItem::with(['category', 'batches.warehouse'])->get()->map(function ($item) {
+        $warehouses = Warehouse::with('branch')->when($branchIds !== null, fn ($query) => $query->whereIn('branch_id', $branchIds))->get();
+        $items = InventoryItem::with(['category', 'batches' => fn ($query) => $query->when($branchIds !== null, fn ($batchQuery) => $batchQuery->whereIn('warehouse_id', $warehouses->pluck('id'))), 'batches.warehouse'])->get()->map(function ($item) {
+            $visibleStock = (float) $item->batches->sum('current_quantity');
+
             return [
                 'id' => $item->id,
                 'category_id' => $item->category_id,
@@ -39,13 +42,14 @@ class InventoryController extends Controller
                 'unit' => $item->unit,
                 'min_stock' => $item->min_stock,
                 'cost_price' => $item->cost_price,
-                'total_stock' => $item->totalStock(),
-                'is_low_stock' => $item->totalStock() <= $item->min_stock,
+                'total_stock' => $visibleStock,
+                'is_low_stock' => $visibleStock <= $item->min_stock,
                 'batches' => $item->batches,
             ];
         });
 
         $recentMovements = StockMovement::with(['item', 'warehouse', 'createdBy'])
+            ->when($branchIds !== null, fn ($query) => $query->whereIn('warehouse_id', $warehouses->pluck('id')))
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get();

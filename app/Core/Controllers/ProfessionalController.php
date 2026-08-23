@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Platform\Security\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,13 +24,15 @@ class ProfessionalController extends Controller
      */
     public function index(): Response
     {
+        $branchIds = Auth::guard('web')->user()?->branchScopeIds();
         $professionals = Professional::with(['specialties', 'branches', 'user'])
+            ->when($branchIds !== null, fn ($query) => $query->whereHas('branches', fn ($branchQuery) => $branchQuery->whereIn('branches.id', $branchIds)))
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get();
 
         $specialties = Specialty::where('is_active', true)->orderBy('name')->get();
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = Branch::where('is_active', true)->when($branchIds !== null, fn ($query) => $query->whereIn('id', $branchIds))->orderBy('name')->get();
 
         return Inertia::render('Clinic/Professionals/Index', [
             'professionals' => $professionals,

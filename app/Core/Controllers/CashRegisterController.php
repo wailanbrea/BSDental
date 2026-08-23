@@ -26,12 +26,14 @@ class CashRegisterController extends Controller
      */
     public function index(): Response
     {
+        $branchIds = Auth::guard('web')->user()?->branchScopeIds();
         $registers = CashRegister::with(['branch', 'sessions' => function ($q) {
             $q->orderBy('opened_at', 'desc')->limit(5);
-        }])->get();
+        }])->when($branchIds !== null, fn ($query) => $query->whereIn('branch_id', $branchIds))->get();
 
         $activeSession = CashSession::with(['cashRegister', 'openedBy', 'movements.createdBy'])
             ->where('status', 'open')
+            ->when($branchIds !== null, fn ($query) => $query->whereHas('cashRegister', fn ($registerQuery) => $registerQuery->whereIn('branch_id', $branchIds)))
             ->first();
 
         return Inertia::render('Clinic/Cash/Index', [

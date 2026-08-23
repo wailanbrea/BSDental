@@ -1,5 +1,7 @@
 <?php
 
+use App\Core\Auth\Database\Seeders\TenantRbacSeeder;
+use App\Core\Auth\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -42,3 +44,9 @@ pest()->extend(TestCase::class)
 */
 
 // Custom functions
+
+function grantTenantOwnerAccess(User $user): void
+{
+    (new TenantRbacSeeder)->run();
+    $user->assignRole('Owner');
+}

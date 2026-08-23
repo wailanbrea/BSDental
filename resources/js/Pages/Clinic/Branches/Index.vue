@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { Building2, Plus, Trash2, MapPin, Phone, Mail, X } from 'lucide-vue-next'
@@ -78,6 +79,8 @@ function deleteRoom(room: Room) {
 </script>
 
 <template>
+    <ClinicLayout>
+<div class="clinical-precision-page">
     <Head title="Sucursales y Sillones Dentales — BSDental" />
 
     <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
@@ -204,4 +207,6 @@ function deleteRoom(room: Room) {
             </div>
         </div>
     </div>
+    </div>
+</ClinicLayout>
 </template>

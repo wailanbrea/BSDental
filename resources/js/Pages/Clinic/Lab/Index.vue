@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { Truck } from 'lucide-vue-next'
 
@@ -40,6 +41,8 @@ function updateStatus(order: OrderItem, nextStatus: string) {
 </script>
 
 <template>
+    <ClinicLayout>
+<div class="clinical-precision-page">
     <Head title="Laboratorio Dental & Prótesis — BSDental" />
 
     <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
@@ -137,4 +140,6 @@ function updateStatus(order: OrderItem, nextStatus: string) {
             </div>
         </div>
     </div>
+    </div>
+</ClinicLayout>
 </template>

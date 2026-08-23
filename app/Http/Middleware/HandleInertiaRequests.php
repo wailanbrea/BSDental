@@ -51,7 +51,17 @@ class HandleInertiaRequests extends Middleware
                         return null;
                     }
 
-                    return Auth::guard('web')->user()?->only(['id', 'name', 'email']);
+                    $user = Auth::guard('web')->user();
+                    if ($user === null) {
+                        return null;
+                    }
+
+                    return [
+                        ...$user->only(['id', 'name', 'email']),
+                        'roles' => $user->getRoleNames()->values(),
+                        'permissions' => $user->getAllPermissions()->pluck('name')->values(),
+                        'branch_ids' => $user->branches()->pluck('branches.id')->values(),
+                    ];
                 },
             ],
             'clinic' => function (): ?array {

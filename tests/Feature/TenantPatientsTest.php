@@ -57,6 +57,7 @@ beforeEach(function () {
             'password' => Hash::make('Password123!'),
             'status' => 'active',
         ]);
+        grantTenantOwnerAccess($this->user);
     });
 });
 

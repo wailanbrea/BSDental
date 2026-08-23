@@ -82,6 +82,12 @@ function severityClasses(severity: NotificationItem['severity']) {
 function formatDate(value: string) {
     return new Intl.DateTimeFormat('es-DO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
+
+function paginationLabel(label: string) {
+    return label
+        .replace('&laquo; Previous', 'Anterior')
+        .replace('Next &raquo;', 'Siguiente')
+}
 </script>
 
 <template>
@@ -135,7 +141,7 @@ function formatDate(value: string) {
 
             <nav v-if="notificationPage.links.length > 3" class="flex flex-wrap items-center justify-between gap-3 text-xs text-[#667085]">
                 <span>Mostrando {{ notificationPage.from }}–{{ notificationPage.to }} de {{ notificationPage.total }}</span>
-                <div class="flex gap-1"><Link v-for="link in notificationPage.links" :key="link.label" :href="link.url || '#'" class="grid min-h-9 min-w-9 place-items-center border px-2" :class="link.active ? 'border-[#005C55] bg-[#005C55] text-white' : 'border-[#D8E0DE] bg-white text-[#52615E]'" :aria-disabled="!link.url"><span v-html="link.label"></span></Link></div>
+                <div class="flex gap-1"><Link v-for="link in notificationPage.links" :key="link.label" :href="link.url || '#'" class="grid min-h-9 min-w-9 place-items-center border px-2" :class="link.active ? 'border-[#005C55] bg-[#005C55] text-white' : 'border-[#D8E0DE] bg-white text-[#52615E]'" :aria-disabled="!link.url"><span>{{ paginationLabel(link.label) }}</span></Link></div>
             </nav>
 
             <div class="grid gap-3 md:grid-cols-3">

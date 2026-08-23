@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { CreditCard, Lock, Unlock, ArrowDownRight, ArrowUpRight, Plus } from 'lucide-vue-next'
@@ -94,6 +95,8 @@ function movementMethodLabel(method: string) {
 </script>
 
 <template>
+    <ClinicLayout>
+<div class="clinical-precision-page">
     <Head title="Caja Chica & Arqueo de Sesiones — BSDental" />
 
     <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
@@ -259,4 +262,6 @@ function movementMethodLabel(method: string) {
             </div>
         </div>
     </div>
+    </div>
+</ClinicLayout>
 </template>
