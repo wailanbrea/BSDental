@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
-import { ArrowLeft, Plus, CreditCard, ExternalLink, Link2, Receipt, RotateCcw } from 'lucide-vue-next'
+import { ArrowLeft, Plus, CreditCard, ExternalLink, Link2, Receipt, RotateCcw, Trash2 } from 'lucide-vue-next'
 
 interface PatientDetails {
     id: string
@@ -56,7 +56,7 @@ const refundPayment = ref<PaymentDetails | null>(null)
 const paymentForm = useForm({
     cash_session_id: props.activeCashSession?.id || '',
     splits: [
-        { method: 'cash', amount: props.balanceDue > 0 ? props.balanceDue : 50, reference_code: '' },
+        { method: props.activeCashSession ? 'cash' : 'transfer', amount: props.balanceDue > 0 ? props.balanceDue : 50, reference_code: '' },
     ],
     auto_allocate_charge_id: props.charges.find(c => c.balance_due > 0)?.id || '',
 })
@@ -88,6 +88,17 @@ const refundableMaximum = computed(() => Math.max(
     0,
     (refundPayment.value?.total_amount || 0) - (refundPayment.value?.refunded_amount || 0),
 ))
+const paymentTotal = computed(() => paymentForm.splits.reduce((total, split) => total + Number(split.amount || 0), 0))
+const paymentIncludesCash = computed(() => paymentForm.splits.some((split) => split.method === 'cash'))
+
+function addPaymentSplit() {
+    paymentForm.splits.push({ method: 'credit_card', amount: 0, reference_code: '' })
+}
+
+function removePaymentSplit(index: number) {
+    if (paymentForm.splits.length === 1) return
+    paymentForm.splits.splice(index, 1)
+}
 
 function openAllocation(payment: PaymentDetails) {
     const firstCharge = outstandingCharges.value[0]
@@ -116,7 +127,7 @@ function openRefund(payment: PaymentDetails) {
     refundForm.clearErrors()
     refundForm.amount = refundableMaximum.value
     refundForm.reason = ''
-    refundForm.cash_session_id = props.activeCashSession?.id || ''
+    refundForm.cash_session_id = ''
 }
 
 function submitRefund() {
@@ -287,6 +298,7 @@ function submitCharge() {
                 <form class="space-y-4" @submit.prevent="submitRefund">
                     <div><label class="block text-xs font-medium text-slate-400 mb-1">Monto del reembolso</label><input v-model.number="refundForm.amount" type="number" step="0.01" min="0.01" :max="refundableMaximum" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono" /><p v-if="refundForm.errors.amount" class="mt-1 text-xs text-rose-300">{{ refundForm.errors.amount }}</p></div>
                     <div><label class="block text-xs font-medium text-slate-400 mb-1">Motivo obligatorio</label><textarea v-model="refundForm.reason" rows="3" maxlength="255" required placeholder="Explique la causa para la bitácora financiera" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"></textarea><p v-if="refundForm.errors.reason" class="mt-1 text-xs text-rose-300">{{ refundForm.errors.reason }}</p></div>
+                    <div><label class="block text-xs font-medium text-slate-400 mb-1">Salida de efectivo</label><select v-model="refundForm.cash_session_id" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"><option value="">No afecta efectivo físico</option><option v-if="activeCashSession" :value="activeCashSession.id">Registrar salida en la caja abierta</option></select><p class="mt-1 text-[11px] text-slate-500">Seleccione la caja solo cuando el dinero se devuelve físicamente en efectivo.</p><p v-if="refundForm.errors.cash_session_id" class="mt-1 text-xs text-rose-300">{{ refundForm.errors.cash_session_id }}</p></div>
                     <p class="border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">El reembolso reduce lo cobrado y queda registrado en auditoría. No elimina el pago ni el cargo original.</p>
                     <div class="flex justify-end gap-2"><button type="button" class="px-4 py-2 bg-slate-700 text-slate-300 text-xs font-medium rounded-lg" @click="refundPayment = null">Cancelar</button><button type="submit" :disabled="refundForm.processing || refundableMaximum <= 0" class="px-4 py-2 bg-rose-500 text-white text-xs font-bold rounded-lg disabled:opacity-50">Confirmar reembolso</button></div>
                 </form>
@@ -300,32 +312,25 @@ function submitCharge() {
                 </div>
 
                 <form class="space-y-4" @submit.prevent="submitPayment">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Método de Pago</label>
-                            <select v-model="paymentForm.splits[0].method" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs">
-                                <option value="cash">Efectivo</option>
-                                <option value="credit_card">Tarjeta de Crédito</option>
-                                <option value="debit_card">Tarjeta de Débito</option>
-                                <option value="transfer">Transferencia Bancaria</option>
-                                <option value="zelle">Zelle</option>
-                                <option value="insurance">Seguro Dental</option>
-                            </select>
+                    <div class="flex items-center justify-between"><div><p class="text-xs font-bold uppercase tracking-wider text-teal-400">Desglose del cobro</p><p class="text-[11px] text-slate-500">La suma de todos los métodos formará el recibo.</p></div><button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-teal-500/40 px-3 py-2 text-xs font-bold text-teal-300 hover:bg-teal-500/10" @click="addPaymentSplit"><Plus class="h-3.5 w-3.5" /> Añadir método</button></div>
+
+                    <div v-for="(split, index) in paymentForm.splits" :key="index" class="space-y-3 rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+                        <div class="flex items-center justify-between"><p class="text-xs font-bold text-white">Método {{ index + 1 }}</p><button v-if="paymentForm.splits.length > 1" type="button" class="text-rose-300 hover:text-rose-200" :aria-label="`Eliminar método ${index + 1}`" @click="removePaymentSplit(index)"><Trash2 class="h-4 w-4" /></button></div>
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <div><label class="mb-1 block text-xs font-medium text-slate-400">Método de pago</label><select v-model="split.method" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white"><option value="cash">Efectivo</option><option value="credit_card">Tarjeta de crédito</option><option value="debit_card">Tarjeta de débito</option><option value="transfer">Transferencia bancaria</option><option value="zelle">Zelle</option><option value="insurance">Seguro dental</option></select></div>
+                            <div><label class="mb-1 block text-xs font-medium text-slate-400">Monto ($)</label><input v-model.number="split.amount" type="number" step="0.01" min="0.01" required class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-white" /></div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Monto ($)</label>
-                            <input v-model.number="paymentForm.splits[0].amount" type="number" step="0.01" min="0.01" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono" />
-                        </div>
+                        <div><label class="mb-1 block text-xs font-medium text-slate-400">Referencia / voucher</label><input v-model="split.reference_code" type="text" maxlength="100" placeholder="Opcional para efectivo" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white" /></div>
+                        <p v-if="paymentForm.errors[`splits.${index}.amount`]" class="text-xs text-rose-300">{{ paymentForm.errors[`splits.${index}.amount`] }}</p>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Referencia / Voucher (opcional)</label>
-                        <input v-model="paymentForm.splits[0].reference_code" type="text" placeholder="Ej. Ref: 987654" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs" />
-                    </div>
+                    <div class="flex items-center justify-between border-y border-slate-700 py-3"><span class="text-sm font-bold text-slate-300">Total del recibo</span><span class="font-mono text-xl font-black text-teal-400">${{ paymentTotal.toFixed(2) }}</span></div>
+                    <p v-if="paymentIncludesCash && !activeCashSession" class="border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">Para aceptar efectivo primero debe abrir una sesión en <a href="/cash-registers" class="font-bold underline">Cajas & Arqueo</a>.</p>
+                    <p v-if="paymentForm.errors.cash_session_id" class="text-xs text-rose-300">{{ paymentForm.errors.cash_session_id }}</p>
 
                     <div class="flex justify-end gap-2 pt-2">
                         <button type="button" class="px-4 py-2 bg-slate-700 text-slate-300 text-xs font-medium rounded-lg hover:bg-slate-600" @click="isPaymentModal = false">Cancelar</button>
-                        <button type="submit" :disabled="paymentForm.processing" class="px-4 py-2 bg-teal-500 text-slate-950 text-xs font-bold rounded-lg hover:bg-teal-400">Registrar Pago</button>
+                        <button type="submit" :disabled="paymentForm.processing || paymentTotal <= 0 || (paymentIncludesCash && !activeCashSession)" class="px-4 py-2 bg-teal-500 text-slate-950 text-xs font-bold rounded-lg hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50">Registrar Pago</button>
                     </div>
                 </form>
             </div>

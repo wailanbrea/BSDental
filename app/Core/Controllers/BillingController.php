@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -164,6 +165,19 @@ class BillingController extends Controller
                 Rule::exists('tenant.patient_charges', 'id')->where('patient_id', $patient->id),
             ],
         ]);
+
+        $hasCashSplit = false;
+        foreach ($validated['splits'] as $split) {
+            if (is_array($split) && ($split['method'] ?? null) === 'cash') {
+                $hasCashSplit = true;
+                break;
+            }
+        }
+        if ($hasCashSplit && empty($validated['cash_session_id'])) {
+            throw ValidationException::withMessages([
+                'cash_session_id' => 'Abra una sesión de caja antes de registrar efectivo.',
+            ]);
+        }
 
         $cashSession = ! empty($validated['cash_session_id']) ? CashSession::find($validated['cash_session_id']) : null;
         $userId = Auth::guard('web')->id();

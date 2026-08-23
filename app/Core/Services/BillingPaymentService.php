@@ -143,16 +143,22 @@ class BillingPaymentService
                 }
             }
 
+            if ($cashSplitTotal > 0 && ! $cashSession) {
+                throw new InvalidArgumentException('Los pagos en efectivo requieren una sesión de caja abierta.');
+            }
+
             if ($cashSession) {
-                CashMovement::create([
-                    'cash_session_id' => $cashSession->id,
-                    'type' => 'patient_payment',
-                    'amount' => $totalAmount,
-                    'payment_method' => $splits[0]['method'],
-                    'concept' => "Cobro {$paymentNumber} - {$patient->full_name}",
-                    'created_by_user_id' => $userId,
-                    'created_at' => now(),
-                ]);
+                foreach ($splits as $splitData) {
+                    CashMovement::create([
+                        'cash_session_id' => $cashSession->id,
+                        'type' => 'patient_payment',
+                        'amount' => $splitData['amount'],
+                        'payment_method' => $splitData['method'],
+                        'concept' => "Cobro {$paymentNumber} - {$patient->full_name}",
+                        'created_by_user_id' => $userId,
+                        'created_at' => now(),
+                    ]);
+                }
 
                 if ($cashSplitTotal > 0) {
                     $cashSession->update([

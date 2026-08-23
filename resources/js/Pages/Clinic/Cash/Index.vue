@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3'
-import { ref } from 'vue'
-import { CreditCard, Lock, Unlock, ArrowDownRight, ArrowUpRight } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
+import { CreditCard, Lock, Unlock, ArrowDownRight, ArrowUpRight, Plus } from 'lucide-vue-next'
 
 interface SessionSummary {
     id: string
@@ -17,8 +17,10 @@ interface SessionSummary {
         id: string
         type: string
         amount: number
+        payment_method: string
         concept: string
         created_at: string
+        created_by?: { name: string }
     }>
 }
 
@@ -36,6 +38,7 @@ const props = defineProps<{
 
 const isOpenModal = ref(false)
 const isCloseModal = ref(false)
+const isMovementModal = ref(false)
 const selectedRegisterId = ref(props.registers[0]?.id || '')
 
 const openForm = useForm({
@@ -46,6 +49,17 @@ const closeForm = useForm({
     counted_cash: 0,
     closing_notes: '',
 })
+
+const movementForm = useForm({
+    type: 'manual_income',
+    amount: 0,
+    payment_method: 'cash',
+    concept: '',
+})
+
+const cashMovements = computed(() => props.activeSession?.movements?.filter((movement) => movement.payment_method === 'cash') || [])
+const cashIncome = computed(() => cashMovements.value.filter((movement) => movement.amount > 0).reduce((total, movement) => total + movement.amount, 0))
+const cashOutflow = computed(() => Math.abs(cashMovements.value.filter((movement) => movement.amount < 0).reduce((total, movement) => total + movement.amount, 0)))
 
 function submitOpen() {
     openForm.post(`/cash-registers/${selectedRegisterId.value}/open`, {
@@ -62,6 +76,20 @@ function submitClose() {
             isCloseModal.value = false
         },
     })
+}
+
+function submitMovement() {
+    if (!props.activeSession) return
+    movementForm.post(`/cash-sessions/${props.activeSession.id}/movements`, {
+        onSuccess: () => {
+            isMovementModal.value = false
+            movementForm.reset()
+        },
+    })
+}
+
+function movementMethodLabel(method: string) {
+    return ({ cash: 'Efectivo', credit_card: 'T. crédito', debit_card: 'T. débito', transfer: 'Transferencia', zelle: 'Zelle', insurance: 'Seguro', check: 'Cheque' } as Record<string, string>)[method] || method
 }
 </script>
 
@@ -115,6 +143,12 @@ function submitClose() {
                     </div>
                 </div>
 
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-3"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Entradas de efectivo</p><p class="mt-1 font-mono text-lg font-bold text-emerald-400">${{ cashIncome.toFixed(2) }}</p></div>
+                    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-3"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Salidas de efectivo</p><p class="mt-1 font-mono text-lg font-bold text-rose-400">${{ cashOutflow.toFixed(2) }}</p></div>
+                    <button type="button" class="flex items-center justify-center gap-2 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3 text-xs font-bold text-teal-300 hover:bg-teal-500/20" @click="isMovementModal = true"><Plus class="h-4 w-4" /> Registrar movimiento</button>
+                </div>
+
                 <!-- Live Session Movements -->
                 <div class="pt-4 border-t border-slate-700/60 space-y-2">
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Movimientos del Turno</h3>
@@ -122,13 +156,28 @@ function submitClose() {
                         <div class="flex items-center gap-2">
                             <ArrowUpRight v-if="m.amount > 0" class="w-4 h-4 text-emerald-400" />
                             <ArrowDownRight v-else class="w-4 h-4 text-rose-400" />
-                            <span class="text-white font-semibold">{{ m.concept }}</span>
+                            <div><span class="text-white font-semibold">{{ m.concept }}</span><p class="mt-0.5 text-[10px] text-slate-500">{{ movementMethodLabel(m.payment_method) }} · {{ m.created_by?.name || 'Usuario de caja' }}</p></div>
                         </div>
                         <span :class="[m.amount > 0 ? 'text-emerald-400' : 'text-rose-400']" class="font-mono font-bold">
                             ${{ m.amount.toFixed(2) }}
                         </span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Manual Movement Modal -->
+            <div v-if="isMovementModal && activeSession" class="p-6 bg-slate-800 border border-teal-500/30 rounded-2xl shadow-xl space-y-4">
+                <div class="flex items-center justify-between"><div><h2 class="text-lg font-bold text-white">Registrar movimiento manual</h2><p class="text-xs text-slate-400">Quedará vinculado a la sesión abierta y a la auditoría.</p></div><button class="text-slate-400 hover:text-white" @click="isMovementModal = false">×</button></div>
+                <form class="space-y-4" @submit.prevent="submitMovement">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div><label class="mb-1 block text-xs font-medium text-slate-400">Tipo</label><select v-model="movementForm.type" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white"><option value="manual_income">Ingreso manual</option><option value="manual_expense">Egreso manual</option></select></div>
+                        <div><label class="mb-1 block text-xs font-medium text-slate-400">Método</label><select v-model="movementForm.payment_method" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white"><option value="cash">Efectivo</option><option value="credit_card">Tarjeta de crédito</option><option value="debit_card">Tarjeta de débito</option><option value="transfer">Transferencia</option><option value="zelle">Zelle</option><option value="check">Cheque</option><option value="insurance">Seguro</option></select></div>
+                    </div>
+                    <div><label class="mb-1 block text-xs font-medium text-slate-400">Monto</label><input v-model.number="movementForm.amount" type="number" min="0.01" step="0.01" required class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-white" /><p v-if="movementForm.errors.amount" class="mt-1 text-xs text-rose-300">{{ movementForm.errors.amount }}</p></div>
+                    <div><label class="mb-1 block text-xs font-medium text-slate-400">Concepto / justificación</label><input v-model="movementForm.concept" type="text" maxlength="255" required placeholder="Ej. Fondo adicional autorizado" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white" /><p v-if="movementForm.errors.concept" class="mt-1 text-xs text-rose-300">{{ movementForm.errors.concept }}</p></div>
+                    <p class="border border-slate-700 bg-slate-900/60 p-3 text-xs text-slate-400">Solo los movimientos marcados como efectivo cambian el efectivo esperado del arqueo.</p>
+                    <div class="flex justify-end gap-2"><button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-xs font-medium text-slate-300" @click="isMovementModal = false">Cancelar</button><button type="submit" :disabled="movementForm.processing" class="rounded-lg bg-teal-500 px-4 py-2 text-xs font-bold text-slate-950 disabled:opacity-50">Registrar movimiento</button></div>
+                </form>
             </div>
 
             <!-- Registers List -->

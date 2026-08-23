@@ -30,7 +30,7 @@ class CashRegisterController extends Controller
             $q->orderBy('opened_at', 'desc')->limit(5);
         }])->get();
 
-        $activeSession = CashSession::with(['cashRegister', 'openedBy', 'movements'])
+        $activeSession = CashSession::with(['cashRegister', 'openedBy', 'movements.createdBy'])
             ->where('status', 'open')
             ->first();
 
@@ -66,6 +66,42 @@ class CashRegisterController extends Controller
         ]);
 
         return redirect()->back()->with('success', "Caja {$register->name} abierta con fondo inicial de \${$session->opening_balance}.");
+    }
+
+    /**
+     * Record an auditable manual income or expense.
+     */
+    public function storeMovement(Request $request, string $sessionId): RedirectResponse
+    {
+        $session = CashSession::where('status', 'open')->findOrFail($sessionId);
+
+        $validated = $request->validate([
+            'type' => ['required', 'string', 'in:manual_income,manual_expense'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'payment_method' => ['required', 'string', 'in:cash,credit_card,debit_card,transfer,zelle,insurance,check'],
+            'concept' => ['required', 'string', 'max:255'],
+        ]);
+
+        /** @var User $user */
+        $user = Auth::guard('web')->user();
+
+        $movement = $this->cashService->recordManualMovement(
+            $session,
+            $user,
+            $validated['type'],
+            $validated['amount'],
+            $validated['concept'],
+            $validated['payment_method']
+        );
+
+        $this->auditLogger->logTenant('cash.manual_movement_recorded', 'CashMovement', $movement->id, [
+            'cash_session_id' => $session->id,
+            'type' => $movement->type,
+            'amount' => $movement->amount,
+            'payment_method' => $movement->payment_method,
+        ]);
+
+        return redirect()->back()->with('success', 'Movimiento de caja registrado correctamente.');
     }
 
     /**

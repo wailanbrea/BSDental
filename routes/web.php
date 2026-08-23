@@ -195,6 +195,7 @@ Route::group([], function () {
             // Cash Registers & Sessions
             Route::get('/cash-registers', [CashRegisterController::class, 'index'])->name('clinic.cash.index');
             Route::post('/cash-registers/{id}/open', [CashRegisterController::class, 'open'])->name('clinic.cash.open');
+            Route::post('/cash-sessions/{id}/movements', [CashRegisterController::class, 'storeMovement'])->name('clinic.cash.movement');
             Route::post('/cash-sessions/{id}/close', [CashRegisterController::class, 'close'])->name('clinic.cash.close');
 
             // CRM, Recalls & Follow-up

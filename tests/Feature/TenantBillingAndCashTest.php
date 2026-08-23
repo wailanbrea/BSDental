@@ -2,6 +2,7 @@
 
 use App\Core\Auth\Models\User;
 use App\Core\Models\Branch;
+use App\Core\Models\CashMovement;
 use App\Core\Models\CashRegister;
 use App\Core\Models\CashSession;
 use App\Core\Models\Patient;
@@ -11,6 +12,7 @@ use App\Core\Models\Professional;
 use App\Core\Models\Refund;
 use App\Core\Security\Models\TenantAuditLog;
 use App\Core\Services\BillingPaymentService;
+use App\Core\Services\CashRegisterService;
 use App\Core\Services\ProfessionalCompensationService;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
@@ -149,7 +151,10 @@ test('[GATE-FIN] Comprehensive billing, multi-split payments, payment allocation
     expect($charge->paid_amount)->toBe(120.0)
         ->and($charge->balance_due)->toBe(0.0)
         ->and($charge->status)->toBe('paid')
-        ->and($session->expected_cash)->toBe(170.0); // 100 opening + 70 cash split
+        ->and($session->expected_cash)->toBe(170.0) // 100 opening + 70 cash split
+        ->and(CashMovement::where('type', 'patient_payment')->count())->toBe(2)
+        ->and((float) CashMovement::where('payment_method', 'cash')->value('amount'))->toBe(70.0)
+        ->and((float) CashMovement::where('payment_method', 'credit_card')->value('amount'))->toBe(50.0);
 
     // 5. Invariant 47: Accrue Professional Commission (30% on $120 = $36)
     $compService = app(ProfessionalCompensationService::class);
@@ -297,5 +302,67 @@ test('[GATE-FIN] Manual allocation is patient-scoped, charge detail is reconcile
         'Intento sobre caja cerrada',
         $closedSession,
         (string) $this->user->id
+    ))->toThrow(InvalidArgumentException::class, 'La sesión de caja seleccionada no está abierta.');
+});
+
+test('[GATE-FIN] Cash payments require an open session and manual movements only reconcile physical cash', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $paymentWithoutCashSession = $this->post("http://finanzas.bsdental.test/patients/{$this->patient->id}/billing/payments", [
+        'splits' => [
+            ['method' => 'cash', 'amount' => 15.00],
+        ],
+    ]);
+    $paymentWithoutCashSession->assertSessionHasErrors('cash_session_id');
+
+    $context->makeCurrent($this->tenant);
+    expect(Payment::count())->toBe(0)
+        ->and(fn () => app(BillingPaymentService::class)->recordPayment(
+            $this->patient,
+            [['method' => 'cash', 'amount' => 15.00]],
+            null,
+            (string) $this->user->id
+        ))->toThrow(InvalidArgumentException::class, 'Los pagos en efectivo requieren una sesión de caja abierta.');
+
+    $cashService = app(CashRegisterService::class);
+    $session = $cashService->openSession($this->register, $this->user, 100.00);
+
+    $cashIncomeResponse = $this->post("http://finanzas.bsdental.test/cash-sessions/{$session->id}/movements", [
+        'type' => 'manual_income',
+        'amount' => 25.00,
+        'payment_method' => 'cash',
+        'concept' => 'Fondo adicional autorizado',
+    ]);
+    $cashIncomeResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $session->refresh();
+    expect($session->expected_cash)->toBe(125.0)
+        ->and((float) CashMovement::where('type', 'manual_income')->value('amount'))->toBe(25.0)
+        ->and(TenantAuditLog::where('action', 'cash.manual_movement_recorded')->exists())->toBeTrue();
+
+    $transferExpenseResponse = $this->post("http://finanzas.bsdental.test/cash-sessions/{$session->id}/movements", [
+        'type' => 'manual_expense',
+        'amount' => 10.00,
+        'payment_method' => 'transfer',
+        'concept' => 'Servicio pagado por transferencia',
+    ]);
+    $transferExpenseResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $session->refresh();
+    expect($session->expected_cash)->toBe(125.0)
+        ->and((float) CashMovement::where('type', 'manual_expense')->value('amount'))->toBe(-10.0);
+
+    $cashService->closeSession($session, $this->user, 125.00, 'Cierre conciliado');
+    expect(fn () => $cashService->recordManualMovement(
+        $session,
+        $this->user,
+        'manual_income',
+        5.00,
+        'Intento tardío',
+        'cash'
     ))->toThrow(InvalidArgumentException::class, 'La sesión de caja seleccionada no está abierta.');
 });
