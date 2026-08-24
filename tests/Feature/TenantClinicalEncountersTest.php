@@ -23,7 +23,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathCl = database_path('tenant_gate_cl_test.sqlite');
+    $this->dbPathCl = $this->tenantDatabasePath('tenant_gate_cl_test.sqlite');
     if (! file_exists($this->dbPathCl)) {
         touch($this->dbPathCl);
     }

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { Head, useForm } from '@inertiajs/vue3'
+import { Head, useForm, Link } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { UserCheck, Plus, Trash2, Phone, Mail, X } from 'lucide-vue-next'
+import { UserCheck, Plus, Trash2, Phone, Mail, X, Stethoscope, Building } from 'lucide-vue-next'
 
 interface Specialty {
     id: string
@@ -41,7 +41,7 @@ const form = useForm({
     first_name: '',
     last_name: '',
     license_number: '',
-    color: '#0d9488',
+    color: '#005C55',
     phone: '',
     email: '',
     specialty_ids: [] as string[],
@@ -66,132 +66,164 @@ function deleteProfessional(pro: Professional) {
 
 <template>
     <ClinicLayout>
-<div class="clinical-precision-page">
-    <Head title="Equipo Médico y Especialistas — BSDental" />
+        <Head title="Equipo Médico y Especialistas — BSDental" />
 
-    <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
-        <div class="max-w-6xl mx-auto space-y-6">
-            <!-- Header -->
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="p-3 bg-teal-500/10 rounded-xl text-teal-400 border border-teal-500/20">
-                        <UserCheck class="w-6 h-6" />
+        <div class="space-y-6">
+            <!-- Header Toolbar -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0]">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 bg-[#005C55]/10 text-[#005C55] rounded-lg">
+                            <UserCheck class="w-5 h-5" />
+                        </span>
+                        <h1 class="font-display-md text-2xl font-bold text-[#131B2E]">
+                            Equipo Médico y Especialistas
+                        </h1>
                     </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-white tracking-tight">Equipo Médico y Especialistas</h1>
-                        <p class="text-sm text-slate-400">Directorio de odontólogos, colegiaturas, asignación de especialidades y sedes</p>
-                    </div>
+                    <p class="text-xs text-[#505F76] mt-1">
+                        Directorio de odontólogos, números de colegiatura, especialidades y sedes asignadas
+                    </p>
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <a href="/dashboard" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">← Volver al Dashboard</a>
                     <button
-                        class="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold rounded-lg shadow-lg shadow-teal-500/20 transition"
+                        class="flex items-center gap-1.5 px-3.5 py-2 bg-[#005C55] hover:bg-[#004742] text-white font-medium text-xs rounded-lg transition shadow-xs"
                         @click="isCreating = true"
                     >
-                        <Plus class="w-4 h-4" /> Nuevo Profesional
+                        <Plus class="w-3.5 h-3.5" /> Nuevo Profesional
                     </button>
                 </div>
             </div>
 
-            <!-- Create Modal -->
-            <div v-if="isCreating" class="p-6 bg-slate-800 border border-teal-500/30 rounded-2xl shadow-xl space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-white">Registrar Odontólogo / Especialista</h2>
-                    <button class="text-slate-400 hover:text-white" @click="isCreating = false"><X class="w-5 h-5" /></button>
-                </div>
-
-                <form class="grid grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent="submitCreate">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Nombres</label>
-                        <input v-model="form.first_name" type="text" required placeholder="Ej. Carlos" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Apellidos</label>
-                        <input v-model="form.last_name" type="text" required placeholder="Ej. Mendoza" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Número de Colegiatura / Matrícula</label>
-                        <input v-model="form.license_number" type="text" placeholder="Ej. COL-8921" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Color Identificador en Agenda</label>
-                        <input v-model="form.color" type="color" class="w-full h-10 p-1 bg-slate-900 border border-slate-700 rounded-lg cursor-pointer" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Teléfono</label>
-                        <input v-model="form.phone" type="text" placeholder="+58 412 123-4567" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Correo Electrónico</label>
-                        <input v-model="form.email" type="email" placeholder="carlos.mendoza@clinica.com" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-
-                    <!-- Especialidades Checkboxes -->
-                    <div class="col-span-2 space-y-1">
-                        <label class="block text-xs font-medium text-slate-400">Especialidades</label>
-                        <div class="flex flex-wrap gap-2 pt-1">
-                            <label v-for="spec in props.specialties" :key="spec.id" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs cursor-pointer hover:border-teal-500">
-                                <input v-model="form.specialty_ids" type="checkbox" :value="spec.id" class="rounded bg-slate-800 border-slate-700 text-teal-500" />
-                                <span class="text-slate-200">{{ spec.name }}</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Sucursales Checkboxes -->
-                    <div class="col-span-2 space-y-1">
-                        <label class="block text-xs font-medium text-slate-400">Sedes de Atención</label>
-                        <div class="flex flex-wrap gap-2 pt-1">
-                            <label v-for="branch in props.branches" :key="branch.id" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs cursor-pointer hover:border-teal-500">
-                                <input v-model="form.branch_ids" type="checkbox" :value="branch.id" class="rounded bg-slate-800 border-slate-700 text-teal-500" />
-                                <span class="text-slate-200">{{ branch.name }}</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="col-span-2 flex justify-end gap-2 pt-3">
-                        <button type="button" class="px-4 py-2 bg-slate-700 text-slate-300 text-sm font-medium rounded-lg hover:bg-slate-600" @click="isCreating = false">Cancelar</button>
-                        <button type="submit" :disabled="form.processing" class="px-4 py-2 bg-teal-500 text-slate-950 text-sm font-semibold rounded-lg hover:bg-teal-400">Registrar Odontólogo</button>
-                    </div>
-                </form>
-            </div>
-
             <!-- Professionals Listing -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div v-for="pro in props.professionals" :key="pro.id" class="p-6 bg-slate-800/80 border border-slate-700/60 rounded-2xl space-y-4">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-inner" :style="{ backgroundColor: pro.color }">
-                                {{ pro.first_name[0] }}{{ pro.last_name[0] }}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div 
+                    v-for="pro in props.professionals" 
+                    :key="pro.id" 
+                    class="bg-white border border-[#E2E8F0] rounded-xl shadow-xs p-5 space-y-4 hover:border-[#BDC9C6] transition flex flex-col justify-between"
+                >
+                    <div class="space-y-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div 
+                                    class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-2xs text-xs" 
+                                    :style="{ backgroundColor: pro.color || '#005C55' }"
+                                >
+                                    {{ pro.first_name[0] }}{{ pro.last_name[0] }}
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-bold text-[#131B2E]">Dr(a). {{ pro.full_name }}</h3>
+                                    <p v-if="pro.license_number" class="text-xs text-[#505F76] font-mono">Col. {{ pro.license_number }}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 class="text-base font-bold text-white">Dr(a). {{ pro.full_name }}</h3>
-                                <p v-if="pro.license_number" class="text-xs text-slate-400 font-mono">Col. {{ pro.license_number }}</p>
-                            </div>
+                            <button class="p-1.5 text-[#505F76] hover:text-[#BA1A1A] transition" title="Eliminar profesional" @click="deleteProfessional(pro)">
+                                <Trash2 class="w-4 h-4" />
+                            </button>
                         </div>
-                        <button class="p-1.5 text-slate-400 hover:text-rose-400 transition" @click="deleteProfessional(pro)">
-                            <Trash2 class="w-4 h-4" />
-                        </button>
+
+                        <div class="text-xs text-[#505F76] space-y-1.5 bg-[#F8FAFC] p-3 rounded-lg border border-[#E2E8F0]">
+                            <p v-if="pro.phone" class="flex items-center gap-2 text-[#131B2E]">
+                                <Phone class="w-3.5 h-3.5 text-[#505F76]" /> {{ pro.phone }}
+                            </p>
+                            <p v-if="pro.email" class="flex items-center gap-2">
+                                <Mail class="w-3.5 h-3.5 text-[#505F76]" /> {{ pro.email }}
+                            </p>
+                        </div>
                     </div>
 
-                    <div class="text-xs text-slate-400 space-y-1">
-                        <p v-if="pro.phone" class="flex items-center gap-1.5"><Phone class="w-3.5 h-3.5 text-slate-500" /> {{ pro.phone }}</p>
-                        <p v-if="pro.email" class="flex items-center gap-1.5"><Mail class="w-3.5 h-3.5 text-slate-500" /> {{ pro.email }}</p>
-                    </div>
-
-                    <!-- Specialties Tags -->
-                    <div class="space-y-1.5 border-t border-slate-700/60 pt-3">
-                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Especialidades</span>
+                    <!-- Specialties & Branches -->
+                    <div class="space-y-2 border-t border-[#E2E8F0] pt-3">
+                        <span class="text-[10px] font-bold text-[#505F76] uppercase tracking-wider block">Especialidades</span>
                         <div class="flex flex-wrap gap-1.5">
-                            <span v-for="spec in pro.specialties" :key="spec.id" class="px-2 py-0.5 text-xs bg-teal-500/10 text-teal-400 border border-teal-500/30 rounded-md">
+                            <span 
+                                v-for="spec in pro.specialties" 
+                                :key="spec.id" 
+                                class="px-2 py-0.5 text-xs bg-[#005C55]/10 text-[#005C55] border border-[#005C55]/20 rounded-md font-medium"
+                            >
                                 {{ spec.name }}
+                            </span>
+                            <span v-if="!pro.specialties?.length" class="text-xs text-[#505F76] italic">
+                                Sin especialidad registrada
                             </span>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Create Modal -->
+            <div v-if="isCreating" class="fixed inset-0 z-50 grid place-items-center bg-[#0F172A]/40 p-4 backdrop-blur-xs" @click.self="isCreating = false">
+                <div class="w-full max-w-lg bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+                        <div class="flex items-center gap-2">
+                            <span class="p-1 bg-[#005C55]/10 text-[#005C55] rounded-lg">
+                                <Plus class="w-4 h-4" />
+                            </span>
+                            <h2 class="font-bold text-sm text-[#131B2E]">Registrar Odontólogo / Especialista</h2>
+                        </div>
+                        <button class="text-[#505F76] hover:text-[#131B2E]" @click="isCreating = false">
+                            <X class="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    <form class="grid grid-cols-1 sm:grid-cols-2 gap-3.5" @submit.prevent="submitCreate">
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Nombres *</label>
+                            <input v-model="form.first_name" type="text" required placeholder="Ej. Carlos" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Apellidos *</label>
+                            <input v-model="form.last_name" type="text" required placeholder="Ej. Mendoza" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Número de Colegiatura / Matrícula</label>
+                            <input v-model="form.license_number" type="text" placeholder="Ej. COL-8921" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Color Identificador en Agenda</label>
+                            <input v-model="form.color" type="color" class="w-full h-9 p-1 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg cursor-pointer" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Teléfono</label>
+                            <input v-model="form.phone" type="text" placeholder="+58 412 123-4567" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Correo Electrónico</label>
+                            <input v-model="form.email" type="email" placeholder="carlos.mendoza@clinica.com" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+
+                        <!-- Especialidades Checkboxes -->
+                        <div class="sm:col-span-2 space-y-1">
+                            <label class="block text-xs font-semibold text-[#505F76]">Especialidades</label>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <label v-for="spec in props.specialties" :key="spec.id" class="flex items-center gap-1.5 px-3 py-1.5 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-xs cursor-pointer hover:border-[#005C55]">
+                                    <input v-model="form.specialty_ids" type="checkbox" :value="spec.id" class="rounded border-[#BDC9C6] text-[#005C55] focus:ring-[#005C55]" />
+                                    <span class="text-[#131B2E] font-medium">{{ spec.name }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Sucursales Checkboxes -->
+                        <div class="sm:col-span-2 space-y-1">
+                            <label class="block text-xs font-semibold text-[#505F76]">Sedes de Atención</label>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <label v-for="branch in props.branches" :key="branch.id" class="flex items-center gap-1.5 px-3 py-1.5 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-xs cursor-pointer hover:border-[#005C55]">
+                                    <input v-model="form.branch_ids" type="checkbox" :value="branch.id" class="rounded border-[#BDC9C6] text-[#005C55] focus:ring-[#005C55]" />
+                                    <span class="text-[#131B2E] font-medium">{{ branch.name }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-2 flex justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
+                            <button type="button" class="px-4 py-2 bg-white border border-[#BDC9C6] text-[#505F76] text-xs font-medium rounded-lg hover:bg-[#F8FAFC]" @click="isCreating = false">
+                                Cancelar
+                            </button>
+                            <button type="submit" :disabled="form.processing" class="px-4 py-2 bg-[#005C55] hover:bg-[#004742] text-white text-xs font-bold rounded-lg transition disabled:opacity-50">
+                                Registrar Odontólogo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-    </div>
-    </div>
-</ClinicLayout>
+    </ClinicLayout>
 </template>

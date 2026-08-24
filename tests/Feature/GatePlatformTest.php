@@ -34,7 +34,7 @@ beforeEach(function () {
         'is_active' => true,
     ]);
 
-    $this->tenantCDbPath = database_path('tenant_clinica-c.sqlite');
+    $this->tenantCDbPath = $this->tenantDatabasePath('tenant_clinica-c.sqlite');
     if (file_exists($this->tenantCDbPath)) {
         unlink($this->tenantCDbPath);
     }
@@ -68,6 +68,7 @@ test('[GATE PL] Platform Admin creates Tenant C via UI/Pipeline and Tenant Owner
 
     // Verify Tenant C state in Landlord
     expect($tenantC->status)->toBe('active')
+        ->and($tenantC->database_name)->toBe($this->tenantCDbPath)
         ->and($tenantC->hasModuleEntitlement('patients'))->toBeTrue()
         ->and($tenantC->hasModuleEntitlement('quotes'))->toBeTrue()
         ->and($tenantC->hasModuleEntitlement('marketing'))->toBeFalse(); // Not in 'pro' plan

@@ -79,6 +79,7 @@ class BillingPaymentService
             'tax_amount' => $taxAmount,
             'total_amount' => $totalAmount,
             'paid_amount' => 0.00,
+            'adjusted_amount' => 0.00,
             'balance_due' => $totalAmount,
             'status' => 'pending',
             'created_by_user_id' => $userId,
@@ -86,7 +87,7 @@ class BillingPaymentService
     }
 
     /**
-     * Record payment with multi-method splits.
+     * Record payment with multi-method splits and optional idempotency key.
      *
      * @param  list<array{method: string, amount: float, reference_code?: string|null}>  $splits
      */
@@ -94,7 +95,8 @@ class BillingPaymentService
         Patient $patient,
         array $splits,
         ?CashSession $cashSession = null,
-        ?string $userId = null
+        ?string $userId = null,
+        ?string $idempotencyKey = null
     ): Payment {
         if (empty($splits)) {
             throw new InvalidArgumentException('El pago debe contener al menos un método de pago.');
@@ -112,7 +114,19 @@ class BillingPaymentService
             $totalAmount += $sp['amount'];
         }
 
-        return DB::connection('tenant')->transaction(function () use ($patient, $splits, $totalAmount, $cashSession, $userId) {
+        // Idempotency check
+        if ($idempotencyKey !== null && $idempotencyKey !== '') {
+            $existing = Payment::with(['splits'])->where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                if ($existing->patient_id !== $patient->id || (float) $existing->total_amount !== (float) $totalAmount) {
+                    throw new InvalidArgumentException('Clave de idempotencia ya utilizada con parámetros diferentes.');
+                }
+
+                return $existing;
+            }
+        }
+
+        return DB::connection('tenant')->transaction(function () use ($patient, $splits, $totalAmount, $cashSession, $userId, $idempotencyKey) {
             $paymentNumber = $this->generatePaymentNumber();
 
             $payment = Payment::create([
@@ -124,6 +138,7 @@ class BillingPaymentService
                 'unallocated_amount' => $totalAmount,
                 'refunded_amount' => 0.00,
                 'status' => 'confirmed',
+                'idempotency_key' => $idempotencyKey,
                 'paid_at' => now(),
                 'created_by_user_id' => $userId,
             ]);
@@ -188,11 +203,11 @@ class BillingPaymentService
         }
 
         if ($amount > $payment->unallocated_amount) {
-            throw new InvalidArgumentException('El monto a asignar excede el saldo no asignado del pago.');
+            throw new InvalidArgumentException('El monto excede el saldo no asignado disponible en este pago.');
         }
 
         if ($amount > $charge->balance_due) {
-            throw new InvalidArgumentException('El monto a asignar excede el saldo pendiente del cargo.');
+            throw new InvalidArgumentException('El monto excede el saldo pendiente del cargo seleccionado.');
         }
 
         return DB::connection('tenant')->transaction(function () use ($payment, $charge, $amount) {
@@ -228,14 +243,15 @@ class BillingPaymentService
     }
 
     /**
-     * Process a refund on a payment.
+     * Process a refund on a payment with optional idempotency key.
      */
     public function refundPayment(
         Payment $payment,
         float $amount,
         string $reason,
         ?CashSession $cashSession = null,
-        ?string $userId = null
+        ?string $userId = null,
+        ?string $idempotencyKey = null
     ): Refund {
         if ($cashSession && $cashSession->status !== 'open') {
             throw new InvalidArgumentException('La sesión de caja seleccionada no está abierta.');
@@ -249,13 +265,26 @@ class BillingPaymentService
             throw new InvalidArgumentException('El monto del reembolso excede el saldo reembolsable disponible.');
         }
 
-        return DB::connection('tenant')->transaction(function () use ($payment, $amount, $reason, $cashSession, $userId) {
+        // Idempotency check for refund
+        if ($idempotencyKey !== null && $idempotencyKey !== '') {
+            $existing = Refund::where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                if ($existing->payment_id !== $payment->id || (float) $existing->amount !== (float) $amount) {
+                    throw new InvalidArgumentException('Clave de idempotencia ya utilizada con parámetros diferentes.');
+                }
+
+                return $existing;
+            }
+        }
+
+        return DB::connection('tenant')->transaction(function () use ($payment, $amount, $reason, $cashSession, $userId, $idempotencyKey) {
             $refund = Refund::create([
                 'payment_id' => $payment->id,
                 'patient_id' => $payment->patient_id,
                 'cash_session_id' => $cashSession?->id,
                 'amount' => $amount,
                 'reason' => $reason,
+                'idempotency_key' => $idempotencyKey,
                 'refunded_at' => now(),
                 'created_by_user_id' => $userId,
             ]);
@@ -283,5 +312,177 @@ class BillingPaymentService
 
             return $refund;
         });
+    }
+
+    /**
+     * Generate sequential credit note number (NC-00001).
+     */
+    public function generateCreditNoteNumber(): string
+    {
+        $count = \App\Core\Models\CreditAdjustment::count() + 1;
+
+        do {
+            $formatted = sprintf('NC-%05d', $count);
+            $exists = \App\Core\Models\CreditAdjustment::where('credit_note_number', $formatted)->exists();
+            if ($exists) {
+                $count++;
+            }
+        } while ($exists);
+
+        return $formatted;
+    }
+
+    /**
+     * Create an auditable credit adjustment / credit note for a patient charge (FIN-05).
+     */
+    public function createCreditAdjustment(
+        PatientCharge $charge,
+        float $amount,
+        string $type,
+        string $reason,
+        ?string $userId = null
+    ): \App\Core\Models\CreditAdjustment {
+        if ($amount <= 0) {
+            throw new InvalidArgumentException('El monto de la nota de crédito debe ser mayor a cero.');
+        }
+
+        if ($amount > $charge->balance_due) {
+            throw new InvalidArgumentException('El monto del ajuste excede el saldo pendiente del cargo.');
+        }
+
+        if (! in_array($type, ['subsequent_discount', 'correction', 'uncollectible', 'store_credit', 'reversal'], true)) {
+            throw new InvalidArgumentException('El tipo de nota de crédito no es válido.');
+        }
+
+        return DB::connection('tenant')->transaction(function () use ($charge, $amount, $type, $reason, $userId) {
+            $creditNoteNumber = $this->generateCreditNoteNumber();
+
+            $adjustment = \App\Core\Models\CreditAdjustment::create([
+                'patient_charge_id' => $charge->id,
+                'patient_id' => $charge->patient_id,
+                'credit_note_number' => $creditNoteNumber,
+                'type' => $type,
+                'amount' => $amount,
+                'reason' => $reason,
+                'adjusted_at' => now(),
+                'created_by_user_id' => $userId,
+            ]);
+
+            $newAdjusted = $charge->adjusted_amount + $amount;
+            $newBalance = max(0.0, $charge->total_amount - $charge->paid_amount - $newAdjusted);
+            $newStatus = $newBalance <= 0 ? 'paid' : ($charge->paid_amount > 0 ? 'partially_paid' : 'pending');
+
+            $charge->update([
+                'adjusted_amount' => $newAdjusted,
+                'balance_due' => $newBalance,
+                'status' => $newStatus,
+            ]);
+
+            return $adjustment;
+        });
+    }
+
+    /**
+     * Compute comprehensive patient account statement (FIN-06).
+     */
+    public function getPatientAccountStatement(Patient $patient): array
+    {
+        $charges = PatientCharge::with(['professional', 'treatmentPlanItem.procedure', 'allocations.payment', 'adjustments.createdBy'])
+            ->where('patient_id', $patient->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $payments = Payment::with(['splits', 'allocations.charge', 'refunds'])
+            ->where('patient_id', $patient->id)
+            ->orderBy('paid_at', 'desc')
+            ->get();
+
+        $adjustments = \App\Core\Models\CreditAdjustment::with(['charge', 'createdBy'])
+            ->where('patient_id', $patient->id)
+            ->orderBy('adjusted_at', 'desc')
+            ->get();
+
+        $totalCharged = (float) $charges->sum('total_amount');
+        $totalPaid = (float) $charges->sum('paid_amount');
+        $totalAdjusted = (float) $charges->sum('adjusted_amount');
+        $netBalanceDue = (float) $charges->sum('balance_due');
+        $totalUnallocated = (float) $payments->sum('unallocated_amount');
+
+        return [
+            'patient' => $patient,
+            'charges' => $charges,
+            'payments' => $payments,
+            'adjustments' => $adjustments,
+            'summary' => [
+                'total_charged' => $totalCharged,
+                'total_paid' => $totalPaid,
+                'total_adjusted' => $totalAdjusted,
+                'net_balance_due' => $netBalanceDue,
+                'unallocated_credit' => $totalUnallocated,
+            ],
+        ];
+    }
+
+    /**
+     * Generate Aging Receivables (CxC) buckets report: 0-30, 31-60, 61-90, +90 days (FIN-06).
+     */
+    public function getAgingReceivablesReport(): array
+    {
+        $now = \Carbon\Carbon::now();
+
+        $pendingCharges = PatientCharge::with(['patient', 'professional'])
+            ->where('balance_due', '>', 0)
+            ->whereIn('status', ['pending', 'partially_paid'])
+            ->orderBy('created_at')
+            ->get();
+
+        $buckets = [
+            'current_30' => ['label' => '0 a 30 días (Corriente)', 'total' => 0.0, 'charges' => []],
+            'aging_31_60' => ['label' => '31 a 60 días', 'total' => 0.0, 'charges' => []],
+            'aging_61_90' => ['label' => '61 a 90 días', 'total' => 0.0, 'charges' => []],
+            'over_90' => ['label' => 'Más de 90 días (Vencido)', 'total' => 0.0, 'charges' => []],
+        ];
+
+        foreach ($pendingCharges as $charge) {
+            $daysOld = (int) $charge->created_at->diffInDays($now);
+            $chargeData = [
+                'id' => $charge->id,
+                'charge_number' => $charge->charge_number,
+                'patient_id' => $charge->patient_id,
+                'patient_name' => $charge->patient?->full_name,
+                'patient_record' => $charge->patient?->record_number,
+                'patient_phone' => $charge->patient?->phone,
+                'concept' => $charge->concept,
+                'total_amount' => $charge->total_amount,
+                'paid_amount' => $charge->paid_amount,
+                'adjusted_amount' => $charge->adjusted_amount,
+                'balance_due' => $charge->balance_due,
+                'days_old' => $daysOld,
+                'created_at' => $charge->created_at->format('Y-m-d'),
+                'due_date' => $charge->due_date?->format('Y-m-d'),
+            ];
+
+            if ($daysOld <= 30) {
+                $buckets['current_30']['total'] += $charge->balance_due;
+                $buckets['current_30']['charges'][] = $chargeData;
+            } elseif ($daysOld <= 60) {
+                $buckets['aging_31_60']['total'] += $charge->balance_due;
+                $buckets['aging_31_60']['charges'][] = $chargeData;
+            } elseif ($daysOld <= 90) {
+                $buckets['aging_61_90']['total'] += $charge->balance_due;
+                $buckets['aging_61_90']['charges'][] = $chargeData;
+            } else {
+                $buckets['over_90']['total'] += $charge->balance_due;
+                $buckets['over_90']['charges'][] = $chargeData;
+            }
+        }
+
+        $totalReceivable = array_sum(array_column($buckets, 'total'));
+
+        return [
+            'buckets' => $buckets,
+            'total_receivable' => $totalReceivable,
+            'total_charges_count' => $pendingCharges->count(),
+        ];
     }
 }

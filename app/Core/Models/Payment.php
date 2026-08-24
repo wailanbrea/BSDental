@@ -49,6 +49,7 @@ class Payment extends Model
         'unallocated_amount',
         'refunded_amount',
         'status',
+        'idempotency_key',
         'paid_at',
         'created_by_user_id',
     ];

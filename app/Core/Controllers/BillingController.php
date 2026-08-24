@@ -44,7 +44,12 @@ class BillingController extends Controller
         $totalPaid = (float) $charges->sum('paid_amount');
         $balanceDue = (float) $charges->sum('balance_due');
 
-        $activeCashSession = CashSession::where('status', 'open')->first();
+        $branchIds = Auth::guard('web')->user()?->branchScopeIds();
+        $activeCashSessions = CashSession::with(['cashRegister.branch', 'openedBy'])
+            ->where('status', 'open')
+            ->when($branchIds !== null, fn ($query) => $query->whereHas('cashRegister', fn ($rq) => $rq->whereIn('branch_id', $branchIds)))
+            ->get();
+        $activeCashSession = $activeCashSessions->first();
 
         return Inertia::render('Clinic/Billing/Index', [
             'patient' => $patient,
@@ -54,6 +59,7 @@ class BillingController extends Controller
             'totalPaid' => $totalPaid,
             'balanceDue' => $balanceDue,
             'activeCashSession' => $activeCashSession,
+            'activeCashSessions' => $activeCashSessions,
         ]);
     }
 
@@ -336,5 +342,64 @@ class BillingController extends Controller
         ]);
 
         return redirect()->back()->with('success', "Reembolso procesado por \${$refund->amount}.");
+    }
+
+    /**
+     * Store credit adjustment / credit note for a patient charge (FIN-05).
+     */
+    public function storeAdjustment(Request $request, string $chargeId): RedirectResponse
+    {
+        $charge = PatientCharge::findOrFail($chargeId);
+
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01', "max:{$charge->balance_due}"],
+            'type' => ['required', 'string', 'in:subsequent_discount,correction,uncollectible,store_credit,reversal'],
+            'reason' => ['required', 'string', 'max:255'],
+        ]);
+
+        $userId = Auth::guard('web')->id();
+
+        $adjustment = $this->billingService->createCreditAdjustment(
+            $charge,
+            (float) $validated['amount'],
+            $validated['type'],
+            $validated['reason'],
+            $userId ? (string) $userId : null
+        );
+
+        $this->auditLogger->logTenant('billing.credit_adjustment_created', 'CreditAdjustment', $adjustment->id, [
+            'charge_number' => $charge->charge_number,
+            'credit_note_number' => $adjustment->credit_note_number,
+            'amount' => $adjustment->amount,
+            'type' => $adjustment->type,
+            'reason' => $adjustment->reason,
+        ]);
+
+        return redirect()->back()->with('success', "Nota de crédito {$adjustment->credit_note_number} generada por \${$adjustment->amount}.");
+    }
+
+    /**
+     * Display printable patient account statement (FIN-06).
+     */
+    public function showStatement(string $patientId): Response
+    {
+        $patient = Patient::findOrFail($patientId);
+        $statement = $this->billingService->getPatientAccountStatement($patient);
+
+        return Inertia::render('Clinic/Billing/Statement', [
+            'statement' => $statement,
+        ]);
+    }
+
+    /**
+     * Display Aging Accounts Receivable (CxC) report (FIN-06).
+     */
+    public function agingReport(): Response
+    {
+        $report = $this->billingService->getAgingReceivablesReport();
+
+        return Inertia::render('Clinic/Billing/AgingReceivables', [
+            'report' => $report,
+        ]);
     }
 }

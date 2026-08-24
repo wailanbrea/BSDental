@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { Head, useForm } from '@inertiajs/vue3'
+import { Head, useForm, Link } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { Building2, Plus, Trash2, MapPin, Phone, Mail, X } from 'lucide-vue-next'
+import { Building2, Plus, Trash2, MapPin, Phone, Mail, X, Armchair } from 'lucide-vue-next'
 
 interface Room {
     id: string
@@ -80,133 +80,194 @@ function deleteRoom(room: Room) {
 
 <template>
     <ClinicLayout>
-<div class="clinical-precision-page">
-    <Head title="Sucursales y Sillones Dentales — BSDental" />
+        <Head title="Sucursales y Sillones Dentales — BSDental" />
 
-    <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
-        <div class="max-w-6xl mx-auto space-y-6">
-            <!-- Header -->
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="p-3 bg-teal-500/10 rounded-xl text-teal-400 border border-teal-500/20">
-                        <Building2 class="w-6 h-6" />
+        <div class="space-y-6">
+            <!-- Header Toolbar -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0]">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 bg-[#005C55]/10 text-[#005C55] rounded-lg">
+                            <Building2 class="w-5 h-5" />
+                        </span>
+                        <h1 class="font-display-md text-2xl font-bold text-[#131B2E]">
+                            Sucursales y Sillones Dentales
+                        </h1>
                     </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-white tracking-tight">Sucursales y Sillones Dentales</h1>
-                        <p class="text-sm text-slate-400">Gestión de sedes físicas, consultorios y distribución de sillones clínicos</p>
-                    </div>
+                    <p class="text-xs text-[#505F76] mt-1">
+                        Gestión de sedes físicas, consultorios y distribución de sillones clínicos
+                    </p>
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <a href="/dashboard" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">← Volver al Dashboard</a>
                     <button
-                        class="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold rounded-lg shadow-lg shadow-teal-500/20 transition"
+                        class="flex items-center gap-1.5 px-3.5 py-2 bg-[#005C55] hover:bg-[#004742] text-white font-medium text-xs rounded-lg transition shadow-xs"
                         @click="isCreatingBranch = true"
                     >
-                        <Plus class="w-4 h-4" /> Nueva Sucursal
+                        <Plus class="w-3.5 h-3.5" /> Nueva Sucursal
                     </button>
                 </div>
             </div>
 
-            <!-- Branch Creation Modal -->
-            <div v-if="isCreatingBranch" class="p-6 bg-slate-800 border border-teal-500/30 rounded-2xl shadow-xl space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-white">Registrar Nueva Sucursal</h2>
-                    <button class="text-slate-400 hover:text-white" @click="isCreatingBranch = false"><X class="w-5 h-5" /></button>
-                </div>
-                <form class="grid grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent="submitCreateBranch">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Nombre de la Sucursal</label>
-                        <input v-model="branchForm.name" type="text" required placeholder="Ej. Sede Principal" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Código Identificador</label>
-                        <input v-model="branchForm.code" type="text" placeholder="Ej. SUC-01" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Dirección</label>
-                        <input v-model="branchForm.address" type="text" placeholder="Av. Principal, Edif. Médico" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Teléfono</label>
-                        <input v-model="branchForm.phone" type="text" placeholder="+58 212 555-0101" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-                    <div class="col-span-2 flex items-center justify-between pt-2">
-                        <label class="flex items-center gap-2 text-sm text-slate-300">
-                            <input v-model="branchForm.is_main" type="checkbox" class="rounded bg-slate-900 border-slate-700 text-teal-500" />
-                            Definir como Sede Principal
-                        </label>
-                        <div class="flex items-center gap-2">
-                            <button type="button" class="px-4 py-2 bg-slate-700 text-slate-300 text-sm font-medium rounded-lg hover:bg-slate-600" @click="isCreatingBranch = false">Cancelar</button>
-                            <button type="submit" :disabled="branchForm.processing" class="px-4 py-2 bg-teal-500 text-slate-950 text-sm font-semibold rounded-lg hover:bg-teal-400">Guardar Sucursal</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Room Creation Modal -->
-            <div v-if="selectedBranchForRoom" class="p-6 bg-slate-800 border border-teal-500/30 rounded-2xl shadow-xl space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-white">Añadir Consultorio a "{{ selectedBranchForRoom.name }}"</h2>
-                    <button class="text-slate-400 hover:text-white" @click="selectedBranchForRoom = null"><X class="w-5 h-5" /></button>
-                </div>
-                <form class="grid grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent="submitCreateRoom">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Nombre del Consultorio / Sillón</label>
-                        <input v-model="roomForm.name" type="text" required placeholder="Ej. Sillón 1 - Cirugía" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Código</label>
-                        <input v-model="roomForm.code" type="text" placeholder="Ej. SIL-01" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" />
-                    </div>
-                    <div class="col-span-2 flex justify-end gap-2 pt-2">
-                        <button type="button" class="px-4 py-2 bg-slate-700 text-slate-300 text-sm font-medium rounded-lg hover:bg-slate-600" @click="selectedBranchForRoom = null">Cancelar</button>
-                        <button type="submit" :disabled="roomForm.processing" class="px-4 py-2 bg-teal-500 text-slate-950 text-sm font-semibold rounded-lg hover:bg-teal-400">Crear Sillón</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Branches Listing -->
+            <!-- Branches Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div v-for="branch in props.branches" :key="branch.id" class="p-6 bg-slate-800/80 border border-slate-700/60 rounded-2xl space-y-4">
+                <div 
+                    v-for="branch in props.branches" 
+                    :key="branch.id" 
+                    class="bg-white border border-[#E2E8F0] rounded-xl shadow-xs p-5 space-y-4 hover:border-[#BDC9C6] transition"
+                >
                     <div class="flex items-start justify-between">
                         <div>
                             <div class="flex items-center gap-2">
-                                <h3 class="text-lg font-bold text-white">{{ branch.name }}</h3>
-                                <span v-if="branch.is_main" class="px-2 py-0.5 text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/30 rounded-full">Principal</span>
+                                <h3 class="text-base font-bold text-[#131B2E]">{{ branch.name }}</h3>
+                                <span v-if="branch.is_main" class="px-2 py-0.5 text-[10px] font-bold bg-[#005C55]/10 text-[#005C55] border border-[#005C55]/20 rounded-full">
+                                    Sede Principal
+                                </span>
                             </div>
-                            <p v-if="branch.code" class="text-xs text-slate-400 font-mono">{{ branch.code }}</p>
+                            <p v-if="branch.code" class="text-xs text-[#505F76] font-mono mt-0.5">Código: {{ branch.code }}</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button class="text-xs font-semibold text-teal-400 hover:text-teal-300 bg-teal-500/10 px-2.5 py-1.5 rounded-lg border border-teal-500/20" @click="selectedBranchForRoom = branch">
+                            <button 
+                                class="text-xs font-semibold text-[#005C55] hover:text-[#004742] bg-[#005C55]/10 hover:bg-[#005C55]/20 px-2.5 py-1.5 rounded-lg transition" 
+                                @click="selectedBranchForRoom = branch"
+                            >
                                 + Sillón
                             </button>
-                            <button class="p-1.5 text-slate-400 hover:text-rose-400 transition" @click="deleteBranch(branch)">
+                            <button 
+                                class="p-1.5 text-[#505F76] hover:text-[#BA1A1A] transition" 
+                                title="Eliminar sucursal"
+                                @click="deleteBranch(branch)"
+                            >
                                 <Trash2 class="w-4 h-4" />
                             </button>
                         </div>
                     </div>
 
-                    <div class="text-xs text-slate-400 space-y-1">
-                        <p v-if="branch.address" class="flex items-center gap-1.5"><MapPin class="w-3.5 h-3.5 text-slate-500" /> {{ branch.address }}</p>
-                        <p v-if="branch.phone" class="flex items-center gap-1.5"><Phone class="w-3.5 h-3.5 text-slate-500" /> {{ branch.phone }}</p>
-                        <p v-if="branch.email" class="flex items-center gap-1.5"><Mail class="w-3.5 h-3.5 text-slate-500" /> {{ branch.email }}</p>
+                    <div class="text-xs text-[#505F76] space-y-1.5 bg-[#F8FAFC] p-3 rounded-lg border border-[#E2E8F0]">
+                        <p v-if="branch.address" class="flex items-center gap-2 text-[#131B2E]">
+                            <MapPin class="w-3.5 h-3.5 text-[#505F76]" /> {{ branch.address }}
+                        </p>
+                        <p v-if="branch.phone" class="flex items-center gap-2">
+                            <Phone class="w-3.5 h-3.5 text-[#505F76]" /> {{ branch.phone }}
+                        </p>
+                        <p v-if="branch.email" class="flex items-center gap-2">
+                            <Mail class="w-3.5 h-3.5 text-[#505F76]" /> {{ branch.email }}
+                        </p>
                     </div>
 
                     <!-- Rooms in Branch -->
-                    <div class="border-t border-slate-700/60 pt-3 space-y-2">
-                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Consultorios / Sillones ({{ branch.rooms?.length || 0 }})</span>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div v-for="room in branch.rooms" :key="room.id" class="flex items-center justify-between p-2 bg-slate-900/60 border border-slate-700/40 rounded-lg">
-                                <span class="text-xs text-slate-200">{{ room.name }}</span>
-                                <button class="text-slate-500 hover:text-rose-400" @click="deleteRoom(room)"><X class="w-3.5 h-3.5" /></button>
+                    <div class="border-t border-[#E2E8F0] pt-3 space-y-2">
+                        <span class="text-xs font-semibold text-[#505F76] uppercase tracking-wider block">
+                            Consultorios / Sillones ({{ branch.rooms?.length || 0 }})
+                        </span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div 
+                                v-for="room in branch.rooms" 
+                                :key="room.id" 
+                                class="flex items-center justify-between p-2.5 bg-white border border-[#E2E8F0] rounded-lg shadow-2xs text-xs"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <Armchair class="w-3.5 h-3.5 text-[#005C55]" />
+                                    <span class="font-medium text-[#131B2E]">{{ room.name }}</span>
+                                </div>
+                                <button class="text-[#505F76] hover:text-[#BA1A1A] transition" title="Eliminar sillón" @click="deleteRoom(room)">
+                                    <X class="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                            <div v-if="!branch.rooms?.length" class="col-span-2 text-center text-xs text-[#505F76] italic py-2">
+                                No hay sillones configurados en esta sucursal.
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Branch Creation Modal -->
+            <div v-if="isCreatingBranch" class="fixed inset-0 z-50 grid place-items-center bg-[#0F172A]/40 p-4 backdrop-blur-xs" @click.self="isCreatingBranch = false">
+                <div class="w-full max-w-lg bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+                        <div class="flex items-center gap-2">
+                            <span class="p-1 bg-[#005C55]/10 text-[#005C55] rounded-lg">
+                                <Building2 class="w-4 h-4" />
+                            </span>
+                            <h2 class="font-bold text-sm text-[#131B2E]">Registrar Nueva Sucursal</h2>
+                        </div>
+                        <button class="text-[#505F76] hover:text-[#131B2E]" @click="isCreatingBranch = false">
+                            <X class="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    <form class="grid grid-cols-1 sm:grid-cols-2 gap-3.5" @submit.prevent="submitCreateBranch">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Nombre de la Sucursal *</label>
+                            <input v-model="branchForm.name" type="text" required placeholder="Ej. Sede Central Dental" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Código Identificador</label>
+                            <input v-model="branchForm.code" type="text" placeholder="Ej. SUC-01" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Teléfono</label>
+                            <input v-model="branchForm.phone" type="text" placeholder="+58 212 555-0101" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Dirección Física</label>
+                            <input v-model="branchForm.address" type="text" placeholder="Av. Principal, Edificio Consultorios Médicos" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+                        <div class="sm:col-span-2 flex items-center justify-between pt-3 border-t border-[#E2E8F0]">
+                            <label class="flex items-center gap-2 text-xs font-medium text-[#131B2E]">
+                                <input v-model="branchForm.is_main" type="checkbox" class="rounded border-[#BDC9C6] text-[#005C55] focus:ring-[#005C55]" />
+                                Definir como Sede Principal
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button type="button" class="px-4 py-2 bg-white border border-[#BDC9C6] text-[#505F76] text-xs font-medium rounded-lg hover:bg-[#F8FAFC]" @click="isCreatingBranch = false">
+                                    Cancelar
+                                </button>
+                                <button type="submit" :disabled="branchForm.processing" class="px-4 py-2 bg-[#005C55] hover:bg-[#004742] text-white text-xs font-bold rounded-lg transition disabled:opacity-50">
+                                    Guardar Sucursal
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Room Creation Modal -->
+            <div v-if="selectedBranchForRoom" class="fixed inset-0 z-50 grid place-items-center bg-[#0F172A]/40 p-4 backdrop-blur-xs" @click.self="selectedBranchForRoom = null">
+                <div class="w-full max-w-md bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+                        <div class="flex items-center gap-2">
+                            <span class="p-1 bg-[#005C55]/10 text-[#005C55] rounded-lg">
+                                <Armchair class="w-4 h-4" />
+                            </span>
+                            <h2 class="font-bold text-sm text-[#131B2E]">Añadir Sillón a "{{ selectedBranchForRoom.name }}"</h2>
+                        </div>
+                        <button class="text-[#505F76] hover:text-[#131B2E]" @click="selectedBranchForRoom = null">
+                            <X class="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    <form class="space-y-4" @submit.prevent="submitCreateRoom">
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Nombre del Consultorio / Sillón *</label>
+                            <input v-model="roomForm.name" type="text" required placeholder="Ej. Sillón 1 - Cirugía" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Código del Sillón</label>
+                            <input v-model="roomForm.code" type="text" placeholder="Ej. SIL-01" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
+                            <button type="button" class="px-4 py-2 bg-white border border-[#BDC9C6] text-[#505F76] text-xs font-medium rounded-lg hover:bg-[#F8FAFC]" @click="selectedBranchForRoom = null">
+                                Cancelar
+                            </button>
+                            <button type="submit" :disabled="roomForm.processing" class="px-4 py-2 bg-[#005C55] hover:bg-[#004742] text-white text-xs font-bold rounded-lg transition disabled:opacity-50">
+                                Crear Sillón
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-    </div>
-    </div>
-</ClinicLayout>
+    </ClinicLayout>
 </template>

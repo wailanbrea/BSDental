@@ -23,7 +23,7 @@ beforeEach(function () {
 
     Storage::fake('local');
 
-    $this->dbPathPat = database_path('tenant_gate_pat_test.sqlite');
+    $this->dbPathPat = $this->tenantDatabasePath('tenant_gate_pat_test.sqlite');
     if (! file_exists($this->dbPathPat)) {
         touch($this->dbPathPat);
     }
@@ -239,4 +239,60 @@ test('[GATE PAT] Admission form exposes the clinical component and requires cond
 
     $context->makeCurrent($this->tenant);
     expect(Patient::count())->toBe(0);
+});
+
+test('[CLN-01] Patient merge transfers appointments, charges and soft-deletes duplicate with audit', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $master = Patient::create([
+        'record_number' => 'HC-00100',
+        'first_name' => 'Carlos',
+        'last_name' => 'Gómez',
+        'phone' => '+58 412 111-2233',
+        'status' => 'active',
+        'tags' => ['VIP'],
+    ]);
+
+    $duplicate = Patient::create([
+        'record_number' => 'HC-00101',
+        'first_name' => 'Carlos A.',
+        'last_name' => 'Gómez',
+        'phone' => '+58 412 111-2233',
+        'status' => 'active',
+        'tags' => ['Ortodoncia'],
+    ]);
+
+    // Create a charge for the duplicate
+    $charge = \App\Core\Models\PatientCharge::create([
+        'patient_id' => $duplicate->id,
+        'charge_number' => 'CHG-99901',
+        'concept' => 'Consulta de Urgencia',
+        'amount' => 50.00,
+        'tax_amount' => 0.00,
+        'total_amount' => 50.00,
+        'paid_amount' => 0.00,
+        'adjusted_amount' => 0.00,
+        'balance_due' => 50.00,
+        'status' => 'pending',
+    ]);
+
+    // Merge duplicate into master
+    $mergeResponse = $this->post("http://pacientes.bsdental.test/patients/{$master->id}/merge", [
+        'duplicate_patient_id' => $duplicate->id,
+        'reason' => 'Registro duplicado creado por error en recepción turno matutino',
+    ]);
+    $mergeResponse->assertRedirect("http://pacientes.bsdental.test/patients/{$master->id}");
+
+    $context->makeCurrent($this->tenant);
+    $master->refresh();
+    $charge->refresh();
+
+    expect($charge->patient_id)->toBe($master->id)
+        ->and($master->tags)->toContain('VIP')
+        ->and($master->tags)->toContain('Ortodoncia')
+        ->and(Patient::where('id', $duplicate->id)->exists())->toBeFalse()
+        ->and(Patient::withTrashed()->where('id', $duplicate->id)->exists())->toBeTrue()
+        ->and(TenantAuditLog::where('action', 'patient.merged')->exists())->toBeTrue();
 });

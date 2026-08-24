@@ -21,7 +21,7 @@ beforeEach(function () {
     $this->tenant = Tenant::create([
         'name' => 'Clínica Dental Imagenología',
         'slug' => 'imagen-dental',
-        'database_name' => database_path('tenant_upload_test.sqlite'),
+        'database_name' => $this->tenantDatabasePath('tenant_upload_test.sqlite'),
         'status' => 'active',
     ]);
 

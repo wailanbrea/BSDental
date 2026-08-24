@@ -27,7 +27,7 @@ beforeEach(function () {
         'is_active' => true,
     ]);
 
-    $this->dbPath = database_path('tenant_lifecycle_test.sqlite');
+    $this->dbPath = $this->tenantDatabasePath('tenant_lifecycle_test.sqlite');
     if (! file_exists($this->dbPath)) {
         touch($this->dbPath);
     }

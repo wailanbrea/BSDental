@@ -48,6 +48,7 @@ class LabOrder extends Model
         'patient_id',
         'laboratory_id',
         'treatment_plan_item_id',
+        'parent_order_id',
         'order_number',
         'tooth_number',
         'work_description',
@@ -60,6 +61,8 @@ class LabOrder extends Model
         'final_cost',
         'payable_status',
         'notes',
+        'remake_reason',
+        'quality_check_notes',
         'created_by_user_id',
     ];
 
@@ -103,6 +106,26 @@ class LabOrder extends Model
     public function treatmentPlanItem(): BelongsTo
     {
         return $this->belongsTo(TreatmentPlanItem::class, 'treatment_plan_item_id');
+    }
+
+    /**
+     * Parent order relation for remakes.
+     *
+     * @return BelongsTo<LabOrder, $this>
+     */
+    public function parentOrder(): BelongsTo
+    {
+        return $this->belongsTo(LabOrder::class, 'parent_order_id');
+    }
+
+    /**
+     * Remakes relation.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<LabOrder, $this>
+     */
+    public function remakes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LabOrder::class, 'parent_order_id');
     }
 
     /**

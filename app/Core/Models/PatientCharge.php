@@ -52,6 +52,7 @@ class PatientCharge extends Model
         'tax_amount',
         'total_amount',
         'paid_amount',
+        'adjusted_amount',
         'balance_due',
         'status',
         'due_date',
@@ -65,6 +66,7 @@ class PatientCharge extends Model
             'tax_amount' => 'float',
             'total_amount' => 'float',
             'paid_amount' => 'float',
+            'adjusted_amount' => 'float',
             'balance_due' => 'float',
             'due_date' => 'date',
         ];
@@ -118,5 +120,15 @@ class PatientCharge extends Model
     public function allocations(): HasMany
     {
         return $this->hasMany(PaymentAllocation::class, 'patient_charge_id');
+    }
+
+    /**
+     * Credit adjustments relation.
+     *
+     * @return HasMany<CreditAdjustment, $this>
+     */
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(CreditAdjustment::class, 'patient_charge_id');
     }
 }

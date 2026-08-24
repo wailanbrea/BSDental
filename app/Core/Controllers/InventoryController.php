@@ -130,4 +130,56 @@ class InventoryController extends Controller
 
         return redirect()->back()->with('success', "Compra de {$item->name} ({$movement->quantity} {$item->unit}) ingresada con éxito.");
     }
+
+    /**
+     * Record manual stock adjustment / loss (INV-02).
+     */
+    public function recordAdjustment(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'inventory_item_id' => ['required', 'uuid', 'exists:tenant.inventory_items,id'],
+            'warehouse_id' => ['required', 'uuid', 'exists:tenant.warehouses,id'],
+            'type' => ['required', 'string', 'in:adjustment_in,adjustment_out,waste_loss'],
+            'quantity' => ['required', 'numeric', 'min:0.01'],
+            'reason' => ['required', 'string', 'min:5', 'max:255'],
+            'batch_id' => ['nullable', 'uuid', 'exists:tenant.inventory_batches,id'],
+        ]);
+
+        $item = InventoryItem::findOrFail($validated['inventory_item_id']);
+        $warehouse = Warehouse::findOrFail($validated['warehouse_id']);
+        $batch = ! empty($validated['batch_id']) ? \App\Core\Models\InventoryBatch::find($validated['batch_id']) : null;
+        $userId = Auth::guard('web')->id();
+
+        $movement = $this->stockService->recordManualAdjustment(
+            $item,
+            $warehouse,
+            $validated['type'],
+            (float) $validated['quantity'],
+            $validated['reason'],
+            $batch,
+            $userId ? (string) $userId : null
+        );
+
+        $this->auditLogger->logTenant('inventory.adjustment_recorded', 'StockMovement', $movement->id, [
+            'item_id' => $item->id,
+            'type' => $movement->type,
+            'quantity' => $movement->quantity,
+            'reason' => $validated['reason'],
+        ]);
+
+        return redirect()->back()->with('success', "Ajuste de inventario registrado ({$movement->type}).");
+    }
+
+    /**
+     * View full item Kardex history (INV-01).
+     */
+    public function kardex(string $itemId): Response
+    {
+        $item = InventoryItem::with(['category', 'batches.warehouse'])->findOrFail($itemId);
+        $kardexData = $this->stockService->getItemKardex($item);
+
+        return Inertia::render('Clinic/Inventory/Kardex', [
+            'kardex' => $kardexData,
+        ]);
+    }
 }

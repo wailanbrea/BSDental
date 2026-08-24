@@ -24,7 +24,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathApt = database_path('tenant_gate_apt_test.sqlite');
+    $this->dbPathApt = $this->tenantDatabasePath('tenant_gate_apt_test.sqlite');
     if (! file_exists($this->dbPathApt)) {
         touch($this->dbPathApt);
     }

@@ -129,6 +129,7 @@ Route::group([], function () {
             Route::get('/patients/{id}', [PatientController::class, 'show'])->middleware('permission:patients.view')->name('clinic.patients.show');
             Route::put('/patients/{id}', [PatientController::class, 'update'])->middleware('permission:patients.update')->name('clinic.patients.update');
             Route::post('/patients/{id}/files', [PatientController::class, 'uploadFile'])->middleware('permission:patients.update')->name('clinic.patients.upload_file');
+            Route::post('/patients/{id}/merge', [PatientController::class, 'merge'])->middleware('permission:patients.update')->name('clinic.patients.merge');
             Route::get('/patient-files/{id}/view', [PatientController::class, 'viewFile'])->middleware('permission:patients.view')->name('clinic.patient_files.view');
             Route::get('/patient-files/{id}/download', [PatientController::class, 'downloadFile'])->middleware('permission:patients.view')->name('clinic.patient_files.download');
             Route::delete('/patients/{id}', [PatientController::class, 'destroy'])->middleware('permission:patients.delete')->name('clinic.patients.destroy');
@@ -181,33 +182,45 @@ Route::group([], function () {
 
             // Inventory & Stock Ledger
             Route::get('/inventory', [InventoryController::class, 'index'])->middleware('permission:inventory.view')->name('clinic.inventory.index');
+            Route::get('/inventory/items/{id}/kardex', [InventoryController::class, 'kardex'])->middleware('permission:inventory.view')->name('clinic.inventory.kardex');
             Route::post('/inventory/items', [InventoryController::class, 'storeItem'])->middleware('permission:inventory.adjust')->name('clinic.inventory.store_item');
             Route::post('/inventory/purchases', [InventoryController::class, 'recordPurchase'])->middleware('permission:inventory.purchase')->name('clinic.inventory.record_purchase');
+            Route::post('/inventory/adjustments', [InventoryController::class, 'recordAdjustment'])->middleware('permission:inventory.adjust')->name('clinic.inventory.record_adjustment');
 
             // Dental Laboratory & Prosthesis
             Route::get('/lab', [DentalLabController::class, 'index'])->middleware('permission:lab.view')->name('clinic.lab.index');
             Route::post('/lab/orders', [DentalLabController::class, 'storeOrder'])->middleware('permission:lab.order')->name('clinic.lab.store_order');
             Route::post('/lab/orders/{id}/status', [DentalLabController::class, 'updateStatus'])->middleware('permission:lab.receive')->name('clinic.lab.update_status');
+            Route::post('/lab/orders/{id}/quality', [DentalLabController::class, 'receiveQuality'])->middleware('permission:lab.receive')->name('clinic.lab.receive_quality');
+            Route::post('/lab/orders/{id}/remake', [DentalLabController::class, 'remake'])->middleware('permission:lab.order')->name('clinic.lab.remake');
 
             // Patient Billing & Invoicing
             Route::get('/patients/{patientId}/billing', [BillingController::class, 'index'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.index');
+            Route::get('/patients/{patientId}/billing/statement', [BillingController::class, 'showStatement'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.statement');
             Route::post('/patients/{patientId}/billing/charges', [BillingController::class, 'storeCharge'])->middleware('permission:payments.create')->name('clinic.billing.store_charge');
             Route::post('/patients/{patientId}/billing/payments', [BillingController::class, 'storePayment'])->middleware('permission:payments.create')->name('clinic.billing.store_payment');
             Route::get('/charges/{chargeId}', [BillingController::class, 'showCharge'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.charge');
+            Route::post('/charges/{chargeId}/adjustments', [BillingController::class, 'storeAdjustment'])->middleware('permission:payments.create')->name('clinic.billing.adjustment');
             Route::get('/payments/{paymentId}', [BillingController::class, 'showPayment'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.payment');
             Route::post('/payments/{paymentId}/allocate', [BillingController::class, 'allocate'])->middleware('permission:payments.create')->name('clinic.billing.allocate');
             Route::post('/payments/{paymentId}/refund', [BillingController::class, 'refund'])->middleware('permission:payments.refund')->name('clinic.billing.refund');
+            Route::get('/billing/aging-receivables', [BillingController::class, 'agingReport'])->middleware('permission:finance.reports')->name('clinic.billing.aging');
 
             // Cash Registers & Sessions
             Route::get('/cash-registers', [CashRegisterController::class, 'index'])->middleware('permission:cash.view')->name('clinic.cash.index');
             Route::post('/cash-registers/{id}/open', [CashRegisterController::class, 'open'])->middleware('permission:cash.open')->name('clinic.cash.open');
+            Route::get('/cash-sessions/{id}', [CashRegisterController::class, 'showSession'])->middleware('permission:cash.view')->name('clinic.cash.session');
+            Route::get('/cash-sessions/{id}/export', [CashRegisterController::class, 'exportSession'])->middleware('permission:cash.view|finance.reports')->name('clinic.cash.session_export');
             Route::post('/cash-sessions/{id}/movements', [CashRegisterController::class, 'storeMovement'])->middleware('permission:cash.open|cash.close')->name('clinic.cash.movement');
             Route::post('/cash-sessions/{id}/close', [CashRegisterController::class, 'close'])->middleware('permission:cash.close')->name('clinic.cash.close');
+            Route::post('/cash-sessions/{id}/reopen', [CashRegisterController::class, 'reopen'])->middleware('permission:cash.reopen')->name('clinic.cash.reopen');
 
             // CRM, Recalls & Follow-up
             Route::get('/crm', [CrmFollowUpController::class, 'index'])->middleware('permission:crm.view')->name('clinic.crm.index');
             Route::post('/crm/tasks', [CrmFollowUpController::class, 'storeTask'])->middleware('permission:crm.manage')->name('clinic.crm.store_task');
             Route::post('/crm/tasks/{id}/complete', [CrmFollowUpController::class, 'completeTask'])->middleware('permission:crm.manage')->name('clinic.crm.complete_task');
+            Route::post('/crm/profiles/{id}/stage', [CrmFollowUpController::class, 'updateStage'])->middleware('permission:crm.manage')->name('clinic.crm.update_stage');
+            Route::get('/crm/patients/{id}/whatsapp-link', [CrmFollowUpController::class, 'whatsappLink'])->middleware('permission:crm.view')->name('clinic.crm.whatsapp_link');
 
             // Executive Analytics & Reports
             Route::get('/analytics', [AnalyticsDashboardController::class, 'index'])->middleware('permission:finance.reports')->name('clinic.analytics.index');

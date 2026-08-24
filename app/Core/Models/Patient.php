@@ -117,6 +117,7 @@ class Patient extends Model
         'notes',
         'tags',
         'status',
+        'whatsapp_opt_in',
     ];
 
     /**
@@ -129,6 +130,7 @@ class Patient extends Model
         return [
             'birth_date' => 'date',
             'is_minor' => 'boolean',
+            'whatsapp_opt_in' => 'boolean',
             'tags' => 'array',
         ];
     }

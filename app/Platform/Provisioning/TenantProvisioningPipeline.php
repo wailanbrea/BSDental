@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use RuntimeException;
 use Spatie\Permission\PermissionRegistrar;
 
 class TenantProvisioningPipeline
@@ -50,7 +51,7 @@ class TenantProvisioningPipeline
 
         $slug = Str::slug($input['slug']);
         $domainHost = strtolower(trim($input['domain']));
-        $dbPath = $input['database_name'] ?? database_path("tenant_{$slug}.sqlite");
+        $dbPath = $input['database_name'] ?? $this->defaultDatabasePath($slug);
 
         // 2. Create Landlord Tenant record in 'provisioning' state
         /** @var Tenant $tenant */
@@ -138,6 +139,20 @@ class TenantProvisioningPipeline
             $tenant->update(['status' => 'provisioning_failed']);
             throw $e;
         }
+    }
+
+    protected function defaultDatabasePath(string $slug): string
+    {
+        if (! app()->environment('testing')) {
+            return database_path("tenant_{$slug}.sqlite");
+        }
+
+        $directory = config('database.testing_tenant_directory');
+        if (! is_string($directory) || $directory === '') {
+            throw new RuntimeException('Tenant provisioning requires an isolated database directory while testing.');
+        }
+
+        return rtrim($directory, '\\/').DIRECTORY_SEPARATOR."tenant_{$slug}.sqlite";
     }
 
     /**

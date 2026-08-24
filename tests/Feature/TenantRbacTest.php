@@ -23,8 +23,8 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathA = database_path('tenant_a_rbac_test.sqlite');
-    $this->dbPathB = database_path('tenant_b_rbac_test.sqlite');
+    $this->dbPathA = $this->tenantDatabasePath('tenant_a_rbac_test.sqlite');
+    $this->dbPathB = $this->tenantDatabasePath('tenant_b_rbac_test.sqlite');
 
     if (! file_exists($this->dbPathA)) {
         touch($this->dbPathA);

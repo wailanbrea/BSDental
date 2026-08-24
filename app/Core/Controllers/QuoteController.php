@@ -349,6 +349,7 @@ class QuoteController extends Controller
             'items.*.procedure_id' => ['required', 'uuid', 'exists:tenant.procedures,id'],
             'items.*.tooth_number' => ['nullable', 'integer', Rule::in($this->validFdiToothNumbers())],
             'items.*.surface' => ['nullable', 'string', 'max:30'],
+            'items.*.phase' => ['nullable', 'integer', 'min:1', 'max:10'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
             'items.*.discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
@@ -380,6 +381,7 @@ class QuoteController extends Controller
                     'procedure_id' => $procedure->id,
                     'tooth_number' => $itemData['tooth_number'] ?? null,
                     'surface' => $itemData['surface'] ?? 'all',
+                    'phase' => $itemData['phase'] ?? 1,
                     'unit_price' => $procedure->price,
                     'quantity' => $itemData['quantity'],
                     'discount_percentage' => $itemData['discount_percentage'] ?? 0.00,

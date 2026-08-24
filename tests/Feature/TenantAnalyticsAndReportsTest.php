@@ -36,7 +36,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathAnl = database_path('tenant_gate_anl_test.sqlite');
+    $this->dbPathAnl = $this->tenantDatabasePath('tenant_gate_anl_test.sqlite');
     if (! file_exists($this->dbPathAnl)) {
         touch($this->dbPathAnl);
     }

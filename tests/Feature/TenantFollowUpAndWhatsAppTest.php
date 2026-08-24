@@ -28,7 +28,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathWa = database_path('tenant_gate_wa_test.sqlite');
+    $this->dbPathWa = $this->tenantDatabasePath('tenant_gate_wa_test.sqlite');
     if (! file_exists($this->dbPathWa)) {
         touch($this->dbPathWa);
     }
@@ -215,4 +215,59 @@ test('[GATE WA / GATE CRM] Follow-up task lifecycle and strict reminder invalida
     expect(TenantAuditLog::where('action', 'crm.task_created')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'crm.task_completed')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'appointment.whatsapp_confirmed')->exists())->toBeTrue();
+});
+
+test('[CRM-01 & CRM-02] Commercial pipeline stage transition with loss reasons and WhatsApp link generation', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $stageWon = CrmStage::create([
+        'name' => 'Ganado / Tratamiento Iniciado',
+        'slug' => 'won',
+        'order_index' => 2,
+    ]);
+
+    $stageLost = CrmStage::create([
+        'name' => 'Perdido',
+        'slug' => 'lost',
+        'order_index' => 3,
+    ]);
+
+    $profile = \App\Core\Models\PatientCrmProfile::create([
+        'patient_id' => $this->patient->id,
+        'stage_id' => $stageWon->id,
+        'source' => 'Google Ads',
+        'estimated_lifetime_value' => 500.00,
+    ]);
+
+    // 1. Update stage to lost with structured reason
+    $updateResponse = $this->post("http://crm.bsdental.test/crm/profiles/{$profile->id}/stage", [
+        'stage_id' => $stageLost->id,
+        'loss_reason' => 'price',
+        'notes' => 'Paciente indicó que el presupuesto superaba su presupuesto actual',
+    ]);
+    $updateResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $profile->refresh();
+    expect($profile->stage_id)->toBe($stageLost->id)
+        ->and($profile->loss_reason)->toBe('price')
+        ->and(TenantAuditLog::where('action', 'crm.stage_updated')->exists())->toBeTrue();
+
+    // 2. Generate WhatsApp link (CRM-02)
+    $waResponse = $this->getJson("http://crm.bsdental.test/crm/patients/{$this->patient->id}/whatsapp-link?template=quote_followup");
+    $waResponse->assertOk()
+        ->assertJsonStructure([
+            'patient_name',
+            'phone',
+            'whatsapp_opt_in',
+            'whatsapp_url',
+            'message_preview',
+        ]);
+
+    $data = $waResponse->json();
+    expect($data['whatsapp_url'])->toContain('wa.me/584149998877')
+        ->and($data['whatsapp_opt_in'])->toBeTrue()
+        ->and($data['message_preview'])->toContain('presupuesto');
 });

@@ -10,37 +10,37 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property string $id
- * @property string $payment_id
+ * @property string $patient_charge_id
  * @property string $patient_id
- * @property string|null $cash_session_id
+ * @property string $credit_note_number
+ * @property string $type
  * @property float $amount
  * @property string $reason
- * @property Carbon $refunded_at
+ * @property Carbon $adjusted_at
  * @property string|null $created_by_user_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property Payment $payment
+ * @property PatientCharge $charge
  * @property Patient $patient
- * @property CashSession|null $cashSession
  * @property User|null $createdBy
  */
-class Refund extends Model
+class CreditAdjustment extends Model
 {
     use HasUuids;
 
     protected $connection = 'tenant';
 
-    protected $table = 'refunds';
+    protected $table = 'credit_adjustments';
 
     protected $fillable = [
         'id',
-        'payment_id',
+        'patient_charge_id',
         'patient_id',
-        'cash_session_id',
+        'credit_note_number',
+        'type',
         'amount',
         'reason',
-        'idempotency_key',
-        'refunded_at',
+        'adjusted_at',
         'created_by_user_id',
     ];
 
@@ -48,18 +48,18 @@ class Refund extends Model
     {
         return [
             'amount' => 'float',
-            'refunded_at' => 'datetime',
+            'adjusted_at' => 'datetime',
         ];
     }
 
     /**
-     * Payment relation.
+     * Charge relation.
      *
-     * @return BelongsTo<Payment, $this>
+     * @return BelongsTo<PatientCharge, $this>
      */
-    public function payment(): BelongsTo
+    public function charge(): BelongsTo
     {
-        return $this->belongsTo(Payment::class, 'payment_id');
+        return $this->belongsTo(PatientCharge::class, 'patient_charge_id');
     }
 
     /**
@@ -70,16 +70,6 @@ class Refund extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class, 'patient_id');
-    }
-
-    /**
-     * Cash session relation.
-     *
-     * @return BelongsTo<CashSession, $this>
-     */
-    public function cashSession(): BelongsTo
-    {
-        return $this->belongsTo(CashSession::class, 'cash_session_id');
     }
 
     /**

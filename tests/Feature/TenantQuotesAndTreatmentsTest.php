@@ -25,7 +25,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathQuo = database_path('tenant_gate_quo_test.sqlite');
+    $this->dbPathQuo = $this->tenantDatabasePath('tenant_gate_quo_test.sqlite');
     if (! file_exists($this->dbPathQuo)) {
         touch($this->dbPathQuo);
     }
@@ -319,4 +319,33 @@ test('[GATE QUO] A prospect quote can link to a duplicate candidate without crea
         ->assertInertia(fn (Assert $page) => $page
             ->component('Clinic/Quotes/AllIndex')
             ->where('quotes.data.0.id', $quote->id));
+});
+
+test('[CLN-03] Multi-phased quotes preserve phase structure when converted to active treatment plan', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    // 1. Create quote with 2 distinct phases (Phase 1: Saneamiento, Phase 2: Restauración)
+    $createResponse = $this->post("http://presupuestos.bsdental.test/patients/{$this->patient->id}/quotes", [
+        'alternative_name' => 'Plan Integral por Fases',
+        'items' => [
+            ['procedure_id' => $this->procLimpieza->id, 'quantity' => 1, 'phase' => 1],
+            ['procedure_id' => $this->procResina->id, 'quantity' => 1, 'tooth_number' => 11, 'phase' => 2],
+        ],
+    ]);
+    $createResponse->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $quote = Quote::where('patient_id', $this->patient->id)->where('alternative_name', 'Plan Integral por Fases')->firstOrFail();
+    expect($quote->items()->where('phase', 1)->count())->toBe(1)
+        ->and($quote->items()->where('phase', 2)->count())->toBe(1);
+
+    // 2. Approve and convert to treatment plan
+    $approveResponse = $this->post("http://presupuestos.bsdental.test/quotes/{$quote->id}/approve");
+    $approveResponse->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $plan = TreatmentPlan::where('quote_id', $quote->id)->firstOrFail();
+    expect($plan->items()->where('phase', 1)->count())->toBe(1)
+        ->and($plan->items()->where('phase', 2)->count())->toBe(1);
 });

@@ -17,6 +17,7 @@ use App\Core\Models\TreatmentPlanItem;
 use App\Core\Models\UserNotification;
 use App\Core\Models\Warehouse;
 use App\Core\Security\Models\TenantAuditLog;
+use App\Core\Services\DentalLabService;
 use App\Core\Services\InventoryStockService;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
@@ -24,6 +25,7 @@ use App\Platform\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     Schema::connection('landlord')->dropAllTables();
@@ -33,7 +35,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathInv = database_path('tenant_gate_inv_test.sqlite');
+    $this->dbPathInv = $this->tenantDatabasePath('tenant_gate_inv_test.sqlite');
     if (! file_exists($this->dbPathInv)) {
         touch($this->dbPathInv);
     }
@@ -267,4 +269,105 @@ test('[GATE INV] Reconciliable stock ledger, purchase != consumption and dental 
     expect(TenantAuditLog::where('action', 'inventory.purchase_recorded')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'lab_order.created')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'lab_order.status_updated')->exists())->toBeTrue();
+});
+
+test('[INV-01 & INV-02] Manual stock adjustments, Kardex ledger and expiry alerts', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $stockService = app(InventoryStockService::class);
+
+    // Initial purchase
+    $stockService->recordPurchase(
+        $this->itemResina,
+        $this->warehouse,
+        'LOT-KARDEX-01',
+        10.00,
+        25.00,
+        now()->addDays(15)->format('Y-m-d'),
+        (string) $this->user->id
+    );
+
+    // 1. Manual adjustment out (waste/rotura)
+    $adjustOutResponse = $this->post('http://inventario.bsdental.test/inventory/adjustments', [
+        'inventory_item_id' => $this->itemResina->id,
+        'warehouse_id' => $this->warehouse->id,
+        'type' => 'waste_loss',
+        'quantity' => 2.00,
+        'reason' => 'Jeringa dañada accidentalmente en esterilización',
+    ]);
+    $adjustOutResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $this->itemResina->refresh();
+    expect($this->itemResina->totalStock())->toBe(8.0)
+        ->and(TenantAuditLog::where('action', 'inventory.adjustment_recorded')->exists())->toBeTrue();
+
+    // 2. Kardex endpoint
+    $kardexResponse = $this->get("http://inventario.bsdental.test/inventory/items/{$this->itemResina->id}/kardex");
+    $kardexResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Inventory/Kardex')
+            ->where('kardex.item.id', $this->itemResina->id)
+            ->where('kardex.total_stock', 8)
+            ->has('kardex.movements', 2)
+        );
+
+    // 3. Alerts (Expiry < 30 days)
+    $context->makeCurrent($this->tenant);
+    $alerts = $stockService->getInventoryAlerts($this->warehouse);
+    expect($alerts['expiring_count'])->toBeGreaterThanOrEqual(1);
+});
+
+test('[LAB-01 & LAB-02] Quality check reception and reject-and-remake order with parent linkage', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $labService = app(DentalLabService::class);
+
+    $originalOrder = $labService->createOrder(
+        $this->patient,
+        $this->lab,
+        'Corona Zirconio Monolítico Pieza 24',
+        24,
+        'A3',
+        60.00,
+        now()->addDays(5)->format('Y-m-d'),
+        null,
+        (string) $this->user->id
+    );
+
+    // 1. Receive with quality check
+    $qualityResponse = $this->post("http://inventario.bsdental.test/lab/orders/{$originalOrder->id}/quality", [
+        'final_cost' => 65.00,
+        'quality_check_notes' => 'Ajuste oclusal verificado conforme en articulador',
+    ]);
+    $qualityResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $originalOrder->refresh();
+    expect($originalOrder->status)->toBe('received')
+        ->and($originalOrder->final_cost)->toBe(65.0)
+        ->and($originalOrder->quality_check_notes)->toBe('Ajuste oclusal verificado conforme en articulador');
+
+    // 2. Reject and request remake
+    $remakeResponse = $this->post("http://inventario.bsdental.test/lab/orders/{$originalOrder->id}/remake", [
+        'remake_reason' => 'Discrepancia marginal detectada en prueba de estructura intraoral',
+        'shade_guide' => 'A3.5',
+        'estimated_cost' => 0.00,
+    ]);
+    $remakeResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $originalOrder->refresh();
+    expect($originalOrder->status)->toBe('rejected_remake')
+        ->and($originalOrder->remake_reason)->toBe('Discrepancia marginal detectada en prueba de estructura intraoral');
+
+    $remakeOrder = LabOrder::where('parent_order_id', $originalOrder->id)->firstOrFail();
+    expect($remakeOrder->order_number)->toBe('LAB-00002')
+        ->and($remakeOrder->status)->toBe('ordered')
+        ->and($remakeOrder->shade_guide)->toBe('A3.5')
+        ->and($remakeOrder->work_description)->toContain('RE-TRABAJO');
 });

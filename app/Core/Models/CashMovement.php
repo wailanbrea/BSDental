@@ -37,6 +37,7 @@ class CashMovement extends Model
         'amount',
         'payment_method',
         'concept',
+        'idempotency_key',
         'created_by_user_id',
         'created_at',
     ];

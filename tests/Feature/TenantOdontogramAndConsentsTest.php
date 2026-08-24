@@ -22,7 +22,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathOdo = database_path('tenant_gate_odo_test.sqlite');
+    $this->dbPathOdo = $this->tenantDatabasePath('tenant_gate_odo_test.sqlite');
     if (! file_exists($this->dbPathOdo)) {
         touch($this->dbPathOdo);
     }

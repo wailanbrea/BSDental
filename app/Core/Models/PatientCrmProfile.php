@@ -34,6 +34,7 @@ class PatientCrmProfile extends Model
         'source',
         'estimated_lifetime_value',
         'notes',
+        'loss_reason',
     ];
 
     protected function casts(): array

@@ -475,4 +475,66 @@ class PatientController extends Controller
         return redirect()->route('clinic.patients.index')
             ->with('success', 'Paciente archivado exitosamente.');
     }
+
+    /**
+     * Merge duplicate patient into master patient record (CLN-01).
+     */
+    public function merge(Request $request, string $masterId): RedirectResponse
+    {
+        $master = Patient::findOrFail($masterId);
+
+        $validated = $request->validate([
+            'duplicate_patient_id' => ['required', 'uuid', 'exists:tenant.patients,id', "different:{$masterId}"],
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+        ]);
+
+        $duplicate = Patient::findOrFail($validated['duplicate_patient_id']);
+
+        DB::connection('tenant')->transaction(function () use ($master, $duplicate, $validated) {
+            $dupId = $duplicate->id;
+            $masterId = $master->id;
+
+            // Transfer all clinical & operational records
+            \App\Core\Models\Appointment::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\Quote::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\TreatmentPlan::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\ClinicalEncounter::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\Odontogram::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\PatientConsent::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\PatientCharge::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\Payment::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\Refund::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\CreditAdjustment::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\LabOrder::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\FollowUpTask::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            \App\Core\Models\PatientFile::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+
+            // Merge tags
+            $masterTags = $master->tags ?? [];
+            $dupTags = $duplicate->tags ?? [];
+            $mergedTags = array_values(array_unique(array_merge($masterTags, $dupTags)));
+
+            $master->update([
+                'tags' => $mergedTags,
+                'notes' => ($master->notes ? $master->notes."\n" : '')."[Fusión de {$duplicate->record_number} ({$duplicate->full_name})]: {$validated['reason']}",
+            ]);
+
+            $duplicate->update([
+                'status' => 'inactive',
+                'notes' => ($duplicate->notes ? $duplicate->notes."\n" : '')."[FUSIONADO EN {$master->record_number}]: {$validated['reason']}",
+            ]);
+            $duplicate->delete(); // Soft delete
+
+            $this->auditLogger->logTenant('patient.merged', 'Patient', $master->id, [
+                'master_id' => $master->id,
+                'master_record' => $master->record_number,
+                'duplicate_id' => $duplicate->id,
+                'duplicate_record' => $duplicate->record_number,
+                'reason' => $validated['reason'],
+            ]);
+        });
+
+        return redirect()->route('clinic.patients.show', $master->id)
+            ->with('success', "Paciente {$duplicate->full_name} ({$duplicate->record_number}) fusionado exitosamente con {$master->full_name} ({$master->record_number}).");
+    }
 }

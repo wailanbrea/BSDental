@@ -30,7 +30,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathFin = database_path('tenant_gate_fin_test.sqlite');
+    $this->dbPathFin = $this->tenantDatabasePath('tenant_gate_fin_test.sqlite');
     if (! file_exists($this->dbPathFin)) {
         touch($this->dbPathFin);
     }
@@ -366,4 +366,285 @@ test('[GATE-FIN] Cash payments require an open session and manual movements only
         'Intento tardío',
         'cash'
     ))->toThrow(InvalidArgumentException::class, 'La sesión de caja seleccionada no está abierta.');
+});
+
+test('[FIN-01 & FIN-02] Controlled cash session reopening with audit and multi-register simultaneous sessions', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $cashService = app(CashRegisterService::class);
+
+    // Create a second branch and second cash register
+    $branch2 = Branch::create([
+        'name' => 'Sede Norte',
+        'is_main' => false,
+        'status' => 'active',
+    ]);
+    $register2 = CashRegister::create([
+        'branch_id' => $branch2->id,
+        'name' => 'Caja Norte 01',
+        'is_active' => true,
+    ]);
+
+    // Open sessions in both registers simultaneously (FIN-02)
+    $session1 = $cashService->openSession($this->register, $this->user, 100.00);
+    $session2 = $cashService->openSession($register2, $this->user, 200.00);
+
+    expect($session1->status)->toBe('open')
+        ->and($session2->status)->toBe('open')
+        ->and($session1->cash_register_id)->toBe($this->register->id)
+        ->and($session2->cash_register_id)->toBe($register2->id);
+
+    // Test index page lists multiple active sessions and registers
+    $indexResponse = $this->get('http://finanzas.bsdental.test/cash-registers');
+    $indexResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Cash/Index')
+            ->has('registers', 2)
+            ->has('activeSessions', 2)
+            ->where('canReopen', true)
+        );
+
+    // Close session 1
+    $context->makeCurrent($this->tenant);
+    $cashService->closeSession($session1, $this->user, 100.00, 'Cierre de turno tarde');
+    $session1->refresh();
+    expect($session1->status)->toBe('closed')
+        ->and($session1->closed_at)->not->toBeNull();
+
+    // Reopen validation: reason too short (< 10 chars) -> 422
+    $shortReasonResponse = $this->post("http://finanzas.bsdental.test/cash-sessions/{$session1->id}/reopen", [
+        'reason' => 'Error',
+    ]);
+    $shortReasonResponse->assertSessionHasErrors(['reason']);
+
+    // Valid reopening (FIN-01)
+    $validReopenResponse = $this->post("http://finanzas.bsdental.test/cash-sessions/{$session1->id}/reopen", [
+        'reason' => 'Ajuste de cobro no registrado por corte de energía eléctrica',
+    ]);
+    $validReopenResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $session1->refresh();
+    expect($session1->status)->toBe('open')
+        ->and($session1->closed_at)->toBeNull()
+        ->and($session1->closing_notes)->toContain('REAPERTURA')
+        ->and(TenantAuditLog::where('action', 'cash.session_reopened')->exists())->toBeTrue();
+
+    // Prevent reopening when another session on the same register is already open
+    $session1Again = $cashService->closeSession($session1, $this->user, 100.00, 'Segundo cierre');
+    $newSessionOnReg1 = $cashService->openSession($this->register, $this->user, 50.00);
+
+    expect(fn () => $cashService->reopenSession($session1Again, $this->user, 'Intento de doble sesión abierta'))
+        ->toThrow(InvalidArgumentException::class, 'Esta caja ya cuenta con una sesión abierta actualmente.');
+});
+
+test('[FIN-03] Detailed cash session audit view, payment method breakdown and CSV export', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $cashService = app(CashRegisterService::class);
+    $billingService = app(BillingPaymentService::class);
+
+    $session = $cashService->openSession($this->register, $this->user, 150.00);
+
+    // Add multiple payments and manual movements
+    $cashService->recordManualMovement($session, $this->user, 'manual_income', 50.00, 'Fondo de cambio extra', 'cash');
+    $cashService->recordManualMovement($session, $this->user, 'manual_expense', 20.00, 'Material de limpieza', 'cash');
+    $billingService->recordPayment($this->patient, [
+        ['method' => 'cash', 'amount' => 80.00],
+        ['method' => 'zelle', 'amount' => 40.00, 'reference_code' => 'ZEL-9988'],
+        ['method' => 'credit_card', 'amount' => 60.00, 'reference_code' => 'CARD-1122'],
+    ], $session, (string) $this->user->id);
+
+    // Test show session endpoint
+    $showResponse = $this->get("http://finanzas.bsdental.test/cash-sessions/{$session->id}");
+    $showResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Cash/Show')
+            ->where('session.id', $session->id)
+            ->where('methodTotals.cash', 110)
+            ->where('methodTotals.zelle', 40)
+            ->where('methodTotals.credit_card', 60)
+            ->where('totalIncome', 230)
+            ->where('totalExpense', 20)
+        );
+
+    // Test CSV export endpoint
+    $exportResponse = $this->get("http://finanzas.bsdental.test/cash-sessions/{$session->id}/export");
+    $exportResponse->assertOk();
+    $exportResponse->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+
+    $context->makeCurrent($this->tenant);
+    expect(TenantAuditLog::where('action', 'cash.session_exported')->exists())->toBeTrue();
+});
+
+test('[FIN-04] Financial idempotency on payments, refunds and manual cash movements', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $cashService = app(CashRegisterService::class);
+    $billingService = app(BillingPaymentService::class);
+
+    $session = $cashService->openSession($this->register, $this->user, 100.00);
+
+    // 1. Payment idempotency
+    $idemKey1 = 'pay-idem-key-001';
+    $payment1 = $billingService->recordPayment(
+        $this->patient,
+        [['method' => 'cash', 'amount' => 50.00]],
+        $session,
+        (string) $this->user->id,
+        $idemKey1
+    );
+
+    expect(Payment::count())->toBe(1)
+        ->and($payment1->idempotency_key)->toBe($idemKey1);
+
+    // Replay with identical key & payload returns existing payment without creating a second record
+    $payment1Replay = $billingService->recordPayment(
+        $this->patient,
+        [['method' => 'cash', 'amount' => 50.00]],
+        $session,
+        (string) $this->user->id,
+        $idemKey1
+    );
+
+    expect(Payment::count())->toBe(1)
+        ->and($payment1Replay->id)->toBe($payment1->id);
+
+    // Same key with different payload throws InvalidArgumentException
+    expect(fn () => $billingService->recordPayment(
+        $this->patient,
+        [['method' => 'cash', 'amount' => 99.00]],
+        $session,
+        (string) $this->user->id,
+        $idemKey1
+    ))->toThrow(InvalidArgumentException::class, 'Clave de idempotencia ya utilizada con parámetros diferentes.');
+
+    // 2. Refund idempotency
+    $idemKeyRefund = 'ref-idem-key-001';
+    $refund1 = $billingService->refundPayment($payment1, 20.00, 'Devolución parcial', $session, (string) $this->user->id, $idemKeyRefund);
+    expect(Refund::count())->toBe(1);
+
+    // Replay with same key returns existing refund
+    $refund1Replay = $billingService->refundPayment($payment1, 20.00, 'Devolución parcial', $session, (string) $this->user->id, $idemKeyRefund);
+    expect(Refund::count())->toBe(1)
+        ->and($refund1Replay->id)->toBe($refund1->id);
+
+    // 3. Manual movement idempotency
+    $idemKeyMove = 'mov-idem-key-001';
+    $move1 = $cashService->recordManualMovement($session, $this->user, 'manual_income', 30.00, 'Fondo adicional', 'cash', $idemKeyMove);
+    $move1Replay = $cashService->recordManualMovement($session, $this->user, 'manual_income', 30.00, 'Fondo adicional', 'cash', $idemKeyMove);
+
+    expect($move1Replay->id)->toBe($move1->id)
+        ->and(CashMovement::where('idempotency_key', $idemKeyMove)->count())->toBe(1);
+});
+
+test('[FIN-05] Credit adjustments and credit notes update charge balance and produce audit trail', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $billingService = app(BillingPaymentService::class);
+
+    $charge = $billingService->createCharge(
+        $this->patient,
+        'Corona Porcelana Premium',
+        300.00,
+        0.00,
+        null,
+        $this->professional->id,
+        (string) $this->user->id
+    );
+
+    expect($charge->total_amount)->toBe(300.0)
+        ->and($charge->balance_due)->toBe(300.0)
+        ->and($charge->adjusted_amount)->toBe(0.0);
+
+    // 1. Partial credit adjustment
+    $adjustmentResponse = $this->post("http://finanzas.bsdental.test/charges/{$charge->id}/adjustments", [
+        'amount' => 50.00,
+        'type' => 'subsequent_discount',
+        'reason' => 'Descuento especial por convenio corporativo',
+    ]);
+    $adjustmentResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $charge->refresh();
+    expect($charge->adjusted_amount)->toBe(50.0)
+        ->and($charge->balance_due)->toBe(250.0)
+        ->and($charge->status)->toBe('pending')
+        ->and(\App\Core\Models\CreditAdjustment::count())->toBe(1)
+        ->and(TenantAuditLog::where('action', 'billing.credit_adjustment_created')->exists())->toBeTrue();
+
+    $creditNote = \App\Core\Models\CreditAdjustment::first();
+    expect($creditNote->credit_note_number)->toBe('NC-00001')
+        ->and($creditNote->type)->toBe('subsequent_discount')
+        ->and($creditNote->amount)->toBe(50.0);
+
+    // 2. Full settlement with second adjustment
+    $fullAdjustmentResponse = $this->post("http://finanzas.bsdental.test/charges/{$charge->id}/adjustments", [
+        'amount' => 250.00,
+        'type' => 'correction',
+        'reason' => 'Ajuste final por garantía de servicio',
+    ]);
+    $fullAdjustmentResponse->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $charge->refresh();
+    expect($charge->adjusted_amount)->toBe(300.0)
+        ->and($charge->balance_due)->toBe(0.0)
+        ->and($charge->status)->toBe('paid');
+
+    // 3. Excess adjustment should fail validation
+    $excessResponse = $this->post("http://finanzas.bsdental.test/charges/{$charge->id}/adjustments", [
+        'amount' => 10.00,
+        'type' => 'correction',
+        'reason' => 'Exceso no permitido',
+    ]);
+    $excessResponse->assertSessionHasErrors(['amount']);
+});
+
+test('[FIN-06] Comprehensive patient account statement and aging receivables buckets report', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $billingService = app(BillingPaymentService::class);
+
+    // Create charges of different ages
+    $chargeCurrent = $billingService->createCharge($this->patient, 'Limpieza Dental', 100.00);
+    $charge35Days = $billingService->createCharge($this->patient, 'Endodoncia Molar', 200.00);
+    $charge35Days->created_at = \Carbon\Carbon::now()->subDays(35);
+    $charge35Days->save();
+
+    $charge100Days = $billingService->createCharge($this->patient, 'Implante de Titanio', 500.00);
+    $charge100Days->created_at = \Carbon\Carbon::now()->subDays(100);
+    $charge100Days->save();
+
+    // 1. Test Patient Statement endpoint
+    $statementResponse = $this->get("http://finanzas.bsdental.test/patients/{$this->patient->id}/billing/statement");
+    $statementResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Billing/Statement')
+            ->where('statement.patient.id', $this->patient->id)
+            ->where('statement.summary.total_charged', 800)
+            ->where('statement.summary.net_balance_due', 800)
+        );
+
+    // 2. Test Aging Receivables report endpoint
+    $agingResponse = $this->get('http://finanzas.bsdental.test/billing/aging-receivables');
+    $agingResponse->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Billing/AgingReceivables')
+            ->where('report.total_receivable', 800)
+            ->where('report.total_charges_count', 3)
+            ->where('report.buckets.current_30.total', 100)
+            ->where('report.buckets.aging_31_60.total', 200)
+            ->where('report.buckets.over_90.total', 500)
+        );
 });

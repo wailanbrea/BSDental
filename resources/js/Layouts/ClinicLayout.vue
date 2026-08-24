@@ -20,9 +20,10 @@ import {
     ChevronDown,
     Building2,
     CheckCircle2,
-    AlertCircle
-    ,ShieldCheck
-    ,ReceiptText
+    AlertCircle,
+    ShieldCheck,
+    ReceiptText,
+    FlaskConical,
 } from 'lucide-vue-next'
 
 interface LayoutNotification {
@@ -69,7 +70,8 @@ const navItems = computed(() => [
     { name: 'Clínica', href: '/encounters', icon: Stethoscope, pattern: /^\/(encounters|odontogram)/, permissions: ['clinical.view', 'odontogram.view'] },
     { name: 'Presupuestos', href: '/quotes', icon: Briefcase, pattern: /^\/(quotes|treatment-plans)/, permissions: ['quotes.view'] },
     { name: 'Facturación', href: '/cash-registers', icon: ReceiptText, pattern: /^\/(cash-registers|charges|payments)/, permissions: ['cash.view', 'payments.view', 'finance.view'] },
-    { name: 'Operaciones', href: '/inventory', icon: Package, pattern: /^\/(inventory|lab|procedures)/, permissions: ['inventory.view', 'lab.view', 'settings.view'] },
+    { name: 'Inventario', href: '/inventory', icon: Package, pattern: /^\/inventory/, permissions: ['inventory.view'] },
+    { name: 'Laboratorio', href: '/lab', icon: FlaskConical, pattern: /^\/lab/, permissions: ['lab.view'] },
     { name: 'CRM', href: '/crm', icon: Megaphone, pattern: /^\/crm/, permissions: ['crm.view'] },
     { name: 'Analítica', href: '/analytics', icon: BarChart3, pattern: /^\/analytics/, permissions: ['finance.reports'] },
     { name: 'Usuarios', href: '/users', icon: ShieldCheck, pattern: /^\/users/, permissions: ['users.view'] },
@@ -197,7 +199,11 @@ v-if="canAny(['settings.view'])"
                     </button>
 
                     <!-- Global Patient Search Bar -->
-                    <form class="relative hidden sm:flex items-center w-full max-w-md" @submit.prevent="onSearchSubmit">
+                    <form 
+                        v-if="canAny(['patients.view'])"
+                        class="relative hidden sm:flex items-center w-full max-w-md" 
+                        @submit.prevent="onSearchSubmit"
+                    >
                         <Search class="w-4 h-4 absolute left-3.5 text-[#505F76] pointer-events-none" />
                         <input 
                             v-model="searchQuery"
@@ -218,6 +224,7 @@ v-if="canAny(['settings.view'])"
 
                     <!-- Inventory / Lab Quick Link -->
                     <Link 
+                        v-if="canAny(['inventory.view'])"
                         href="/inventory" 
                         class="p-2 text-[#505F76] hover:text-[#005C55] hover:bg-[#F1F5F9] rounded-full transition"
                         title="Inventario & Almacén"

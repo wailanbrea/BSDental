@@ -22,7 +22,7 @@ beforeEach(function () {
 
     Storage::fake('local');
 
-    $this->dbPathSec = database_path('tenant_gate_sec_test.sqlite');
+    $this->dbPathSec = $this->tenantDatabasePath('tenant_gate_sec_test.sqlite');
     if (! file_exists($this->dbPathSec)) {
         touch($this->dbPathSec);
     }

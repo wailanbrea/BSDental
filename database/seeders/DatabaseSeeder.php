@@ -50,14 +50,27 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
+    public function __construct(
+        private readonly ?string $tenantDatabasePath = null
+    ) {}
+
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
+        $defaultTenantPath = database_path('tenant_demo.sqlite');
+        $normalizedDefaultPath = str_replace('\\', '/', $defaultTenantPath);
+        $normalizedRequestedPath = $this->tenantDatabasePath === null ? null : str_replace('\\', '/', $this->tenantDatabasePath);
+
+        if (app()->environment('testing') && ($normalizedRequestedPath === null || strcasecmp($normalizedRequestedPath, $normalizedDefaultPath) === 0)) {
+            throw new RuntimeException('DatabaseSeeder requires an explicit isolated tenant database path while testing.');
+        }
+
         // 1. Seed Landlord Database
         $this->command->info('1. Migrando y sembrando Landlord Database...');
         Schema::connection('landlord')->dropAllTables();
@@ -93,7 +106,7 @@ class DatabaseSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        $dbTenantPath = database_path('tenant_demo.sqlite');
+        $dbTenantPath = $this->tenantDatabasePath ?? $defaultTenantPath;
         if (file_exists($dbTenantPath)) {
             @unlink($dbTenantPath);
         }
@@ -187,6 +200,22 @@ class DatabaseSeeder extends Seeder
                 'status' => 'active',
             ]);
             $receptionUser->assignRole('Receptionist');
+
+            $cashierUser = User::create([
+                'name' => 'Marcos Peña (Caja y Cobranzas)',
+                'email' => 'cajero@bsdental.com',
+                'password' => Hash::make('Password123!'),
+                'status' => 'active',
+            ]);
+            $cashierUser->assignRole('Cashier');
+
+            $inventoryUser = User::create([
+                'name' => 'Roberto Gil (Jefe de Almacén)',
+                'email' => 'almacen@bsdental.com',
+                'password' => Hash::make('Password123!'),
+                'status' => 'active',
+            ]);
+            $inventoryUser->assignRole('InventoryManager');
 
             // Branches
             $branchMain = Branch::create([

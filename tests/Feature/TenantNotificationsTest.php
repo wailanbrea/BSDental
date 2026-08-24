@@ -18,7 +18,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->notificationDbPath = database_path('tenant_notifications_test.sqlite');
+    $this->notificationDbPath = $this->tenantDatabasePath('tenant_notifications_test.sqlite');
     if (! file_exists($this->notificationDbPath)) {
         touch($this->notificationDbPath);
     }

@@ -19,7 +19,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathOps = database_path('tenant_gate_ops_test.sqlite');
+    $this->dbPathOps = $this->tenantDatabasePath('tenant_gate_ops_test.sqlite');
     if (! file_exists($this->dbPathOps)) {
         touch($this->dbPathOps);
     }

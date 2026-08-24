@@ -38,7 +38,7 @@ beforeEach(function () {
     $this->tenantStarter = Tenant::create([
         'name' => 'Clínica Pequeña',
         'slug' => 'clinica-pequena',
-        'database_name' => database_path('tenant_starter_test.sqlite'),
+        'database_name' => $this->tenantDatabasePath('tenant_starter_test.sqlite'),
         'plan_id' => 'starter',
         'status' => 'active',
     ]);
@@ -46,7 +46,7 @@ beforeEach(function () {
     $this->tenantEnterprise = Tenant::create([
         'name' => 'Centro Médico Dental',
         'slug' => 'centro-dental',
-        'database_name' => database_path('tenant_enterprise_test.sqlite'),
+        'database_name' => $this->tenantDatabasePath('tenant_enterprise_test.sqlite'),
         'plan_id' => 'enterprise',
         'status' => 'active',
     ]);

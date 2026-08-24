@@ -45,7 +45,7 @@ class TreatmentPlanGeneratorService
                     'procedure_id' => $item->procedure_id,
                     'tooth_number' => $item->tooth_number,
                     'surface' => $item->surface,
-                    'phase' => 1,
+                    'phase' => $item->phase ?? 1,
                     'price' => $item->total,
                     'status' => 'pending',
                 ]);

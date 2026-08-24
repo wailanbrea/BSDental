@@ -86,7 +86,7 @@ class DentalLabController extends Controller
         $order = LabOrder::findOrFail($id);
 
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:draft,ordered,sent,in_progress,ready,received,delivered,cancelled'],
+            'status' => ['required', 'string', 'in:draft,ordered,sent,in_progress,ready,received,delivered,rejected_remake,cancelled'],
             'final_cost' => ['nullable', 'numeric', 'min:0'],
         ]);
 
@@ -103,5 +103,69 @@ class DentalLabController extends Controller
         ]);
 
         return redirect()->back()->with('success', "Orden {$updated->order_number} actualizada a {$updated->status}.");
+    }
+
+    /**
+     * Receive order with quality check notes (LAB-02).
+     */
+    public function receiveQuality(Request $request, string $id): RedirectResponse
+    {
+        $order = LabOrder::findOrFail($id);
+
+        $validated = $request->validate([
+            'final_cost' => ['required', 'numeric', 'min:0'],
+            'quality_check_notes' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        $userId = Auth::guard('web')->id();
+
+        $updated = $this->labService->receiveWithQualityCheck(
+            $order,
+            (float) $validated['final_cost'],
+            $validated['quality_check_notes'],
+            $userId ? (string) $userId : null
+        );
+
+        $this->auditLogger->logTenant('lab_order.received_quality', 'LabOrder', $updated->id, [
+            'order_number' => $updated->order_number,
+            'final_cost' => $updated->final_cost,
+            'quality_notes' => $validated['quality_check_notes'],
+        ]);
+
+        return redirect()->back()->with('success', "Orden {$updated->order_number} recibida con verificación de calidad conforme.");
+    }
+
+    /**
+     * Reject order and request a remake / re-trabajo (LAB-02).
+     */
+    public function remake(Request $request, string $id): RedirectResponse
+    {
+        $originalOrder = LabOrder::with('patient')->findOrFail($id);
+
+        $validated = $request->validate([
+            'remake_reason' => ['required', 'string', 'min:5', 'max:500'],
+            'shade_guide' => ['nullable', 'string', 'max:50'],
+            'estimated_cost' => ['nullable', 'numeric', 'min:0'],
+            'due_date' => ['nullable', 'date'],
+        ]);
+
+        $userId = Auth::guard('web')->id();
+
+        $remakeOrder = $this->labService->rejectAndRemakeOrder(
+            $originalOrder,
+            $validated['remake_reason'],
+            $validated['shade_guide'] ?? null,
+            (float) ($validated['estimated_cost'] ?? 0.00),
+            $validated['due_date'] ?? null,
+            $userId ? (string) $userId : null
+        );
+
+        $this->auditLogger->logTenant('lab_order.remake_requested', 'LabOrder', $remakeOrder->id, [
+            'original_order_number' => $originalOrder->order_number,
+            'remake_order_number' => $remakeOrder->order_number,
+            'reason' => $validated['remake_reason'],
+        ]);
+
+        return redirect()->back()->with('success', "Re-trabajo solicitado. Se generó la orden vinculada {$remakeOrder->order_number}.");
     }
 }

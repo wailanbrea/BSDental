@@ -2,10 +2,35 @@
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
-import { CreditCard, Lock, Unlock, ArrowDownRight, ArrowUpRight, Plus } from 'lucide-vue-next'
+import { 
+    CreditCard, 
+    Lock, 
+    Unlock, 
+    ArrowDownRight, 
+    ArrowUpRight, 
+    Plus, 
+    RotateCcw, 
+    Building2, 
+    AlertCircle, 
+    CheckCircle2, 
+    History,
+    FileText,
+    DollarSign
+} from 'lucide-vue-next'
+
+interface MovementSummary {
+    id: string
+    type: string
+    amount: number
+    payment_method: string
+    concept: string
+    created_at: string
+    created_by?: { name: string }
+}
 
 interface SessionSummary {
     id: string
+    cash_register_id: string
     status: 'open' | 'closing_review' | 'closed'
     opening_balance: number
     expected_cash: number
@@ -13,34 +38,39 @@ interface SessionSummary {
     difference: number
     opened_at: string
     closed_at: string | null
+    closing_notes?: string | null
     opened_by?: { name: string }
-    movements?: Array<{
-        id: string
-        type: string
-        amount: number
-        payment_method: string
-        concept: string
-        created_at: string
-        created_by?: { name: string }
-    }>
+    closed_by?: { name: string }
+    cash_register?: {
+        name: string
+        branch?: { name: string }
+    }
+    movements?: MovementSummary[]
 }
 
 interface RegisterSummary {
     id: string
     name: string
-    branch?: { name: string }
+    branch?: { id: string; name: string }
+    active_session?: SessionSummary | null
     sessions: SessionSummary[]
 }
 
 const props = defineProps<{
     registers: RegisterSummary[]
+    activeSessions: SessionSummary[]
     activeSession: SessionSummary | null
+    canReopen: boolean
 }>()
 
 const isOpenModal = ref(false)
 const isCloseModal = ref(false)
 const isMovementModal = ref(false)
+const isReopenModal = ref(false)
+
 const selectedRegisterId = ref(props.registers[0]?.id || '')
+const selectedSessionToClose = ref<SessionSummary | null>(props.activeSession)
+const selectedSessionToReopen = ref<SessionSummary | null>(null)
 
 const openForm = useForm({
     opening_balance: 100,
@@ -58,30 +88,60 @@ const movementForm = useForm({
     concept: '',
 })
 
-const cashMovements = computed(() => props.activeSession?.movements?.filter((movement) => movement.payment_method === 'cash') || [])
-const cashIncome = computed(() => cashMovements.value.filter((movement) => movement.amount > 0).reduce((total, movement) => total + movement.amount, 0))
-const cashOutflow = computed(() => Math.abs(cashMovements.value.filter((movement) => movement.amount < 0).reduce((total, movement) => total + movement.amount, 0)))
+const reopenForm = useForm({
+    reason: '',
+})
+
+// Current focused session
+const focusedSession = ref<SessionSummary | null>(props.activeSession || props.activeSessions[0] || null)
+
+function selectSession(session: SessionSummary) {
+    focusedSession.value = session
+}
+
+const cashMovements = computed(() => focusedSession.value?.movements?.filter((m) => m.payment_method === 'cash') || [])
+const cashIncome = computed(() => cashMovements.value.filter((m) => m.amount > 0).reduce((total, m) => total + m.amount, 0))
+const cashOutflow = computed(() => Math.abs(cashMovements.value.filter((m) => m.amount < 0).reduce((total, m) => total + m.amount, 0)))
+
+function openModalForRegister(registerId: string) {
+    selectedRegisterId.value = registerId
+    isOpenModal.value = true
+}
+
+function openCloseModalForSession(session: SessionSummary) {
+    selectedSessionToClose.value = session
+    closeForm.counted_cash = session.expected_cash
+    isCloseModal.value = true
+}
+
+function openReopenModalForSession(session: SessionSummary) {
+    selectedSessionToReopen.value = session
+    reopenForm.reset()
+    isReopenModal.value = true
+}
 
 function submitOpen() {
     openForm.post(`/cash-registers/${selectedRegisterId.value}/open`, {
         onSuccess: () => {
             isOpenModal.value = false
+            openForm.reset()
         },
     })
 }
 
 function submitClose() {
-    if (!props.activeSession) return
-    closeForm.post(`/cash-sessions/${props.activeSession.id}/close`, {
+    if (!selectedSessionToClose.value) return
+    closeForm.post(`/cash-sessions/${selectedSessionToClose.value.id}/close`, {
         onSuccess: () => {
             isCloseModal.value = false
+            closeForm.reset()
         },
     })
 }
 
 function submitMovement() {
-    if (!props.activeSession) return
-    movementForm.post(`/cash-sessions/${props.activeSession.id}/movements`, {
+    if (!focusedSession.value) return
+    movementForm.post(`/cash-sessions/${focusedSession.value.id}/movements`, {
         onSuccess: () => {
             isMovementModal.value = false
             movementForm.reset()
@@ -89,179 +149,514 @@ function submitMovement() {
     })
 }
 
+function submitReopen() {
+    if (!selectedSessionToReopen.value) return
+    reopenForm.post(`/cash-sessions/${selectedSessionToReopen.value.id}/reopen`, {
+        onSuccess: () => {
+            isReopenModal.value = false
+            reopenForm.reset()
+        },
+    })
+}
+
 function movementMethodLabel(method: string) {
-    return ({ cash: 'Efectivo', credit_card: 'T. crédito', debit_card: 'T. débito', transfer: 'Transferencia', zelle: 'Zelle', insurance: 'Seguro', check: 'Cheque' } as Record<string, string>)[method] || method
+    return ({ 
+        cash: 'Efectivo', 
+        credit_card: 'Tarjeta Crédito', 
+        debit_card: 'Tarjeta Débito', 
+        transfer: 'Transferencia', 
+        zelle: 'Zelle', 
+        insurance: 'Seguro Médico', 
+        check: 'Cheque' 
+    } as Record<string, string>)[method] || method
+}
+
+function formatMoney(amount: number) {
+    return new Intl.NumberFormat('es-DO', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+    }).format(amount)
 }
 </script>
 
 <template>
     <ClinicLayout>
-<div class="clinical-precision-page">
-    <Head title="Caja Chica & Arqueo de Sesiones — BSDental" />
+        <Head title="Caja & Arqueo de Sesiones — BSDental" />
 
-    <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
-        <div class="max-w-7xl mx-auto space-y-6">
-            <!-- Header -->
-            <div class="flex items-center justify-between">
+        <div class="space-y-6">
+            <!-- Header section -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0]">
                 <div>
-                    <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                        <CreditCard class="w-6 h-6 text-teal-400" /> Cajas & Sesiones de Arqueo
+                    <h1 class="font-display-md text-2xl font-bold text-[#131B2E] flex items-center gap-2">
+                        <CreditCard class="w-6 h-6 text-[#005C55]" />
+                        <span>Cajas & Sesiones de Arqueo</span>
                     </h1>
-                    <p class="text-sm text-slate-400">Control de apertura/cierre de turnos de caja, fondo inicial y arqueo ciego</p>
+                    <p class="text-xs text-[#505F76] mt-1">
+                        Control multi-caja por sucursal, fondo inicial, arqueo ciego y reapertura auditada
+                    </p>
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <a href="/dashboard" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">← Dashboard</a>
                     <button
-                        v-if="!activeSession"
-                        class="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-lg text-sm transition"
+                        class="flex items-center gap-2 px-4 py-2 bg-[#005C55] hover:bg-[#00504A] text-white font-semibold rounded-lg text-xs transition shadow-xs"
                         @click="isOpenModal = true"
                     >
                         <Unlock class="w-4 h-4" /> Abrir Turno de Caja
                     </button>
-                    <button
-                        v-else
-                        class="flex items-center gap-2 px-4 py-2 bg-rose-500 hover:bg-rose-400 text-white font-bold rounded-lg text-sm transition"
-                        @click="isCloseModal = true"
+                </div>
+            </div>
+
+            <!-- Active Open Sessions Banner / Selector -->
+            <div v-if="activeSessions.length > 0" class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-[#131B2E] flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Sesiones Abiertas Actualmente ({{ activeSessions.length }})</span>
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div 
+                        v-for="s in activeSessions" 
+                        :key="s.id"
+                        :class="[
+                            'p-5 rounded-xl border transition cursor-pointer flex flex-col justify-between shadow-xs',
+                            focusedSession?.id === s.id 
+                                ? 'bg-[#F2F3FF] border-[#005C55] ring-2 ring-[#005C55]/20' 
+                                : 'bg-white border-[#E2E8F0] hover:border-[#BDC9C6]'
+                        ]"
+                        @click="selectSession(s)"
                     >
-                        <Lock class="w-4 h-4" /> Cerrar Turno (Arqueo)
-                    </button>
-                </div>
-            </div>
-
-            <!-- Active Cash Session Banner -->
-            <div v-if="activeSession" class="p-6 bg-slate-800/90 border border-teal-500/40 rounded-3xl space-y-4 shadow-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="px-3 py-1 bg-teal-500/10 text-teal-300 border border-teal-500/30 rounded-full font-mono text-xs font-bold">
-                            SESIÓN ABIERTA
-                        </span>
-                        <h2 class="text-xl font-bold text-white mt-2">Caja Activa (Turno en Curso)</h2>
-                        <p class="text-xs text-slate-400">Abierta el {{ activeSession.opened_at }}</p>
-                    </div>
-
-                    <div class="text-right">
-                        <span class="text-xs text-slate-400 uppercase tracking-wider block">Efectivo Esperado</span>
-                        <span class="text-3xl font-black text-teal-400 font-mono">${{ activeSession.expected_cash.toFixed(2) }}</span>
-                    </div>
-                </div>
-
-                <div class="grid gap-3 sm:grid-cols-3">
-                    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-3"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Entradas de efectivo</p><p class="mt-1 font-mono text-lg font-bold text-emerald-400">${{ cashIncome.toFixed(2) }}</p></div>
-                    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-3"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Salidas de efectivo</p><p class="mt-1 font-mono text-lg font-bold text-rose-400">${{ cashOutflow.toFixed(2) }}</p></div>
-                    <button type="button" class="flex items-center justify-center gap-2 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3 text-xs font-bold text-teal-300 hover:bg-teal-500/20" @click="isMovementModal = true"><Plus class="h-4 w-4" /> Registrar movimiento</button>
-                </div>
-
-                <!-- Live Session Movements -->
-                <div class="pt-4 border-t border-slate-700/60 space-y-2">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Movimientos del Turno</h3>
-                    <div v-for="m in activeSession.movements" :key="m.id" class="p-3 bg-slate-900/80 rounded-xl flex items-center justify-between text-xs">
-                        <div class="flex items-center gap-2">
-                            <ArrowUpRight v-if="m.amount > 0" class="w-4 h-4 text-emerald-400" />
-                            <ArrowDownRight v-else class="w-4 h-4 text-rose-400" />
-                            <div><span class="text-white font-semibold">{{ m.concept }}</span><p class="mt-0.5 text-[10px] text-slate-500">{{ movementMethodLabel(m.payment_method) }} · {{ m.created_by?.name || 'Usuario de caja' }}</p></div>
-                        </div>
-                        <span :class="[m.amount > 0 ? 'text-emerald-400' : 'text-rose-400']" class="font-mono font-bold">
-                            ${{ m.amount.toFixed(2) }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Manual Movement Modal -->
-            <div v-if="isMovementModal && activeSession" class="p-6 bg-slate-800 border border-teal-500/30 rounded-2xl shadow-xl space-y-4">
-                <div class="flex items-center justify-between"><div><h2 class="text-lg font-bold text-white">Registrar movimiento manual</h2><p class="text-xs text-slate-400">Quedará vinculado a la sesión abierta y a la auditoría.</p></div><button class="text-slate-400 hover:text-white" @click="isMovementModal = false">×</button></div>
-                <form class="space-y-4" @submit.prevent="submitMovement">
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div><label class="mb-1 block text-xs font-medium text-slate-400">Tipo</label><select v-model="movementForm.type" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white"><option value="manual_income">Ingreso manual</option><option value="manual_expense">Egreso manual</option></select></div>
-                        <div><label class="mb-1 block text-xs font-medium text-slate-400">Método</label><select v-model="movementForm.payment_method" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white"><option value="cash">Efectivo</option><option value="credit_card">Tarjeta de crédito</option><option value="debit_card">Tarjeta de débito</option><option value="transfer">Transferencia</option><option value="zelle">Zelle</option><option value="check">Cheque</option><option value="insurance">Seguro</option></select></div>
-                    </div>
-                    <div><label class="mb-1 block text-xs font-medium text-slate-400">Monto</label><input v-model.number="movementForm.amount" type="number" min="0.01" step="0.01" required class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-white" /><p v-if="movementForm.errors.amount" class="mt-1 text-xs text-rose-300">{{ movementForm.errors.amount }}</p></div>
-                    <div><label class="mb-1 block text-xs font-medium text-slate-400">Concepto / justificación</label><input v-model="movementForm.concept" type="text" maxlength="255" required placeholder="Ej. Fondo adicional autorizado" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white" /><p v-if="movementForm.errors.concept" class="mt-1 text-xs text-rose-300">{{ movementForm.errors.concept }}</p></div>
-                    <p class="border border-slate-700 bg-slate-900/60 p-3 text-xs text-slate-400">Solo los movimientos marcados como efectivo cambian el efectivo esperado del arqueo.</p>
-                    <div class="flex justify-end gap-2"><button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-xs font-medium text-slate-300" @click="isMovementModal = false">Cancelar</button><button type="submit" :disabled="movementForm.processing" class="rounded-lg bg-teal-500 px-4 py-2 text-xs font-bold text-slate-950 disabled:opacity-50">Registrar movimiento</button></div>
-                </form>
-            </div>
-
-            <!-- Registers List -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div v-for="reg in registers" :key="reg.id" class="p-6 bg-slate-800/80 border border-slate-700/60 rounded-3xl space-y-4 shadow-xl">
-                    <div class="flex items-center justify-between">
                         <div>
-                            <h2 class="font-bold text-white text-base">{{ reg.name }}</h2>
-                            <p class="text-xs text-slate-400">Sede: {{ reg.branch?.name || 'Central' }}</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2">
-                        <h3 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Últimas Sesiones</h3>
-                        <div v-for="s in reg.sessions" :key="s.id" class="p-3 bg-slate-900/80 rounded-xl flex items-center justify-between text-xs">
-                            <div>
-                                <span :class="[s.status === 'open' ? 'text-teal-400 font-bold' : 'text-slate-400']" class="block font-mono">
-                                    {{ s.opened_at.substring(0, 16) }} ({{ s.status }})
-                                </span>
-                                <span v-if="s.difference !== 0" class="text-rose-400 text-[10px]">
-                                    Descuadre: ${{ s.difference.toFixed(2) }}
-                                </span>
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        SESIÓN EN CURSO
+                                    </span>
+                                    <h3 class="font-bold text-sm text-[#131B2E] mt-2">{{ s.cash_register?.name || 'Caja' }}</h3>
+                                    <p class="text-[11px] text-[#505F76] flex items-center gap-1 mt-0.5">
+                                        <Building2 class="w-3.5 h-3.5" /> {{ s.cash_register?.branch?.name || 'Sede Principal' }}
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] font-semibold text-[#505F76] uppercase block">Efectivo Esperado</span>
+                                    <span class="font-data-tabular text-xl font-bold text-[#005C55]">{{ formatMoney(s.expected_cash) }}</span>
+                                </div>
                             </div>
-                            <span class="font-mono text-white font-bold">${{ s.expected_cash.toFixed(2) }}</span>
+
+                            <div class="mt-4 pt-3 border-t border-[#E2E8F0] grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                    <span class="text-[10px] text-[#505F76] block">Apertura por:</span>
+                                    <span class="font-medium text-[#131B2E]">{{ s.opened_by?.name || 'Cajero' }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-[#505F76] block">Fondo inicial:</span>
+                                    <span class="font-data-tabular font-semibold text-[#131B2E]">{{ formatMoney(s.opening_balance) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-[#E2E8F0] flex justify-between items-center">
+                            <button 
+                                type="button"
+                                @click.stop="isMovementModal = true; focusedSession = s"
+                                class="px-2.5 py-1 text-xs font-semibold text-[#005C55] bg-[#A3FAEF]/30 hover:bg-[#A3FAEF]/60 rounded-md transition"
+                            >
+                                + Movimiento
+                            </button>
+                            <button 
+                                type="button"
+                                @click.stop="openCloseModalForSession(s)"
+                                class="px-2.5 py-1 text-xs font-semibold text-[#BA1A1A] bg-[#FFDAD6]/40 hover:bg-[#FFDAD6] rounded-md transition flex items-center gap-1"
+                            >
+                                <Lock class="w-3.5 h-3.5" /> Cerrar y Cuadrar
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Open Session Modal -->
-            <div v-if="isOpenModal" class="p-6 bg-slate-800 border border-teal-500/30 rounded-2xl shadow-xl space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-white">Abrir Turno de Caja</h2>
-                    <button class="text-slate-400 hover:text-white" @click="isOpenModal = false">×</button>
+            <!-- Focused Session Detail & Movements -->
+            <div v-if="focusedSession" class="bg-white rounded-xl border border-[#E2E8F0] shadow-xs p-5 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E2E8F0]">
+                    <div>
+                        <h3 class="font-section-title text-[#131B2E]">
+                            Movimientos del Turno — {{ focusedSession.cash_register?.name || 'Caja' }}
+                        </h3>
+                        <p class="text-xs text-[#505F76]">
+                            Abierto el {{ focusedSession.opened_at }} por {{ focusedSession.opened_by?.name }}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-4 text-xs font-data-tabular">
+                        <span class="text-emerald-700 font-semibold flex items-center gap-1">
+                            <ArrowUpRight class="w-4 h-4" /> Ingresos Efvo: {{ formatMoney(cashIncome) }}
+                        </span>
+                        <span class="text-rose-700 font-semibold flex items-center gap-1">
+                            <ArrowDownRight class="w-4 h-4" /> Egresos Efvo: {{ formatMoney(cashOutflow) }}
+                        </span>
+                    </div>
                 </div>
 
-                <form class="space-y-4" @submit.prevent="submitOpen">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Caja</label>
-                        <select v-model="selectedRegisterId" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs">
-                            <option v-for="r in registers" :key="r.id" :value="r.id">{{ r.name }}</option>
-                        </select>
+                <div class="overflow-x-auto">
+                    <table v-if="focusedSession.movements && focusedSession.movements.length > 0" class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-[#F8FAFC] font-label-caps text-[#505F76] border-b border-[#E2E8F0]">
+                            <tr>
+                                <th class="px-4 py-2.5 font-semibold">Hora</th>
+                                <th class="px-4 py-2.5 font-semibold">Tipo</th>
+                                <th class="px-4 py-2.5 font-semibold">Concepto</th>
+                                <th class="px-4 py-2.5 font-semibold">Método</th>
+                                <th class="px-4 py-2.5 font-semibold">Usuario</th>
+                                <th class="px-4 py-2.5 font-semibold text-right">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#E2E8F0]">
+                            <tr v-for="m in focusedSession.movements" :key="m.id" class="hover:bg-[#F8FAFC] transition-colors h-10">
+                                <td class="px-4 py-2 text-[#505F76] font-data-tabular">{{ m.created_at?.substring(11, 16) }}</td>
+                                <td class="px-4 py-2 font-medium">
+                                    <span 
+                                        :class="[
+                                            'px-2 py-0.5 rounded-full text-[10px] font-bold',
+                                            m.amount > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                        ]"
+                                    >
+                                        {{ m.type === 'patient_payment' ? 'Cobro Paciente' : (m.amount > 0 ? 'Ingreso' : 'Egreso') }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2 text-[#131B2E] font-medium">{{ m.concept }}</td>
+                                <td class="px-4 py-2 text-[#505F76]">{{ movementMethodLabel(m.payment_method) }}</td>
+                                <td class="px-4 py-2 text-[#505F76]">{{ m.created_by?.name || 'Cajero' }}</td>
+                                <td class="px-4 py-2 text-right font-data-tabular font-bold" :class="m.amount > 0 ? 'text-emerald-700' : 'text-rose-700'">
+                                    {{ m.amount > 0 ? '+' : '' }}{{ formatMoney(m.amount) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div v-else class="p-6 text-center text-xs text-[#505F76]">
+                        No hay movimientos registrados en esta sesión de caja todavía.
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Fondo Inicial en Efectivo ($)</label>
-                        <input v-model.number="openForm.opening_balance" type="number" step="0.01" min="0" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono" />
-                    </div>
-
-                    <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" class="px-4 py-2 bg-slate-700 text-slate-300 text-xs font-medium rounded-lg hover:bg-slate-600" @click="isOpenModal = false">Cancelar</button>
-                        <button type="submit" :disabled="openForm.processing" class="px-4 py-2 bg-teal-500 text-slate-950 text-xs font-bold rounded-lg hover:bg-teal-400">Abrir Caja</button>
-                    </div>
-                </form>
+                </div>
             </div>
 
-            <!-- Close Session Modal (Blind Count) -->
-            <div v-if="isCloseModal && activeSession" class="p-6 bg-slate-800 border border-rose-500/30 rounded-2xl shadow-xl space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-white">Cerrar Turno de Caja (Arqueo Ciego)</h2>
-                    <button class="text-slate-400 hover:text-white" @click="isCloseModal = false">×</button>
+            <!-- Registers & History Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div v-for="reg in registers" :key="reg.id" class="bg-white rounded-xl border border-[#E2E8F0] shadow-xs p-5 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="font-section-title text-[#131B2E]">{{ reg.name }}</h3>
+                            <p class="text-xs text-[#505F76]">{{ reg.branch?.name || 'Sede Central' }}</p>
+                        </div>
+                        <div>
+                            <span 
+                                v-if="reg.active_session" 
+                                class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            >
+                                Abierta
+                            </span>
+                            <button 
+                                v-else
+                                @click="openModalForRegister(reg.id)"
+                                class="px-3 py-1 bg-[#005C55] hover:bg-[#00504A] text-white text-xs font-semibold rounded-lg transition"
+                            >
+                                Abrir Caja
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Recent Sessions in this Register -->
+                    <div class="space-y-2 pt-2 border-t border-[#E2E8F0]">
+                        <h4 class="font-label-caps text-[#505F76] text-[10px]">Historial de Sesiones</h4>
+                        <div v-if="reg.sessions && reg.sessions.length > 0" class="space-y-2">
+                            <div 
+                                v-for="s in reg.sessions" 
+                                :key="s.id"
+                                class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg flex items-center justify-between text-xs"
+                            >
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-[#131B2E]">{{ s.opened_at?.substring(0, 16) }}</span>
+                                        <span 
+                                            :class="[
+                                                'px-1.5 py-0.2 rounded text-[9px] font-bold uppercase',
+                                                s.status === 'open' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
+                                            ]"
+                                        >
+                                            {{ s.status }}
+                                        </span>
+                                    </div>
+                                    <p class="text-[10px] text-[#505F76] mt-0.5">
+                                        Cerrado por: {{ s.closed_by?.name || s.opened_by?.name }}
+                                        <span v-if="s.difference !== 0" class="text-rose-600 font-bold ml-1">
+                                            (Descuadre: {{ formatMoney(s.difference) }})
+                                        </span>
+                                    </p>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="font-data-tabular font-bold text-[#131B2E]">{{ formatMoney(s.expected_cash) }}</span>
+                                    <!-- Reopen Action for closed sessions (FIN-01) -->
+                                    <button 
+                                        v-if="s.status === 'closed' && canReopen && !reg.active_session"
+                                        @click="openReopenModalForSession(s)"
+                                        class="p-1.5 text-[#005C55] hover:bg-[#F2F3FF] rounded transition"
+                                        title="Reapertura auditada de turno cerrado"
+                                    >
+                                        <RotateCcw class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="text-xs text-[#505F76] py-2 text-center">
+                            Sin historial de sesiones previas.
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <form class="space-y-4" @submit.prevent="submitClose">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Efectivo Físico Contado ($) *</label>
-                        <input v-model.number="closeForm.counted_cash" type="number" step="0.01" min="0" required placeholder="Ingrese el conteo físico real" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono text-lg font-bold" />
+            <!-- MODAL: Open Session -->
+            <div v-if="isOpenModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                <div class="w-full max-w-md bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl p-6 space-y-4">
+                    <div class="flex justify-between items-center pb-2 border-b border-[#E2E8F0]">
+                        <h3 class="font-section-title text-[#131B2E] flex items-center gap-2">
+                            <Unlock class="w-5 h-5 text-[#005C55]" />
+                            <span>Abrir Turno de Caja</span>
+                        </h3>
+                        <button @click="isOpenModal = false" class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg">✕</button>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Notas de Cierre / Justificación</label>
-                        <textarea v-model="closeForm.closing_notes" rows="2" placeholder="Observaciones sobre diferencias de arqueo si las hubiere" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"></textarea>
+                    <form @submit.prevent="submitOpen" class="space-y-4">
+                        <div>
+                            <label class="font-label-caps text-[#3E4947] block mb-1">Caja Seleccionada</label>
+                            <select 
+                                v-model="selectedRegisterId"
+                                class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-xs text-[#131B2E] focus:outline-none focus:border-[#005C55]"
+                            >
+                                <option v-for="r in registers" :key="r.id" :value="r.id">{{ r.name }} ({{ r.branch?.name }})</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="font-label-caps text-[#3E4947] block mb-1">Fondo Inicial en Efectivo ($)</label>
+                            <input 
+                                v-model.number="openForm.opening_balance"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                required
+                                class="w-full px-3 py-2 bg-white border border-[#BDC9C6] rounded-lg text-sm font-data-tabular text-[#131B2E] focus:outline-none focus:border-[#005C55]"
+                            />
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+                            <button 
+                                type="button" 
+                                @click="isOpenModal = false"
+                                class="px-4 py-2 text-xs font-semibold text-[#505F76] hover:bg-[#F8FAFC] rounded-lg transition"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                type="submit" 
+                                :disabled="openForm.processing"
+                                class="px-4 py-2 text-xs font-semibold text-white bg-[#005C55] hover:bg-[#00504A] rounded-lg transition shadow-xs"
+                            >
+                                {{ openForm.processing ? 'Abriendo...' : 'Confirmar Apertura' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: Close Session (Blind Count) -->
+            <div v-if="isCloseModal && selectedSessionToClose" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                <div class="w-full max-w-md bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl p-6 space-y-4">
+                    <div class="flex justify-between items-center pb-2 border-b border-[#E2E8F0]">
+                        <h3 class="font-section-title text-[#131B2E] flex items-center gap-2">
+                            <Lock class="w-5 h-5 text-[#BA1A1A]" />
+                            <span>Cerrar Turno (Arqueo Ciego)</span>
+                        </h3>
+                        <button @click="isCloseModal = false" class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg">✕</button>
                     </div>
 
-                    <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" class="px-4 py-2 bg-slate-700 text-slate-300 text-xs font-medium rounded-lg hover:bg-slate-600" @click="isCloseModal = false">Cancelar</button>
-                        <button type="submit" :disabled="closeForm.processing" class="px-4 py-2 bg-rose-500 text-white text-xs font-bold rounded-lg hover:bg-rose-400">Cerrar y Cuadrar Turno</button>
+                    <form @submit.prevent="submitClose" class="space-y-4">
+                        <div>
+                            <label class="font-label-caps text-[#3E4947] block mb-1">Efectivo Físico Contado ($) *</label>
+                            <input 
+                                v-model.number="closeForm.counted_cash"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                required
+                                placeholder="0.00"
+                                class="w-full px-3 py-2 bg-white border border-[#BDC9C6] rounded-lg text-lg font-data-tabular font-bold text-[#131B2E] focus:outline-none focus:border-[#BA1A1A]"
+                            />
+                            <p class="text-[11px] text-[#505F76] mt-1">
+                                Ingrese el recuento físico real del cajón de dinero.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="font-label-caps text-[#3E4947] block mb-1">Observaciones de Cierre</label>
+                            <textarea 
+                                v-model="closeForm.closing_notes"
+                                rows="2"
+                                placeholder="Notas sobre diferencias o justificaciones de descuadre..."
+                                class="w-full px-3 py-2 bg-white border border-[#BDC9C6] rounded-lg text-xs text-[#131B2E] focus:outline-none focus:border-[#005C55]"
+                            ></textarea>
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+                            <button 
+                                type="button" 
+                                @click="isCloseModal = false"
+                                class="px-4 py-2 text-xs font-semibold text-[#505F76] hover:bg-[#F8FAFC] rounded-lg transition"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                type="submit" 
+                                :disabled="closeForm.processing"
+                                class="px-4 py-2 text-xs font-semibold text-white bg-[#BA1A1A] hover:bg-rose-700 rounded-lg transition shadow-xs"
+                            >
+                                {{ closeForm.processing ? 'Cerrando...' : 'Cerrar y Cuadrar Turno' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: Manual Movement -->
+            <div v-if="isMovementModal && focusedSession" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                <div class="w-full max-w-md bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl p-6 space-y-4">
+                    <div class="flex justify-between items-center pb-2 border-b border-[#E2E8F0]">
+                        <h3 class="font-section-title text-[#131B2E] flex items-center gap-2">
+                            <Plus class="w-5 h-5 text-[#005C55]" />
+                            <span>Registrar Movimiento Manual</span>
+                        </h3>
+                        <button @click="isMovementModal = false" class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg">✕</button>
                     </div>
-                </form>
+
+                    <form @submit.prevent="submitMovement" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="font-label-caps text-[#3E4947] block mb-1">Tipo</label>
+                                <select 
+                                    v-model="movementForm.type"
+                                    class="w-full px-3 py-2 bg-white border border-[#BDC9C6] rounded-lg text-xs text-[#131B2E]"
+                                >
+                                    <option value="manual_income">Ingreso Manual</option>
+                                    <option value="manual_expense">Egreso / Gasto</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="font-label-caps text-[#3E4947] block mb-1">Método</label>
+                                <select 
+                                    v-model="movementForm.payment_method"
+                                    class="w-full px-3 py-2 bg-white border border-[#BDC9C6] rounded-lg text-xs text-[#131B2E]"
+                                >
+                                    <option value="cash">Efectivo</option>
+                                    <option value="credit_card">Tarjeta Crédito</option>
+                                    <option value="debit_card">Tarjeta Débito</option>
+                                    <option value="transfer">Transferencia</option>
+                                    <option value="zelle">Zelle</option>
+                                    <option value="check">Cheque</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="font-label-caps text-[#3E4947] block mb-1">Monto ($) *</label>
+                            <input 
+                                v-model.number="movementForm.amount"
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                required
+                                class="w-full px-3 py-2 bg-white border border-[#BDC9C6] rounded-lg text-sm font-data-tabular font-bold text-[#131B2E]"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="font-label-caps text-[#3E4947] block mb-1">Concepto / Justificación *</label>
+                            <input 
+                                v-model="movementForm.concept"
+                                type="text"
+                                maxlength="255"
+                                required
+                                placeholder="Ej. Compra urgente de material clínico menor"
+                                class="w-full px-3 py-2 bg-white border border-[#BDC9C6] rounded-lg text-xs text-[#131B2E]"
+                            />
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+                            <button 
+                                type="button" 
+                                @click="isMovementModal = false"
+                                class="px-4 py-2 text-xs font-semibold text-[#505F76] hover:bg-[#F8FAFC] rounded-lg transition"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                type="submit" 
+                                :disabled="movementForm.processing"
+                                class="px-4 py-2 text-xs font-semibold text-white bg-[#005C55] hover:bg-[#00504A] rounded-lg transition shadow-xs"
+                            >
+                                Registrar Movimiento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: Reopen Session (FIN-01) -->
+            <div v-if="isReopenModal && selectedSessionToReopen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                <div class="w-full max-w-md bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl p-6 space-y-4">
+                    <div class="flex justify-between items-center pb-2 border-b border-[#E2E8F0]">
+                        <h3 class="font-section-title text-[#131B2E] flex items-center gap-2">
+                            <RotateCcw class="w-5 h-5 text-[#005C55]" />
+                            <span>Reapertura Auditada de Caja</span>
+                        </h3>
+                        <button @click="isReopenModal = false" class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg">✕</button>
+                    </div>
+
+                    <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
+                        <AlertCircle class="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                        <span>Esta acción reabre el turno de caja cerrado para realizar ajustes necesarios. Quedará registrado en la pista de auditoría.</span>
+                    </div>
+
+                    <form @submit.prevent="submitReopen" class="space-y-4">
+                        <div>
+                            <label class="font-label-caps text-[#3E4947] block mb-1">Motivo Obligatorio (10 - 500 caracteres) *</label>
+                            <textarea 
+                                v-model="reopenForm.reason"
+                                rows="3"
+                                required
+                                minlength="10"
+                                maxlength="500"
+                                placeholder="Indique la justificación técnica o administrativa para reabrir esta sesión..."
+                                class="w-full px-3 py-2 bg-white border border-[#BDC9C6] rounded-lg text-xs text-[#131B2E] focus:outline-none focus:border-[#005C55]"
+                            ></textarea>
+                            <p v-if="reopenForm.errors.reason" class="text-xs text-rose-600 mt-1">{{ reopenForm.errors.reason }}</p>
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+                            <button 
+                                type="button" 
+                                @click="isReopenModal = false"
+                                class="px-4 py-2 text-xs font-semibold text-[#505F76] hover:bg-[#F8FAFC] rounded-lg transition"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                type="submit" 
+                                :disabled="reopenForm.processing"
+                                class="px-4 py-2 text-xs font-semibold text-white bg-[#005C55] hover:bg-[#00504A] rounded-lg transition shadow-xs"
+                            >
+                                {{ reopenForm.processing ? 'Reabriendo...' : 'Confirmar Reapertura' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
-    </div>
-</ClinicLayout>
+    </ClinicLayout>
 </template>

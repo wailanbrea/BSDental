@@ -102,4 +102,75 @@ class CrmFollowUpController extends Controller
 
         return redirect()->back()->with('success', "Tarea '{$task->title}' marcada como completada.");
     }
+
+    /**
+     * Update CRM pipeline profile stage & loss reason (CRM-01).
+     */
+    public function updateStage(Request $request, string $profileId): RedirectResponse
+    {
+        $profile = \App\Core\Models\PatientCrmProfile::with(['patient', 'stage'])->findOrFail($profileId);
+
+        $validated = $request->validate([
+            'stage_id' => ['required', 'uuid', 'exists:tenant.crm_stages,id'],
+            'loss_reason' => ['nullable', 'string', 'in:price,distance,treatment_postponed,competitor,unreachable,other'],
+            'estimated_lifetime_value' => ['nullable', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $newStage = CrmStage::findOrFail($validated['stage_id']);
+
+        $profile->update([
+            'stage_id' => $validated['stage_id'],
+            'loss_reason' => $validated['loss_reason'] ?? null,
+            'estimated_lifetime_value' => $validated['estimated_lifetime_value'] ?? $profile->estimated_lifetime_value,
+            'notes' => $validated['notes'] ?? $profile->notes,
+        ]);
+
+        $this->auditLogger->logTenant('crm.stage_updated', 'PatientCrmProfile', $profile->id, [
+            'patient_id' => $profile->patient_id,
+            'stage' => $newStage->name,
+            'loss_reason' => $validated['loss_reason'] ?? null,
+        ]);
+
+        return redirect()->back()->with('success', "Etapa de {$profile->patient->full_name} actualizada a '{$newStage->name}'.");
+    }
+
+    /**
+     * Generate secure wa.me link for patient communication (CRM-02).
+     */
+    public function whatsappLink(Request $request, string $patientId)
+    {
+        $patient = Patient::findOrFail($patientId);
+
+        $validated = $request->validate([
+            'template' => ['nullable', 'string', 'in:reminder,post_op,quote_followup,custom'],
+            'custom_message' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $cleanPhone = preg_replace('/[^0-9]/', '', (string) $patient->phone);
+        if (empty($cleanPhone)) {
+            return response()->json(['error' => 'El paciente no posee un número telefónico válido.'], 422);
+        }
+
+        $template = $validated['template'] ?? 'reminder';
+        $clinicName = 'BSDental';
+
+        $text = match ($template) {
+            'post_op' => "Hola {$patient->first_name}, le saludamos desde {$clinicName}. ¿Cómo se siente tras su procedimiento de hoy? Estamos atentos a su evolución.",
+            'quote_followup' => "Hola {$patient->first_name}, le contactamos de {$clinicName} para saber si tiene alguna consulta sobre su plan de tratamiento y presupuesto.",
+            'custom' => $validated['custom_message'] ?? "Hola {$patient->first_name}, le contactamos desde {$clinicName}.",
+            default => "Hola {$patient->first_name}, le recordamos su cita en {$clinicName}. Por favor responda SI para confirmar o NO para reagendar.",
+        };
+
+        $encodedText = rawurlencode($text);
+        $url = "https://wa.me/{$cleanPhone}?text={$encodedText}";
+
+        return response()->json([
+            'patient_name' => $patient->full_name,
+            'phone' => $patient->phone,
+            'whatsapp_opt_in' => $patient->whatsapp_opt_in,
+            'whatsapp_url' => $url,
+            'message_preview' => $text,
+        ]);
+    }
 }

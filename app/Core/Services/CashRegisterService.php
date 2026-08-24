@@ -20,7 +20,8 @@ class CashRegisterService
         string $type,
         float $amount,
         string $concept,
-        string $paymentMethod = 'cash'
+        string $paymentMethod = 'cash',
+        ?string $idempotencyKey = null
     ): CashMovement {
         if ($session->status !== 'open') {
             throw new InvalidArgumentException('La sesión de caja seleccionada no está abierta.');
@@ -36,13 +37,26 @@ class CashRegisterService
 
         $signedAmount = $type === 'manual_expense' ? -$amount : $amount;
 
-        return DB::connection('tenant')->transaction(function () use ($session, $user, $type, $signedAmount, $concept, $paymentMethod) {
+        // Idempotency check
+        if ($idempotencyKey !== null && $idempotencyKey !== '') {
+            $existing = CashMovement::where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                if ($existing->cash_session_id !== $session->id || (float) abs($existing->amount) !== (float) $amount) {
+                    throw new InvalidArgumentException('Clave de idempotencia ya utilizada con parámetros diferentes.');
+                }
+
+                return $existing;
+            }
+        }
+
+        return DB::connection('tenant')->transaction(function () use ($session, $user, $type, $signedAmount, $concept, $paymentMethod, $idempotencyKey) {
             $movement = CashMovement::create([
                 'cash_session_id' => $session->id,
                 'type' => $type,
                 'amount' => $signedAmount,
                 'payment_method' => $paymentMethod,
                 'concept' => $concept,
+                'idempotency_key' => $idempotencyKey,
                 'created_by_user_id' => $user->id,
                 'created_at' => now(),
             ]);
@@ -125,10 +139,23 @@ class CashRegisterService
             throw new InvalidArgumentException('Solo se pueden reabrir sesiones cerradas.');
         }
 
+        $existingOpen = CashSession::where('cash_register_id', $session->cash_register_id)
+            ->where('status', 'open')
+            ->where('id', '!=', $session->id)
+            ->exists();
+
+        if ($existingOpen) {
+            throw new InvalidArgumentException('Esta caja ya cuenta con una sesión abierta actualmente.');
+        }
+
+        $previousNotes = $session->closing_notes ? "{$session->closing_notes}\n" : '';
+        $reopenEntry = "[REAPERTURA ".now()->format('Y-m-d H:i')." por {$user->name}]: {$reason}";
+
         $session->update([
             'status' => 'open',
             'closed_at' => null,
-            'closing_notes' => "Reabierta por {$user->name}: {$reason}",
+            'closed_by_user_id' => null,
+            'closing_notes' => $previousNotes.$reopenEntry,
         ]);
 
         return $session;

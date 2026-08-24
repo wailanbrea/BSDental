@@ -29,7 +29,7 @@ beforeEach(function () {
     ]);
 
     $this->pipeline = app(TenantProvisioningPipeline::class);
-    $this->testDbPath = database_path('tenant_pipeline_test.sqlite');
+    $this->testDbPath = $this->tenantDatabasePath('tenant_pipeline_test.sqlite');
     if (file_exists($this->testDbPath)) {
         unlink($this->testDbPath);
     }

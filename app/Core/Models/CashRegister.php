@@ -62,4 +62,14 @@ class CashRegister extends Model
     {
         return $this->hasMany(CashSession::class, 'cash_register_id');
     }
+
+    /**
+     * Current open session relation.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<CashSession, $this>
+     */
+    public function activeSession(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(CashSession::class, 'cash_register_id')->where('status', 'open');
+    }
 }

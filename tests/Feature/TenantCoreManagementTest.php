@@ -21,7 +21,7 @@ beforeEach(function () {
         '--realpath' => false,
     ]);
 
-    $this->dbPathCore = database_path('tenant_gate_core_test.sqlite');
+    $this->dbPathCore = $this->tenantDatabasePath('tenant_gate_core_test.sqlite');
     if (! file_exists($this->dbPathCore)) {
         touch($this->dbPathCore);
     }

@@ -54,6 +54,7 @@ class QuoteItem extends Model
         'procedure_id',
         'tooth_number',
         'surface',
+        'phase',
         'unit_price',
         'quantity',
         'discount_percentage',
@@ -72,6 +73,7 @@ class QuoteItem extends Model
     {
         return [
             'tooth_number' => 'integer',
+            'phase' => 'integer',
             'unit_price' => 'float',
             'quantity' => 'integer',
             'discount_percentage' => 'float',

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { Head, useForm } from '@inertiajs/vue3'
-import { Truck } from 'lucide-vue-next'
+import { Head, useForm, Link } from '@inertiajs/vue3'
+import { Truck, Plus, PackageCheck, Clock, CheckCircle2, RotateCcw, AlertCircle } from 'lucide-vue-next'
 
 interface LaboratoryItem {
     id: string
@@ -23,6 +23,8 @@ interface OrderItem {
     payable_status: string
     due_date: string | null
     created_at: string
+    parent_order_id?: string | null
+    remake_reason?: string | null
     patient: { id: string; full_name: string; record_number: string }
     laboratory: { name: string }
 }
@@ -31,6 +33,28 @@ defineProps<{
     laboratories: LaboratoryItem[]
     orders: OrderItem[]
 }>()
+
+function formatMoney(amount: number) {
+    return new Intl.NumberFormat('es-DO', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+    }).format(amount)
+}
+
+function statusBadge(status: string) {
+    const map: Record<string, { label: string; class: string }> = {
+        draft: { label: 'Borrador', class: 'bg-slate-100 text-slate-700 border-slate-200' },
+        ordered: { label: 'Ordenado', class: 'bg-blue-50 text-blue-700 border-blue-200' },
+        sent: { label: 'Enviado al Lab', class: 'bg-amber-50 text-amber-700 border-amber-200' },
+        in_progress: { label: 'En Fabricación', class: 'bg-purple-50 text-purple-700 border-purple-200' },
+        ready: { label: 'Listo', class: 'bg-teal-50 text-teal-700 border-teal-200' },
+        received: { label: 'Recibido en Clínica', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+        delivered: { label: 'Instalado / Entregado', class: 'bg-green-100 text-green-800 border-green-300' },
+        cancelled: { label: 'Cancelado', class: 'bg-rose-50 text-rose-700 border-rose-200' },
+    }
+    return map[status] || { label: status, class: 'bg-slate-100 text-slate-700 border-slate-200' }
+}
 
 function updateStatus(order: OrderItem, nextStatus: string) {
     useForm({
@@ -42,71 +66,98 @@ function updateStatus(order: OrderItem, nextStatus: string) {
 
 <template>
     <ClinicLayout>
-<div class="clinical-precision-page">
-    <Head title="Laboratorio Dental & Prótesis — BSDental" />
+        <Head title="Laboratorio Dental & Prótesis — BSDental" />
 
-    <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
-        <div class="max-w-7xl mx-auto space-y-6">
-            <!-- Header -->
-            <div class="flex items-center justify-between">
+        <div class="space-y-6">
+            <!-- Header Toolbar -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0]">
                 <div>
-                    <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                        <Truck class="w-6 h-6 text-teal-400" /> Laboratorio Dental & Prótesis
-                    </h1>
-                    <p class="text-sm text-slate-400">Seguimiento de trabajos externos, coronas, prótesis y costos de laboratorio</p>
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 bg-[#005C55]/10 text-[#005C55] rounded-lg">
+                            <Truck class="w-5 h-5" />
+                        </span>
+                        <h1 class="font-display-md text-2xl font-bold text-[#131B2E]">
+                            Laboratorio Dental & Prótesis
+                        </h1>
+                    </div>
+                    <p class="text-xs text-[#505F76] mt-1">
+                        Seguimiento de trabajos protésicos externos, control de calidad, re-trabajos y liquidación de costos
+                    </p>
                 </div>
 
-                <a href="/dashboard" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">← Dashboard</a>
+                <div class="flex items-center gap-3">
+                    <Link href="/dashboard" class="px-3.5 py-2 text-xs font-medium text-[#505F76] hover:text-[#131B2E] transition">
+                        ← Dashboard
+                    </Link>
+                </div>
             </div>
 
-            <!-- Labs Grid -->
+            <!-- Laboratories Bento Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div v-for="lab in laboratories" :key="lab.id" class="p-5 bg-slate-800/80 border border-slate-700/60 rounded-2xl flex items-center justify-between shadow-lg">
+                <div 
+                    v-for="lab in laboratories" 
+                    :key="lab.id" 
+                    class="p-5 bg-white border border-[#E2E8F0] rounded-xl shadow-xs flex items-center justify-between"
+                >
                     <div>
-                        <h2 class="font-bold text-white text-base">{{ lab.name }}</h2>
-                        <p class="text-xs text-slate-400">{{ lab.contact_person || 'Contacto general' }} | {{ lab.phone || 'S/T' }}</p>
+                        <h2 class="font-bold text-sm text-[#131B2E]">{{ lab.name }}</h2>
+                        <p class="text-xs text-[#505F76] mt-0.5">{{ lab.contact_person || 'Contacto general' }} • {{ lab.phone || 'S/T' }}</p>
                     </div>
-                    <span class="px-3 py-1 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-full font-mono text-xs font-bold">
+                    <span class="px-2.5 py-1 bg-[#005C55]/10 text-[#005C55] border border-[#005C55]/20 rounded-full font-mono text-xs font-bold">
                         {{ lab.orders_count }} órdenes
                     </span>
                 </div>
             </div>
 
             <!-- Orders Table & Workflow -->
-            <div class="p-6 bg-slate-800/80 border border-slate-700/60 rounded-3xl space-y-4 shadow-xl">
-                <h2 class="text-xs font-bold text-teal-400 uppercase tracking-wider">Órdenes de Trabajo</h2>
+            <div class="bg-white rounded-xl border border-[#E2E8F0] shadow-xs p-5 space-y-4">
+                <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+                    <div>
+                        <h2 class="font-section-title text-[#131B2E]">Órdenes de Trabajo</h2>
+                        <p class="text-xs text-[#505F76]">Control de estados, recepciones con inspección y trazabilidad</p>
+                    </div>
+                </div>
 
-                <div v-if="orders.length === 0" class="text-xs text-slate-500 py-6 text-center">
-                    No hay órdenes de laboratorio registradas.
+                <div v-if="orders.length === 0" class="text-xs text-[#505F76] py-8 text-center">
+                    No hay órdenes de laboratorio registradas en este momento.
                 </div>
 
                 <div class="space-y-3">
-                    <div v-for="ord in orders" :key="ord.id" class="p-5 bg-slate-900/90 border border-slate-700/50 rounded-2xl flex items-center justify-between text-xs">
-                        <div class="space-y-1">
-                            <div class="flex items-center gap-3">
-                                <span class="font-mono font-bold text-teal-400 text-sm">{{ ord.order_number }}</span>
-                                <span class="text-white font-bold">{{ ord.work_description }}</span>
-                                <span v-if="ord.tooth_number" class="px-2 py-0.5 bg-slate-800 text-teal-300 rounded font-mono font-bold">
+                    <div 
+                        v-for="ord in orders" 
+                        :key="ord.id" 
+                        class="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 text-xs hover:border-[#BDC9C6] transition"
+                    >
+                        <div class="space-y-1.5">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="font-mono font-bold text-[#005C55] text-sm">{{ ord.order_number }}</span>
+                                <span class="font-bold text-[#131B2E]">{{ ord.work_description }}</span>
+                                <span v-if="ord.tooth_number" class="px-2 py-0.5 bg-white border border-[#E2E8F0] text-[#005C55] rounded-md font-mono font-bold text-[11px]">
                                     Pz {{ ord.tooth_number }}
                                 </span>
-                                <span v-if="ord.shade_guide" class="text-amber-400 font-mono">({{ ord.shade_guide }})</span>
+                                <span v-if="ord.shade_guide" class="px-1.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded font-mono text-[11px]">
+                                    Color: {{ ord.shade_guide }}
+                                </span>
+                                <span v-if="ord.parent_order_id" class="px-1.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded font-semibold text-[10px] flex items-center gap-1">
+                                    <RotateCcw class="w-3 h-3" /> Re-trabajo
+                                </span>
                             </div>
-                            <p class="text-slate-400">
-                                Paciente: <span class="text-white font-semibold">{{ ord.patient.full_name }}</span> ({{ ord.patient.record_number }}) | 
-                                Laboratorio: <span class="text-slate-200">{{ ord.laboratory.name }}</span>
+                            <p class="text-[#505F76]">
+                                Paciente: <Link :href="`/patients/${ord.patient.id}`" class="font-semibold text-[#131B2E] hover:underline">{{ ord.patient.full_name }}</Link> ({{ ord.patient.record_number }}) • 
+                                Laboratorio: <span class="font-medium text-[#131B2E]">{{ ord.laboratory.name }}</span>
+                            </p>
+                            <p v-if="ord.remake_reason" class="text-[11px] text-[#BA1A1A]">
+                                Causa de re-trabajo: {{ ord.remake_reason }}
                             </p>
                         </div>
 
-                        <div class="flex items-center gap-4">
+                        <div class="flex flex-wrap items-center gap-3 lg:justify-end">
                             <div class="text-right">
-                                <div class="font-mono font-bold text-white">${{ (ord.final_cost > 0 ? ord.final_cost : ord.estimated_cost).toFixed(2) }}</div>
-                                <span
-:class="[
-                                    ord.status === 'delivered' ? 'text-emerald-400' :
-                                    ord.status === 'ready' || ord.status === 'received' ? 'text-teal-400' : 'text-amber-400'
-                                ]" class="font-bold uppercase text-[10px]"
->
-                                    {{ ord.status }}
+                                <div class="font-mono font-bold text-[#131B2E]">
+                                    {{ formatMoney(ord.final_cost > 0 ? ord.final_cost : ord.estimated_cost) }}
+                                </div>
+                                <span :class="['px-2 py-0.5 rounded-full text-[10px] font-bold border inline-block mt-0.5', statusBadge(ord.status).class]">
+                                    {{ statusBadge(ord.status).label }}
                                 </span>
                             </div>
 
@@ -114,24 +165,24 @@ function updateStatus(order: OrderItem, nextStatus: string) {
                             <div class="flex items-center gap-1.5">
                                 <button
                                     v-if="ord.status === 'draft' || ord.status === 'ordered'"
-                                    class="px-2.5 py-1 bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-lg hover:bg-sky-500/30 font-bold"
+                                    class="px-3 py-1.5 bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 rounded-lg font-medium text-xs transition"
                                     @click="updateStatus(ord, 'sent')"
                                 >
                                     Enviar a Lab
                                 </button>
                                 <button
                                     v-if="ord.status === 'sent' || ord.status === 'in_progress'"
-                                    class="px-2.5 py-1 bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-lg hover:bg-teal-500/30 font-bold"
+                                    class="px-3 py-1.5 bg-[#005C55] hover:bg-[#004742] text-white rounded-lg font-medium text-xs transition"
                                     @click="updateStatus(ord, 'received')"
                                 >
                                     Recibir en Clínica
                                 </button>
                                 <button
                                     v-if="ord.status === 'received' || ord.status === 'ready'"
-                                    class="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg font-bold"
+                                    class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-xs transition"
                                     @click="updateStatus(ord, 'delivered')"
                                 >
-                                    Entregar / Instalar
+                                    Instalar en Paciente
                                 </button>
                             </div>
                         </div>
@@ -139,7 +190,5 @@ function updateStatus(order: OrderItem, nextStatus: string) {
                 </div>
             </div>
         </div>
-    </div>
-    </div>
-</ClinicLayout>
+    </ClinicLayout>
 </template>
