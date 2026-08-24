@@ -4,12 +4,15 @@ namespace App\Core\Services;
 
 use App\Core\Models\CashMovement;
 use App\Core\Models\CashSession;
+use App\Core\Models\CreditAdjustment;
 use App\Core\Models\Patient;
 use App\Core\Models\PatientCharge;
 use App\Core\Models\Payment;
 use App\Core\Models\PaymentAllocation;
 use App\Core\Models\PaymentSplit;
 use App\Core\Models\Refund;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -319,11 +322,11 @@ class BillingPaymentService
      */
     public function generateCreditNoteNumber(): string
     {
-        $count = \App\Core\Models\CreditAdjustment::count() + 1;
+        $count = CreditAdjustment::count() + 1;
 
         do {
             $formatted = sprintf('NC-%05d', $count);
-            $exists = \App\Core\Models\CreditAdjustment::where('credit_note_number', $formatted)->exists();
+            $exists = CreditAdjustment::where('credit_note_number', $formatted)->exists();
             if ($exists) {
                 $count++;
             }
@@ -341,7 +344,7 @@ class BillingPaymentService
         string $type,
         string $reason,
         ?string $userId = null
-    ): \App\Core\Models\CreditAdjustment {
+    ): CreditAdjustment {
         if ($amount <= 0) {
             throw new InvalidArgumentException('El monto de la nota de crédito debe ser mayor a cero.');
         }
@@ -357,7 +360,7 @@ class BillingPaymentService
         return DB::connection('tenant')->transaction(function () use ($charge, $amount, $type, $reason, $userId) {
             $creditNoteNumber = $this->generateCreditNoteNumber();
 
-            $adjustment = \App\Core\Models\CreditAdjustment::create([
+            $adjustment = CreditAdjustment::create([
                 'patient_charge_id' => $charge->id,
                 'patient_id' => $charge->patient_id,
                 'credit_note_number' => $creditNoteNumber,
@@ -384,6 +387,14 @@ class BillingPaymentService
 
     /**
      * Compute comprehensive patient account statement (FIN-06).
+     *
+     * @return array{
+     *     patient: Patient,
+     *     charges: Collection<int, PatientCharge>,
+     *     payments: Collection<int, Payment>,
+     *     adjustments: Collection<int, CreditAdjustment>,
+     *     summary: array<string, float>
+     * }
      */
     public function getPatientAccountStatement(Patient $patient): array
     {
@@ -397,7 +408,7 @@ class BillingPaymentService
             ->orderBy('paid_at', 'desc')
             ->get();
 
-        $adjustments = \App\Core\Models\CreditAdjustment::with(['charge', 'createdBy'])
+        $adjustments = CreditAdjustment::with(['charge', 'createdBy'])
             ->where('patient_id', $patient->id)
             ->orderBy('adjusted_at', 'desc')
             ->get();
@@ -425,10 +436,16 @@ class BillingPaymentService
 
     /**
      * Generate Aging Receivables (CxC) buckets report: 0-30, 31-60, 61-90, +90 days (FIN-06).
+     *
+     * @return array{
+     *     buckets: array<string, array{label: string, total: float, charges: list<array<string, int|float|string|null>>}>,
+     *     total_receivable: float,
+     *     total_charges_count: int
+     * }
      */
     public function getAgingReceivablesReport(): array
     {
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
 
         $pendingCharges = PatientCharge::with(['patient', 'professional'])
             ->where('balance_due', '>', 0)
@@ -449,9 +466,9 @@ class BillingPaymentService
                 'id' => $charge->id,
                 'charge_number' => $charge->charge_number,
                 'patient_id' => $charge->patient_id,
-                'patient_name' => $charge->patient?->full_name,
-                'patient_record' => $charge->patient?->record_number,
-                'patient_phone' => $charge->patient?->phone,
+                'patient_name' => $charge->patient->full_name,
+                'patient_record' => $charge->patient->record_number,
+                'patient_phone' => $charge->patient->phone,
                 'concept' => $charge->concept,
                 'total_amount' => $charge->total_amount,
                 'paid_amount' => $charge->paid_amount,

@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CashRegisterController extends Controller
 {
@@ -261,7 +262,7 @@ class CashRegisterController extends Controller
     /**
      * Export cash session movements to auditable CSV (FIN-03).
      */
-    public function exportSession(string $sessionId)
+    public function exportSession(string $sessionId): StreamedResponse
     {
         $session = CashSession::with([
             'cashRegister.branch',
@@ -291,13 +292,13 @@ class CashRegisterController extends Controller
         $callback = function () use ($session) {
             $file = fopen('php://output', 'w');
             // UTF-8 BOM
-            fputs($file, "\xEF\xBB\xBF");
+            fwrite($file, "\xEF\xBB\xBF");
 
             fputcsv($file, ['REPORTE DE ARQUEO DE CAJA - BSDENTAL']);
             fputcsv($file, ['Caja', $session->cashRegister->name]);
-            fputcsv($file, ['Sucursal', $session->cashRegister->branch?->name]);
+            fputcsv($file, ['Sucursal', $session->cashRegister->branch->name]);
             fputcsv($file, ['Estado', $session->status]);
-            fputcsv($file, ['Apertura', $session->opened_at?->format('Y-m-d H:i:s'), 'Por', $session->openedBy?->name]);
+            fputcsv($file, ['Apertura', $session->opened_at->format('Y-m-d H:i:s'), 'Por', $session->openedBy->name]);
             fputcsv($file, ['Cierre', $session->closed_at?->format('Y-m-d H:i:s'), 'Por', $session->closedBy?->name]);
             fputcsv($file, ['Fondo Inicial', number_format($session->opening_balance, 2)]);
             fputcsv($file, ['Efectivo Esperado', number_format($session->expected_cash, 2)]);
@@ -309,11 +310,11 @@ class CashRegisterController extends Controller
             foreach ($session->movements as $m) {
                 fputcsv($file, [
                     $m->id,
-                    $m->created_at?->format('Y-m-d H:i:s'),
+                    $m->created_at->format('Y-m-d H:i:s'),
                     $m->type,
                     $m->concept,
                     $m->payment_method,
-                    $m->createdBy?->name ?? 'Sistema',
+                    $m->createdBy->name ?? 'Sistema',
                     number_format($m->amount, 2),
                 ]);
             }

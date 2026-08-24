@@ -5,7 +5,7 @@
 - Producto: BSDental v4.
 - Madurez: alpha avanzada.
 - Fase: integracion y estabilizacion previa a Release 1.0.
-- Lote actual: funcionalmente integrado, pero todavia no apto para release ni para un commit global mientras existan hallazgos de formato y analisis estatico.
+- Lote actual: funcionalmente integrado y con todos los quality gates automatizados aprobados.
 - Alcance del resguardo: 25 bases SQLite, 13 archivos no rastreados y un parche binario del arbol de trabajo.
 
 ## Etapa 0 - Resguardo y clasificacion
@@ -54,17 +54,23 @@ Evidencia de validacion:
 - TypeScript: aprobado.
 - Build Vite de produccion: aprobado.
 
-## Deuda clasificada del lote
+## Etapa 2 - Saneamiento de quality gates
 
-Estos hallazgos no pertenecen al aislamiento de bases, pero bloquean declarar el lote completo listo para release:
+Estado: completada y verificada.
 
-- Pint: 11 archivos requieren formato.
-- PHPStan: 15 hallazgos en controladores y servicios ajenos al aislamiento.
-- ESLint: 0 errores y 96 advertencias; el comando permite advertencias y completo el build.
+Resultados:
+
+- Pint: aprobado sin archivos pendientes.
+- PHPStan: aprobado sin errores.
+- ESLint: aprobado con 0 errores y 0 advertencias.
+- TypeScript: aprobado.
+- Build Vite de produccion: aprobado.
+- Regresion PHP: 105 pruebas y 1311 aserciones aprobadas.
+- Bases protegidas: 25 verificadas, 0 diferencias SHA-256.
 
 ## Decision
 
-Las etapas 0 y 1 quedan cerradas. El lote amplio permanece en integracion y no esta listo para release.
+Las etapas 0, 1 y 2 quedan cerradas. El lote esta listo para continuar con validacion funcional o preparacion de release.
 
-El siguiente trabajo debe comenzar como una etapa nueva de saneamiento del lote, mantener el respaldo anterior y repetir los hashes de las bases despues de cualquier prueba que use tenancy.
+El respaldo externo debe conservarse y los hashes deben repetirse despues de cualquier prueba que use tenancy.
 

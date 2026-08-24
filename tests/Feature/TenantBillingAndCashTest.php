@@ -5,6 +5,7 @@ use App\Core\Models\Branch;
 use App\Core\Models\CashMovement;
 use App\Core\Models\CashRegister;
 use App\Core\Models\CashSession;
+use App\Core\Models\CreditAdjustment;
 use App\Core\Models\Patient;
 use App\Core\Models\PatientCharge;
 use App\Core\Models\Payment;
@@ -17,6 +18,7 @@ use App\Core\Services\ProfessionalCompensationService;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
 use App\Platform\Tenancy\TenantContext;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -578,10 +580,10 @@ test('[FIN-05] Credit adjustments and credit notes update charge balance and pro
     expect($charge->adjusted_amount)->toBe(50.0)
         ->and($charge->balance_due)->toBe(250.0)
         ->and($charge->status)->toBe('pending')
-        ->and(\App\Core\Models\CreditAdjustment::count())->toBe(1)
+        ->and(CreditAdjustment::count())->toBe(1)
         ->and(TenantAuditLog::where('action', 'billing.credit_adjustment_created')->exists())->toBeTrue();
 
-    $creditNote = \App\Core\Models\CreditAdjustment::first();
+    $creditNote = CreditAdjustment::first();
     expect($creditNote->credit_note_number)->toBe('NC-00001')
         ->and($creditNote->type)->toBe('subsequent_discount')
         ->and($creditNote->amount)->toBe(50.0);
@@ -619,11 +621,11 @@ test('[FIN-06] Comprehensive patient account statement and aging receivables buc
     // Create charges of different ages
     $chargeCurrent = $billingService->createCharge($this->patient, 'Limpieza Dental', 100.00);
     $charge35Days = $billingService->createCharge($this->patient, 'Endodoncia Molar', 200.00);
-    $charge35Days->created_at = \Carbon\Carbon::now()->subDays(35);
+    $charge35Days->created_at = Carbon::now()->subDays(35);
     $charge35Days->save();
 
     $charge100Days = $billingService->createCharge($this->patient, 'Implante de Titanio', 500.00);
-    $charge100Days->created_at = \Carbon\Carbon::now()->subDays(100);
+    $charge100Days->created_at = Carbon::now()->subDays(100);
     $charge100Days->save();
 
     // 1. Test Patient Statement endpoint

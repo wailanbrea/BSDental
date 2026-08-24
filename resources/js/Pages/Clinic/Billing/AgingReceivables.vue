@@ -2,18 +2,7 @@
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { 
-    Wallet, 
-    ArrowLeft, 
-    Download, 
-    Printer, 
-    AlertTriangle, 
-    Clock, 
-    Users, 
-    ChevronRight,
-    Building2,
-    Calendar
-} from 'lucide-vue-next'
+import { ArrowLeft, Printer, Wallet } from 'lucide-vue-next'
 
 interface ChargeDetail {
     id: string
@@ -49,7 +38,7 @@ interface AgingReport {
     total_charges_count: number
 }
 
-const props = defineProps<{
+defineProps<{
     report: AgingReport
 }>()
 
@@ -95,8 +84,8 @@ function triggerPrint() {
 
                 <div class="flex items-center gap-2">
                     <button
-                        @click="triggerPrint"
                         class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#BDC9C6] hover:bg-[#F8FAFC] text-[#131B2E] font-medium text-xs rounded-lg transition shadow-xs"
+                        @click="triggerPrint"
                     >
                         <Printer class="w-3.5 h-3.5" /> Imprimir Reporte
                     </button>
@@ -107,11 +96,11 @@ function triggerPrint() {
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Bucket 1: 0 - 30 days -->
                 <div 
-                    @click="activeBucketKey = 'current_30'"
                     :class="[
                         'p-5 rounded-xl border transition cursor-pointer flex flex-col justify-between shadow-xs',
                         activeBucketKey === 'current_30' ? 'bg-[#F2F3FF] border-[#005C55] ring-2 ring-[#005C55]/20' : 'bg-white border-[#E2E8F0]'
                     ]"
+                    @click="activeBucketKey = 'current_30'"
                 >
                     <div>
                         <div class="flex justify-between items-center">
@@ -133,11 +122,11 @@ function triggerPrint() {
 
                 <!-- Bucket 2: 31 - 60 days -->
                 <div 
-                    @click="activeBucketKey = 'aging_31_60'"
                     :class="[
                         'p-5 rounded-xl border transition cursor-pointer flex flex-col justify-between shadow-xs',
                         activeBucketKey === 'aging_31_60' ? 'bg-[#F2F3FF] border-[#005C55] ring-2 ring-[#005C55]/20' : 'bg-white border-[#E2E8F0]'
                     ]"
+                    @click="activeBucketKey = 'aging_31_60'"
                 >
                     <div>
                         <div class="flex justify-between items-center">
@@ -159,11 +148,11 @@ function triggerPrint() {
 
                 <!-- Bucket 3: 61 - 90 days -->
                 <div 
-                    @click="activeBucketKey = 'aging_61_90'"
                     :class="[
                         'p-5 rounded-xl border transition cursor-pointer flex flex-col justify-between shadow-xs',
                         activeBucketKey === 'aging_61_90' ? 'bg-[#F2F3FF] border-[#005C55] ring-2 ring-[#005C55]/20' : 'bg-white border-[#E2E8F0]'
                     ]"
+                    @click="activeBucketKey = 'aging_61_90'"
                 >
                     <div>
                         <div class="flex justify-between items-center">
@@ -185,11 +174,11 @@ function triggerPrint() {
 
                 <!-- Bucket 4: Over 90 days -->
                 <div 
-                    @click="activeBucketKey = 'over_90'"
                     :class="[
                         'p-5 rounded-xl border transition cursor-pointer flex flex-col justify-between shadow-xs',
                         activeBucketKey === 'over_90' ? 'bg-[#FFDAD6]/40 border-[#BA1A1A] ring-2 ring-[#BA1A1A]/20' : 'bg-white border-[#E2E8F0]'
                     ]"
+                    @click="activeBucketKey = 'over_90'"
                 >
                     <div>
                         <div class="flex justify-between items-center">

@@ -2,6 +2,7 @@
 
 use App\Core\Auth\Models\User;
 use App\Core\Models\Patient;
+use App\Core\Models\PatientCharge;
 use App\Core\Security\Models\TenantAuditLog;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
@@ -265,7 +266,7 @@ test('[CLN-01] Patient merge transfers appointments, charges and soft-deletes du
     ]);
 
     // Create a charge for the duplicate
-    $charge = \App\Core\Models\PatientCharge::create([
+    $charge = PatientCharge::create([
         'patient_id' => $duplicate->id,
         'charge_number' => 'CHG-99901',
         'concept' => 'Consulta de Urgencia',

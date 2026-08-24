@@ -2,31 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { computed } from 'vue'
-import { 
-    Calendar, 
-    UserCheck, 
-    CreditCard, 
-    Wallet, 
-    TrendingUp, 
-    AlertTriangle, 
-    Clock, 
-    Users, 
-    Package, 
-    ArrowRight,
-    FlaskConical,
-    Boxes,
-    AlertCircle,
-    CheckCircle2,
-    Plus,
-    FileText,
-    ReceiptText,
-    Stethoscope,
-    MessageCircle,
-    DollarSign,
-    ShieldAlert,
-    Activity,
-    Layers
-} from 'lucide-vue-next'
+import { AlertTriangle, ArrowRight, Boxes, Calendar, CheckCircle2, Clock, CreditCard, DollarSign, FileText, FlaskConical, Package, ReceiptText, ShieldAlert, TrendingUp, UserCheck, Users, Wallet } from 'lucide-vue-next'
 
 interface Props {
     clinic: {

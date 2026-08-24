@@ -2,21 +2,7 @@
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
-import { 
-    CreditCard, 
-    Lock, 
-    Unlock, 
-    ArrowDownRight, 
-    ArrowUpRight, 
-    Plus, 
-    RotateCcw, 
-    Building2, 
-    AlertCircle, 
-    CheckCircle2, 
-    History,
-    FileText,
-    DollarSign
-} from 'lucide-vue-next'
+import { AlertCircle, ArrowDownRight, ArrowUpRight, Building2, CreditCard, Lock, Plus, RotateCcw, Unlock } from 'lucide-vue-next'
 
 interface MovementSummary {
     id: string
@@ -260,15 +246,15 @@ function formatMoney(amount: number) {
                         <div class="mt-4 pt-3 border-t border-[#E2E8F0] flex justify-between items-center">
                             <button 
                                 type="button"
-                                @click.stop="isMovementModal = true; focusedSession = s"
                                 class="px-2.5 py-1 text-xs font-semibold text-[#005C55] bg-[#A3FAEF]/30 hover:bg-[#A3FAEF]/60 rounded-md transition"
+                                @click.stop="isMovementModal = true; focusedSession = s"
                             >
                                 + Movimiento
                             </button>
                             <button 
                                 type="button"
-                                @click.stop="openCloseModalForSession(s)"
                                 class="px-2.5 py-1 text-xs font-semibold text-[#BA1A1A] bg-[#FFDAD6]/40 hover:bg-[#FFDAD6] rounded-md transition flex items-center gap-1"
+                                @click.stop="openCloseModalForSession(s)"
                             >
                                 <Lock class="w-3.5 h-3.5" /> Cerrar y Cuadrar
                             </button>
@@ -355,8 +341,8 @@ function formatMoney(amount: number) {
                             </span>
                             <button 
                                 v-else
-                                @click="openModalForRegister(reg.id)"
                                 class="px-3 py-1 bg-[#005C55] hover:bg-[#00504A] text-white text-xs font-semibold rounded-lg transition"
+                                @click="openModalForRegister(reg.id)"
                             >
                                 Abrir Caja
                             </button>
@@ -396,9 +382,9 @@ function formatMoney(amount: number) {
                                     <!-- Reopen Action for closed sessions (FIN-01) -->
                                     <button 
                                         v-if="s.status === 'closed' && canReopen && !reg.active_session"
-                                        @click="openReopenModalForSession(s)"
                                         class="p-1.5 text-[#005C55] hover:bg-[#F2F3FF] rounded transition"
                                         title="Reapertura auditada de turno cerrado"
+                                        @click="openReopenModalForSession(s)"
                                     >
                                         <RotateCcw class="w-3.5 h-3.5" />
                                     </button>
@@ -420,10 +406,10 @@ function formatMoney(amount: number) {
                             <Unlock class="w-5 h-5 text-[#005C55]" />
                             <span>Abrir Turno de Caja</span>
                         </h3>
-                        <button @click="isOpenModal = false" class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg">✕</button>
+                        <button class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg" @click="isOpenModal = false">✕</button>
                     </div>
 
-                    <form @submit.prevent="submitOpen" class="space-y-4">
+                    <form class="space-y-4" @submit.prevent="submitOpen">
                         <div>
                             <label class="font-label-caps text-[#3E4947] block mb-1">Caja Seleccionada</label>
                             <select 
@@ -449,8 +435,8 @@ function formatMoney(amount: number) {
                         <div class="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
                             <button 
                                 type="button" 
-                                @click="isOpenModal = false"
                                 class="px-4 py-2 text-xs font-semibold text-[#505F76] hover:bg-[#F8FAFC] rounded-lg transition"
+                                @click="isOpenModal = false"
                             >
                                 Cancelar
                             </button>
@@ -474,10 +460,10 @@ function formatMoney(amount: number) {
                             <Lock class="w-5 h-5 text-[#BA1A1A]" />
                             <span>Cerrar Turno (Arqueo Ciego)</span>
                         </h3>
-                        <button @click="isCloseModal = false" class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg">✕</button>
+                        <button class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg" @click="isCloseModal = false">✕</button>
                     </div>
 
-                    <form @submit.prevent="submitClose" class="space-y-4">
+                    <form class="space-y-4" @submit.prevent="submitClose">
                         <div>
                             <label class="font-label-caps text-[#3E4947] block mb-1">Efectivo Físico Contado ($) *</label>
                             <input 
@@ -507,8 +493,8 @@ function formatMoney(amount: number) {
                         <div class="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
                             <button 
                                 type="button" 
-                                @click="isCloseModal = false"
                                 class="px-4 py-2 text-xs font-semibold text-[#505F76] hover:bg-[#F8FAFC] rounded-lg transition"
+                                @click="isCloseModal = false"
                             >
                                 Cancelar
                             </button>
@@ -532,10 +518,10 @@ function formatMoney(amount: number) {
                             <Plus class="w-5 h-5 text-[#005C55]" />
                             <span>Registrar Movimiento Manual</span>
                         </h3>
-                        <button @click="isMovementModal = false" class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg">✕</button>
+                        <button class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg" @click="isMovementModal = false">✕</button>
                     </div>
 
-                    <form @submit.prevent="submitMovement" class="space-y-4">
+                    <form class="space-y-4" @submit.prevent="submitMovement">
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="font-label-caps text-[#3E4947] block mb-1">Tipo</label>
@@ -590,8 +576,8 @@ function formatMoney(amount: number) {
                         <div class="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
                             <button 
                                 type="button" 
-                                @click="isMovementModal = false"
                                 class="px-4 py-2 text-xs font-semibold text-[#505F76] hover:bg-[#F8FAFC] rounded-lg transition"
+                                @click="isMovementModal = false"
                             >
                                 Cancelar
                             </button>
@@ -615,7 +601,7 @@ function formatMoney(amount: number) {
                             <RotateCcw class="w-5 h-5 text-[#005C55]" />
                             <span>Reapertura Auditada de Caja</span>
                         </h3>
-                        <button @click="isReopenModal = false" class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg">✕</button>
+                        <button class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg" @click="isReopenModal = false">✕</button>
                     </div>
 
                     <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
@@ -623,7 +609,7 @@ function formatMoney(amount: number) {
                         <span>Esta acción reabre el turno de caja cerrado para realizar ajustes necesarios. Quedará registrado en la pista de auditoría.</span>
                     </div>
 
-                    <form @submit.prevent="submitReopen" class="space-y-4">
+                    <form class="space-y-4" @submit.prevent="submitReopen">
                         <div>
                             <label class="font-label-caps text-[#3E4947] block mb-1">Motivo Obligatorio (10 - 500 caracteres) *</label>
                             <textarea 
@@ -641,8 +627,8 @@ function formatMoney(amount: number) {
                         <div class="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
                             <button 
                                 type="button" 
-                                @click="isReopenModal = false"
                                 class="px-4 py-2 text-xs font-semibold text-[#505F76] hover:bg-[#F8FAFC] rounded-lg transition"
+                                @click="isReopenModal = false"
                             >
                                 Cancelar
                             </button>

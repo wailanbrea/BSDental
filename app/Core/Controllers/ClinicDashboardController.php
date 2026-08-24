@@ -187,7 +187,7 @@ class ClinicDashboardController extends Controller
             $cashierData = [
                 'has_open_session' => $activeSession !== null,
                 'active_session_name' => $activeSession?->cashRegister->name,
-                'opening_amount' => $activeSession?->opening_balance ?? 0,
+                'opening_amount' => $activeSession->opening_balance ?? 0,
                 'collected_today' => $cashCollectedToday,
                 'pending_charges_count' => PatientCharge::whereIn('status', ['pending', 'partially_paid'])->count(),
                 'recent_payments' => $recentPayments,

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { Head, useForm, Link } from '@inertiajs/vue3'
+import { Head, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { DollarSign, Plus, Clock, X, Layers, Tag } from 'lucide-vue-next'
+import { Clock, Plus, Tag, X } from 'lucide-vue-next'
 
 interface ProcedureItem {
     id: string

@@ -6,10 +6,12 @@ use App\Core\Models\CrmStage;
 use App\Core\Models\FollowUpTask;
 use App\Core\Models\NotificationLog;
 use App\Core\Models\Patient;
+use App\Core\Models\PatientCrmProfile;
 use App\Core\Services\FollowUpTaskService;
 use App\Http\Controllers\Controller;
 use App\Platform\Security\AuditLogger;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -108,7 +110,7 @@ class CrmFollowUpController extends Controller
      */
     public function updateStage(Request $request, string $profileId): RedirectResponse
     {
-        $profile = \App\Core\Models\PatientCrmProfile::with(['patient', 'stage'])->findOrFail($profileId);
+        $profile = PatientCrmProfile::with(['patient', 'stage'])->findOrFail($profileId);
 
         $validated = $request->validate([
             'stage_id' => ['required', 'uuid', 'exists:tenant.crm_stages,id'],
@@ -138,7 +140,7 @@ class CrmFollowUpController extends Controller
     /**
      * Generate secure wa.me link for patient communication (CRM-02).
      */
-    public function whatsappLink(Request $request, string $patientId)
+    public function whatsappLink(Request $request, string $patientId): JsonResponse
     {
         $patient = Patient::findOrFail($patientId);
 

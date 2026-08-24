@@ -1,22 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
-import { 
-    Activity, 
-    ShieldCheck, 
-    Layers, 
-    Server, 
-    CheckCircle2, 
-    Calendar, 
-    FileText, 
-    Boxes,
-    ArrowRight,
-    UserCheck,
-    Lock,
-    ExternalLink,
-    Building2,
-    DollarSign,
-    Sparkles
-} from 'lucide-vue-next'
+import { Activity, ArrowRight, Boxes, Calendar, DollarSign, ExternalLink, FileText, Layers, ShieldCheck, Sparkles, UserCheck } from 'lucide-vue-next'
 
 interface Props {
     appName?: string

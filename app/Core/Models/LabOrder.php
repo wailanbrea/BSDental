@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -121,9 +122,9 @@ class LabOrder extends Model
     /**
      * Remakes relation.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<LabOrder, $this>
+     * @return HasMany<LabOrder, $this>
      */
-    public function remakes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function remakes(): HasMany
     {
         return $this->hasMany(LabOrder::class, 'parent_order_id');
     }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm, Link } from '@inertiajs/vue3'
-import { Truck, Plus, PackageCheck, Clock, CheckCircle2, RotateCcw, AlertCircle } from 'lucide-vue-next'
+import { RotateCcw, Truck } from 'lucide-vue-next'
 
 interface LaboratoryItem {
     id: string

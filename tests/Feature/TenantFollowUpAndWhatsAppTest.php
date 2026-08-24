@@ -7,6 +7,7 @@ use App\Core\Models\CrmStage;
 use App\Core\Models\FollowUpTask;
 use App\Core\Models\NotificationLog;
 use App\Core\Models\Patient;
+use App\Core\Models\PatientCrmProfile;
 use App\Core\Models\Professional;
 use App\Core\Models\Room;
 use App\Core\Models\UserNotification;
@@ -234,7 +235,7 @@ test('[CRM-01 & CRM-02] Commercial pipeline stage transition with loss reasons a
         'order_index' => 3,
     ]);
 
-    $profile = \App\Core\Models\PatientCrmProfile::create([
+    $profile = PatientCrmProfile::create([
         'patient_id' => $this->patient->id,
         'stage_id' => $stageWon->id,
         'source' => 'Google Ads',

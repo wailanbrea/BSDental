@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link } from '@inertiajs/vue3'
-import { ArrowLeft, Package, History, ArrowDownRight, ArrowUpRight, AlertCircle, Building2, Printer } from 'lucide-vue-next'
+import { ArrowLeft, Printer } from 'lucide-vue-next'
 
 interface StockMovementDetail {
     id: string
@@ -40,7 +40,7 @@ interface KardexData {
     movements: StockMovementDetail[]
 }
 
-const props = defineProps<{
+defineProps<{
     kardex: KardexData
 }>()
 
@@ -100,8 +100,8 @@ function movementLabel(type: string) {
 
                 <div class="flex items-center gap-2">
                     <button
-                        @click="triggerPrint"
                         class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#BDC9C6] hover:bg-[#F8FAFC] text-[#131B2E] font-medium text-xs rounded-lg transition shadow-xs"
+                        @click="triggerPrint"
                     >
                         <Printer class="w-3.5 h-3.5" /> Imprimir Kardex
                     </button>

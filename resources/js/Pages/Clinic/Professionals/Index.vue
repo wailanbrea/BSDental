@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { Head, useForm, Link } from '@inertiajs/vue3'
+import { Head, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { UserCheck, Plus, Trash2, Phone, Mail, X, Stethoscope, Building } from 'lucide-vue-next'
+import { Mail, Phone, Plus, Trash2, UserCheck, X } from 'lucide-vue-next'
 
 interface Specialty {
     id: string

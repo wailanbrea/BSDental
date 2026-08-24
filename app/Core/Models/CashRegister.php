@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -66,9 +67,9 @@ class CashRegister extends Model
     /**
      * Current open session relation.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne<CashSession, $this>
+     * @return HasOne<CashSession, $this>
      */
-    public function activeSession(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function activeSession(): HasOne
     {
         return $this->hasOne(CashSession::class, 'cash_register_id')->where('status', 'open');
     }

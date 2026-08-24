@@ -149,7 +149,7 @@ class CashRegisterService
         }
 
         $previousNotes = $session->closing_notes ? "{$session->closing_notes}\n" : '';
-        $reopenEntry = "[REAPERTURA ".now()->format('Y-m-d H:i')." por {$user->name}]: {$reason}";
+        $reopenEntry = '[REAPERTURA '.now()->format('Y-m-d H:i')." por {$user->name}]: {$reason}";
 
         $session->update([
             'status' => 'open',

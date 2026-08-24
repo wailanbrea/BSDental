@@ -2,10 +2,22 @@
 
 namespace App\Core\Controllers;
 
+use App\Core\Models\Appointment;
 use App\Core\Models\Branch;
+use App\Core\Models\ClinicalEncounter;
+use App\Core\Models\CreditAdjustment;
+use App\Core\Models\FollowUpTask;
+use App\Core\Models\LabOrder;
+use App\Core\Models\Odontogram;
 use App\Core\Models\Patient;
+use App\Core\Models\PatientCharge;
+use App\Core\Models\PatientConsent;
 use App\Core\Models\PatientFile;
 use App\Core\Models\PatientMedicalHistory;
+use App\Core\Models\Payment;
+use App\Core\Models\Quote;
+use App\Core\Models\Refund;
+use App\Core\Models\TreatmentPlan;
 use App\Core\Services\PatientDuplicateDetector;
 use App\Core\Services\PatientRecordNumberGenerator;
 use App\Http\Controllers\Controller;
@@ -495,19 +507,19 @@ class PatientController extends Controller
             $masterId = $master->id;
 
             // Transfer all clinical & operational records
-            \App\Core\Models\Appointment::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\Quote::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\TreatmentPlan::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\ClinicalEncounter::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\Odontogram::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\PatientConsent::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\PatientCharge::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\Payment::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\Refund::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\CreditAdjustment::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\LabOrder::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\FollowUpTask::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
-            \App\Core\Models\PatientFile::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            Appointment::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            Quote::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            TreatmentPlan::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            ClinicalEncounter::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            Odontogram::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            PatientConsent::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            PatientCharge::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            Payment::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            Refund::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            CreditAdjustment::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            LabOrder::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            FollowUpTask::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
+            PatientFile::where('patient_id', $dupId)->update(['patient_id' => $masterId]);
 
             // Merge tags
             $masterTags = $master->tags ?? [];

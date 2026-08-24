@@ -2,23 +2,7 @@
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
-import { 
-    CreditCard, 
-    ArrowLeft, 
-    Download, 
-    Printer, 
-    RotateCcw, 
-    Building2, 
-    Lock, 
-    Unlock, 
-    ArrowDownRight, 
-    ArrowUpRight, 
-    AlertTriangle, 
-    CheckCircle2,
-    Calendar,
-    DollarSign,
-    Filter
-} from 'lucide-vue-next'
+import { ArrowLeft, Building2, Download, Printer, RotateCcw } from 'lucide-vue-next'
 
 interface Movement {
     id: string
@@ -153,8 +137,8 @@ function triggerPrint() {
                 <!-- Action Buttons -->
                 <div class="flex items-center gap-2">
                     <button
-                        @click="triggerPrint"
                         class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#BDC9C6] hover:bg-[#F8FAFC] text-[#131B2E] font-medium text-xs rounded-lg transition shadow-xs"
+                        @click="triggerPrint"
                     >
                         <Printer class="w-3.5 h-3.5" /> Imprimir Arqueo
                     </button>
@@ -168,8 +152,8 @@ function triggerPrint() {
 
                     <button
                         v-if="session.status === 'closed' && canReopen"
-                        @click="isReopenModal = true"
                         class="flex items-center gap-1.5 px-3 py-1.5 bg-[#005C55] hover:bg-[#00504A] text-white font-semibold text-xs rounded-lg transition shadow-xs"
+                        @click="isReopenModal = true"
                     >
                         <RotateCcw class="w-3.5 h-3.5" /> Reabrir Sesión
                     </button>
@@ -329,10 +313,10 @@ function triggerPrint() {
                             <RotateCcw class="w-5 h-5 text-[#005C55]" />
                             <span>Reapertura Auditada de Sesión</span>
                         </h3>
-                        <button @click="isReopenModal = false" class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg">✕</button>
+                        <button class="text-[#505F76] hover:text-[#131B2E] font-bold text-lg" @click="isReopenModal = false">✕</button>
                     </div>
 
-                    <form @submit.prevent="submitReopen" class="space-y-4">
+                    <form class="space-y-4" @submit.prevent="submitReopen">
                         <div>
                             <label class="font-label-caps text-[#3E4947] block mb-1">Motivo Obligatorio (10 - 500 caracteres) *</label>
                             <textarea 
@@ -350,8 +334,8 @@ function triggerPrint() {
                         <div class="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
                             <button 
                                 type="button" 
-                                @click="isReopenModal = false"
                                 class="px-4 py-2 text-xs font-semibold text-[#505F76] hover:bg-[#F8FAFC] rounded-lg transition"
+                                @click="isReopenModal = false"
                             >
                                 Cancelar
                             </button>

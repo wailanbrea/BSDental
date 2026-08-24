@@ -2,22 +2,7 @@
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
-import { 
-    Layers, 
-    Plus, 
-    ShoppingCart, 
-    AlertTriangle, 
-    ArrowDownRight, 
-    ArrowUpRight, 
-    Search, 
-    Package, 
-    SlidersHorizontal, 
-    FileText, 
-    X,
-    Building2,
-    DollarSign,
-    Archive
-} from 'lucide-vue-next'
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, DollarSign, FileText, Layers, Package, Plus, Search, ShoppingCart, SlidersHorizontal, X } from 'lucide-vue-next'
 
 interface CategoryItem {
     id: string
@@ -288,13 +273,13 @@ function submitAdjustment() {
                     </select>
 
                     <button
-                        @click="onlyLowStock = !onlyLowStock"
                         :class="[
                             'px-3 py-1.5 text-xs font-medium rounded-lg border transition flex items-center gap-1.5',
                             onlyLowStock 
                                 ? 'bg-rose-50 text-[#BA1A1A] border-rose-300 font-semibold' 
                                 : 'bg-[#F8FAFC] text-[#505F76] border-[#BDC9C6] hover:bg-white'
                         ]"
+                        @click="onlyLowStock = !onlyLowStock"
                     >
                         <AlertTriangle class="w-3.5 h-3.5" /> Solo Bajo Stock
                     </button>

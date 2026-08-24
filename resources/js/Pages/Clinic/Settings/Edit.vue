@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm, Link } from '@inertiajs/vue3'
-import { Settings, Save, ArrowLeft, Building, Globe, DollarSign, Phone, MapPin } from 'lucide-vue-next'
+import { Building, DollarSign, Globe, MapPin, Phone, Save, Settings } from 'lucide-vue-next'
 
 interface TenantData {
     id: string

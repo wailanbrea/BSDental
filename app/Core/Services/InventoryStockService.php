@@ -9,6 +9,7 @@ use App\Core\Models\StockMovement;
 use App\Core\Models\TreatmentPlanItem;
 use App\Core\Models\Warehouse;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -251,6 +252,8 @@ class InventoryStockService
 
     /**
      * Get item Kardex movement history (INV-01).
+     *
+     * @return array{item: InventoryItem, total_stock: float, movements: Collection<int, StockMovement>}
      */
     public function getItemKardex(InventoryItem $item, ?Warehouse $warehouse = null): array
     {
@@ -273,6 +276,13 @@ class InventoryStockService
 
     /**
      * Get inventory alerts (low stock & expiring batches) (INV-01).
+     *
+     * @return array{
+     *     low_stock: list<array{item: InventoryItem, current_stock: float, min_stock: float, unit: string}>,
+     *     expiring_batches: Collection<int, InventoryBatch>,
+     *     low_stock_count: int,
+     *     expiring_count: int
+     * }
      */
     public function getInventoryAlerts(?Warehouse $warehouse = null): array
     {

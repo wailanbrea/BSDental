@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { Head, useForm, Link } from '@inertiajs/vue3'
+import { Head, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { MessageSquare, CheckCircle2, Clock, Plus, PhoneCall, Check, X, Filter } from 'lucide-vue-next'
+import { Check, CheckCircle2, Clock, MessageSquare, PhoneCall, Plus, X } from 'lucide-vue-next'
 
 interface TaskSummary {
     id: string

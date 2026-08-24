@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link } from '@inertiajs/vue3'
-import { ArrowLeft, Printer, Download, CreditCard, DollarSign, Building2, FileText, CheckCircle2 } from 'lucide-vue-next'
+import { ArrowLeft, Printer } from 'lucide-vue-next'
 
 interface Charge {
     id: string
@@ -59,7 +59,7 @@ interface StatementData {
     }
 }
 
-const props = defineProps<{
+defineProps<{
     statement: StatementData
 }>()
 
@@ -101,8 +101,8 @@ function triggerPrint() {
                 </div>
 
                 <button
-                    @click="triggerPrint"
                     class="flex items-center gap-1.5 px-4 py-2 bg-[#005C55] hover:bg-[#00504A] text-white font-semibold text-xs rounded-lg transition shadow-xs"
+                    @click="triggerPrint"
                 >
                     <Printer class="w-4 h-4" /> Imprimir Estado de Cuenta
                 </button>

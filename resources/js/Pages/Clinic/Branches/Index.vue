@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { Head, useForm, Link } from '@inertiajs/vue3'
+import { Head, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { Building2, Plus, Trash2, MapPin, Phone, Mail, X, Armchair } from 'lucide-vue-next'
 

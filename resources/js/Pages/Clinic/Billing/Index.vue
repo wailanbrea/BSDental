@@ -2,21 +2,7 @@
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
-import { 
-    ArrowLeft, 
-    Plus, 
-    CreditCard, 
-    ExternalLink, 
-    Link2, 
-    Receipt, 
-    RotateCcw, 
-    Trash2, 
-    DollarSign, 
-    FileText, 
-    X,
-    AlertCircle,
-    CheckCircle2
-} from 'lucide-vue-next'
+import { ArrowLeft, CreditCard, ExternalLink, FileText, Link2, Plus, RotateCcw, Trash2, X } from 'lucide-vue-next'
 
 interface PatientDetails {
     id: string

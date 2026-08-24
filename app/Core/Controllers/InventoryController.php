@@ -2,6 +2,7 @@
 
 namespace App\Core\Controllers;
 
+use App\Core\Models\InventoryBatch;
 use App\Core\Models\InventoryCategory;
 use App\Core\Models\InventoryItem;
 use App\Core\Models\StockMovement;
@@ -147,7 +148,7 @@ class InventoryController extends Controller
 
         $item = InventoryItem::findOrFail($validated['inventory_item_id']);
         $warehouse = Warehouse::findOrFail($validated['warehouse_id']);
-        $batch = ! empty($validated['batch_id']) ? \App\Core\Models\InventoryBatch::find($validated['batch_id']) : null;
+        $batch = ! empty($validated['batch_id']) ? InventoryBatch::find($validated['batch_id']) : null;
         $userId = Auth::guard('web')->id();
 
         $movement = $this->stockService->recordManualAdjustment(
