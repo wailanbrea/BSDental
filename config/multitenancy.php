@@ -62,6 +62,12 @@ return [
     'demo_tenant_domain' => env('DEMO_TENANT_DOMAIN', 'demo.localhost'),
 
     /*
+     * Tenant used to serve the clinic application from localhost during local
+     * development. Production tenant resolution always remains host-based.
+     */
+    'local_tenant_slug' => env('LOCAL_TENANT_SLUG', 'demo'),
+
+    /*
      * This key will be used to associate the current tenant in the context
      */
     'current_tenant_context_key' => 'tenantId',

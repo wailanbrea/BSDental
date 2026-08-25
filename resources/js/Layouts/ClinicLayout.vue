@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3'
 import type { PageProps } from '@/types'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { 
     LayoutDashboard, 
     Users, 
@@ -25,6 +25,7 @@ import {
     ReceiptText,
     FlaskConical,
 } from 'lucide-vue-next'
+import { AnimatePresence, motion, useReducedMotion } from 'motion-v'
 
 interface LayoutNotification {
     id: string
@@ -49,6 +50,43 @@ const page = usePage<ClinicPageProps>()
 const isMobileMenuOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
 const isNotificationsOpen = ref(false)
+const shouldReduceMotion = useReducedMotion()
+const smoothEase = [0.22, 1, 0.36, 1] as const
+const sidebarInitial = computed(() => shouldReduceMotion.value ? { opacity: 0 } : { opacity: 0, x: -14 })
+const sidebarTarget = computed(() => shouldReduceMotion.value ? { opacity: 1 } : { opacity: 1, x: 0 })
+const drawerInitial = computed(() => shouldReduceMotion.value ? { opacity: 0 } : { opacity: 0, x: '-100%' })
+const drawerTarget = computed(() => shouldReduceMotion.value ? { opacity: 1 } : { opacity: 1, x: 0 })
+
+function closeMobileMenu() {
+    isMobileMenuOpen.value = false
+}
+
+function toggleMobileMenu() {
+    isMobileMenuOpen.value = !isMobileMenuOpen.value
+}
+
+function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') closeMobileMenu()
+}
+
+watch(isMobileMenuOpen, (isOpen) => {
+    document.body.classList.toggle('overflow-hidden', isOpen)
+})
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown)
+    document.body.classList.remove('overflow-hidden')
+})
+
+const sidebarTransition = {
+    type: 'tween',
+    duration: 0.45,
+    ease: smoothEase,
+}
 
 const user = computed(() => page.props.auth?.user || { id: '', name: 'Usuario', email: 'usuario@bsdental.com', permissions: [], roles: [], branch_ids: [] })
 const clinic = computed(() => page.props.clinic || { trade_name: 'BSDental', name: 'BSDental Clinic', clinic_name: 'BSDental Clinic' })
@@ -136,7 +174,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
 <template>
     <div class="min-h-screen bg-[#F8FAFC] text-[#131B2E] font-sans antialiased flex flex-col selection:bg-[#005C55] selection:text-white">
         <!-- SideNavBar Desktop (260px) -->
-        <nav class="w-[260px] h-screen fixed left-0 top-0 hidden md:flex flex-col bg-white border-r border-[#E2E8F0] z-50 py-4">
+        <motion.nav class="w-[260px] h-screen fixed left-0 top-0 hidden md:flex flex-col bg-white border-r border-[#E2E8F0] z-50 py-4" :initial="sidebarInitial" :animate="sidebarTarget" :transition="sidebarTransition">
             <!-- Brand Logo -->
             <div class="px-5 mb-8 flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-[#005C55] text-white flex items-center justify-center shadow-xs">
@@ -150,7 +188,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
 
             <!-- Navigation Links -->
             <ul class="flex-1 px-3 flex flex-col gap-1 overflow-y-auto">
-                <li v-for="item in navItems" :key="item.href">
+                <motion.li v-for="(item, index) in navItems" :key="item.href" :initial="shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }" :animate="shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }" :transition="{ ...sidebarTransition, duration: 0.32, delay: 0.12 + (index * 0.045) }">
                     <Link 
                         :href="item.href"
                         :class="[
@@ -163,7 +201,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                         <component :is="item.icon" class="w-4 h-4 shrink-0" />
                         <span>{{ item.name }}</span>
                     </Link>
-                </li>
+                </motion.li>
             </ul>
 
             <!-- Settings & Bottom Action -->
@@ -182,7 +220,7 @@ v-if="canAny(['settings.view'])"
                     <span>Configuración</span>
                 </Link>
             </div>
-        </nav>
+        </motion.nav>
 
         <!-- Main Wrapper -->
         <div class="flex-1 ml-0 md:ml-[260px] flex flex-col min-h-screen">
@@ -192,7 +230,10 @@ v-if="canAny(['settings.view'])"
                 <div class="flex items-center gap-4 flex-1">
                     <button 
                         class="md:hidden p-2 text-[#505F76] hover:bg-[#F1F5F9] rounded-lg transition"
-                        @click="isMobileMenuOpen = !isMobileMenuOpen"
+                        aria-label="Toggle navigation menu"
+                        :aria-expanded="isMobileMenuOpen"
+                        aria-controls="mobile-navigation"
+                        @click="toggleMobileMenu"
                     >
                         <Menu v-if="!isMobileMenuOpen" class="w-5 h-5" />
                         <X v-else class="w-5 h-5" />
@@ -304,27 +345,53 @@ v-if="canAny(['settings.view'])"
             </header>
 
             <!-- Mobile Drawer Navigation -->
-            <div v-if="isMobileMenuOpen" class="md:hidden bg-white border-b border-[#E2E8F0] px-4 py-3 space-y-1">
-                <Link 
-                    v-for="item in navItems" 
-                    :key="item.href" 
+            <AnimatePresence>
+                <motion.button
+                    v-if="isMobileMenuOpen"
+                    key="mobile-menu-overlay"
+                    type="button"
+                    aria-label="Close navigation menu"
+                    class="md:hidden fixed inset-0 z-50 bg-[#131B2E]/30"
+                    :initial="{ opacity: 0 }"
+                    :animate="{ opacity: 1 }"
+                    :exit="{ opacity: 0 }"
+                    :transition="{ duration: 0.22, ease: smoothEase }"
+                    @click="closeMobileMenu"
+                />
+                <motion.nav
+                    v-if="isMobileMenuOpen"
+                    id="mobile-navigation"
+                    key="mobile-navigation"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Navigation menu"
+                    class="md:hidden fixed inset-y-0 left-0 z-[60] flex w-[min(20rem,calc(100vw-3rem))] flex-col overflow-y-auto bg-white px-4 py-5 shadow-2xl"
+                    :initial="drawerInitial"
+                    :animate="drawerTarget"
+                    :exit="drawerInitial"
+                    :transition="{ ...sidebarTransition, duration: 0.34 }"
+                >
+                <Link
+                    v-for="item in navItems"
+                    :key="item.href"
                     :href="item.href"
                     :class="[
                         'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
                         isActive(item) ? 'bg-[#F2F3FF] text-[#005C55] font-bold' : 'text-[#505F76]'
                     ]"
-                    @click="isMobileMenuOpen = false"
+                    @click="closeMobileMenu"
                 >
                     <component :is="item.icon" class="w-4 h-4" />
                     <span>{{ item.name }}</span>
                 </Link>
                 <button 
                     class="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#BA1A1A] text-left"
-                    @click="logout"
+                    @click="closeMobileMenu(); logout()"
                 >
                     <LogOut class="w-4 h-4" /> Cerrar Sesión
                 </button>
-            </div>
+                </motion.nav>
+            </AnimatePresence>
 
             <!-- Global Toast Messages -->
             <div v-if="flash?.success || flash?.error" class="px-6 pt-4">

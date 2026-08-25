@@ -1,8 +1,22 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
+import { motion } from 'motion-v'
 import { AlertTriangle, ArrowRight, Boxes, Calendar, CheckCircle2, Clock, CreditCard, DollarSign, FileText, FlaskConical, Package, ReceiptText, ShieldAlert, TrendingUp, UserCheck, Users, Wallet, Zap } from 'lucide-vue-next'
+
+const FinancialTrendChart = defineAsyncComponent(() => import('@/Components/Dashboard/FinancialTrendChart.vue'))
+
+const smoothEase = [0.22, 1, 0.36, 1] as const
+const panelTransition = {
+    type: 'tween',
+    duration: 0.55,
+    ease: smoothEase,
+}
+const barTransition = {
+    duration: 0.85,
+    ease: smoothEase,
+}
 
 interface Props {
     clinic: {
@@ -155,6 +169,22 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+function trendWidth(trend: string): string {
+    const percentage = Number.parseInt(trend.replace(/[^0-9]/g, ''), 10)
+
+    return `${Math.min(100, Math.max(12, Number.isNaN(percentage) ? 12 : percentage))}%`
+}
+
+function timelineTone(status: string): string {
+    return {
+        waiting: 'border-l-[#0047BF]',
+        confirmed: 'border-l-[#005C55]',
+        in_progress: 'border-l-amber-500',
+        completed: 'border-l-emerald-500',
+        cancelled: 'border-l-rose-500',
+    }[status] ?? 'border-l-slate-400'
+}
 
 const primaryRole = computed(() => props.user.primary_role)
 const permissionSet = computed(() => new Set(props.user.permissions))
@@ -788,7 +818,12 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
             <template v-else-if="primaryRole === 'Owner' || primaryRole === 'Receptionist'">
                 <!-- 4 Top KPI Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#005C55] shadow-xs flex flex-col justify-between">
+                    <motion.div
+                        class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#005C55] shadow-xs flex flex-col justify-between"
+                        :initial="{ opacity: 0, y: 12 }"
+                        :animate="{ opacity: 1, y: 0 }"
+                        :transition="{ ...panelTransition, delay: 0.06 }"
+                    >
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Citas hoy</span>
                             <div class="w-8 h-8 rounded-lg bg-[#F2F3FF] text-[#005C55] flex items-center justify-center">
@@ -801,9 +836,12 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                 <TrendingUp class="w-3.5 h-3.5 mr-0.5" /> {{ kpis.appointments_trend }}
                             </span>
                         </div>
-                    </div>
+                        <div class="h-1.5 mt-4 rounded-full bg-[#E6F4F1] overflow-hidden" aria-hidden="true">
+                            <motion.div class="h-full rounded-full bg-[#005C55] origin-left" :style="{ width: trendWidth(kpis.appointments_trend) }" :initial="{ scaleX: 0 }" :animate="{ scaleX: 1 }" :transition="{ ...barTransition, delay: 0.2 }" />
+                        </div>
+                    </motion.div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#0047BF] shadow-xs flex flex-col justify-between">
+                    <motion.div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#0047BF] shadow-xs flex flex-col justify-between" :initial="{ opacity: 0, y: 12 }" :animate="{ opacity: 1, y: 0 }" :transition="{ ...panelTransition, delay: 0.15 }">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Pacientes atendidos</span>
                             <div class="w-8 h-8 rounded-lg bg-[#F2F3FF] text-[#005C55] flex items-center justify-center">
@@ -816,9 +854,10 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                 <TrendingUp class="w-3.5 h-3.5 mr-0.5" /> {{ kpis.attended_trend }}
                             </span>
                         </div>
-                    </div>
+                        <div class="h-1.5 mt-4 rounded-full bg-[#E8EEFF] overflow-hidden" aria-hidden="true"><motion.div class="h-full rounded-full bg-[#0047BF] origin-left" :style="{ width: trendWidth(kpis.attended_trend) }" :initial="{ scaleX: 0 }" :animate="{ scaleX: 1 }" :transition="{ ...barTransition, delay: 0.29 }" /></div>
+                    </motion.div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-emerald-500 shadow-xs flex flex-col justify-between">
+                    <motion.div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-emerald-500 shadow-xs flex flex-col justify-between" :initial="{ opacity: 0, y: 12 }" :animate="{ opacity: 1, y: 0 }" :transition="{ ...panelTransition, delay: 0.24 }">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Cobrado neto hoy</span>
                             <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -831,9 +870,10 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                 <TrendingUp class="w-3.5 h-3.5 mr-0.5" /> {{ kpis.collected_trend }}
                             </span>
                         </div>
-                    </div>
+                        <div class="h-1.5 mt-4 rounded-full bg-emerald-100 overflow-hidden" aria-hidden="true"><motion.div class="h-full rounded-full bg-emerald-500 origin-left" :style="{ width: trendWidth(kpis.collected_trend) }" :initial="{ scaleX: 0 }" :animate="{ scaleX: 1 }" :transition="{ ...barTransition, delay: 0.38 }" /></div>
+                    </motion.div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#BA1A1A] shadow-xs flex flex-col justify-between">
+                    <motion.div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#BA1A1A] shadow-xs flex flex-col justify-between" :initial="{ opacity: 0, y: 12 }" :animate="{ opacity: 1, y: 0 }" :transition="{ ...panelTransition, delay: 0.33 }">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Cuentas por cobrar</span>
                             <div class="w-8 h-8 rounded-lg bg-[#FFDAD6]/40 text-[#BA1A1A] flex items-center justify-center">
@@ -843,7 +883,8 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         <div class="flex items-baseline gap-2">
                             <span class="text-2xl font-bold text-[#BA1A1A] font-data-tabular">{{ formatMoney(kpis.accounts_receivable) }}</span>
                         </div>
-                    </div>
+                        <div class="h-1.5 mt-4 rounded-full bg-rose-100 overflow-hidden" aria-hidden="true"><motion.div class="h-full w-2/3 rounded-full bg-[#BA1A1A] origin-left" :initial="{ scaleX: 0 }" :animate="{ scaleX: 1 }" :transition="{ ...barTransition, delay: 0.47 }" /></div>
+                    </motion.div>
                 </div>
 
                 <!-- Main 2-Column Grid -->
@@ -873,10 +914,14 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                         </tr>
                                     </thead>
                                     <tbody class="text-xs divide-y divide-[#E2E8F0]">
-                                        <tr 
-                                            v-for="app in todayAppointments"
+                                        <motion.tr
+                                            v-for="(app, index) in todayAppointments"
                                             :key="app.id"
-                                            class="hover:bg-[#F8FAFC] transition-colors h-11"
+                                            class="hover:bg-[#F8FAFC] transition-colors h-11 border-l-2"
+                                            :class="timelineTone(app.status)"
+                                            :initial="{ opacity: 0, x: -8 }"
+                                            :animate="{ opacity: 1, x: 0 }"
+                                            :transition="{ ...panelTransition, duration: 0.48, delay: 0.18 + (index * 0.1) }"
                                         >
                                             <td class="px-4 py-2 font-data-tabular font-bold text-[#131B2E]">{{ app.time }}</td>
                                             <td class="px-4 py-2 font-medium text-[#131B2E]">
@@ -896,7 +941,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                                     {{ getStatusBadge(app.status).label }}
                                                 </span>
                                             </td>
-                                        </tr>
+                                        </motion.tr>
                                     </tbody>
                                 </table>
                                 <div v-else class="p-8 text-center text-xs text-[#505F76]">
@@ -922,7 +967,8 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-7 gap-3 pt-4 border-t border-[#E2E8F0] shadow-xs">
+                            <FinancialTrendChart :data="financialChart" :currency="clinic.currency" />
+                            <div v-if="false" class="grid grid-cols-7 gap-3 pt-4 border-t border-[#E2E8F0] shadow-xs">
                                 <div 
                                     v-for="d in financialChart"
                                     :key="d.date"

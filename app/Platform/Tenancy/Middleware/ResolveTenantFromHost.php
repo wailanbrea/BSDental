@@ -24,6 +24,18 @@ class ResolveTenantFromHost
     public function handle(Request $request, Closure $next): Response
     {
         $host = strtolower(trim($request->getHost()));
+
+        if (app()->isLocal() && in_array($host, ['localhost', '127.0.0.1'], true)) {
+            $tenant = Tenant::query()
+                ->where('slug', config('multitenancy.local_tenant_slug'))
+                ->first();
+
+            if ($tenant instanceof Tenant) {
+                $this->tenantContext->makeCurrent($tenant);
+
+                return $next($request);
+            }
+        }
         /** @var list<string> $centralDomains */
         $centralDomains = config('multitenancy.central_domains', [
             'localhost',

@@ -30,7 +30,7 @@ const form = useForm({
 })
 
 const submit = () => {
-    form.post('/login', {
+    form.post('login', {
         onFinish: () => {
             form.reset('password')
         },
@@ -124,7 +124,7 @@ const submit = () => {
                             />
                             <span class="ml-2 text-xs font-medium text-[#505F76]">Recordarme</span>
                         </label>
-                        <Link href="/forgot-password" class="text-xs font-semibold text-[#005C55] hover:underline">
+                        <Link href="forgot-password" class="text-xs font-semibold text-[#005C55] hover:underline">
                             ¿Olvidaste tu contraseña?
                         </Link>
                     </div>
