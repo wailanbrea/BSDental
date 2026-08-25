@@ -100,6 +100,20 @@ function canAny(required: string[] = []) {
 }
 
 const currentUrl = computed(() => page.url)
+const appBasePath = (import.meta.env.VITE_BASE_PATH || '').replace(/\/build\/?$/, '')
+const currentPath = computed(() => {
+    const path = currentUrl.value.split('?')[0]
+
+    if (appBasePath && (path === appBasePath || path.startsWith(`${appBasePath}/`))) {
+        return path.slice(appBasePath.length) || '/'
+    }
+
+    const publicSegment = '/public/'
+    const publicIndex = path.indexOf(publicSegment)
+
+    return publicIndex >= 0 ? path.slice(publicIndex + publicSegment.length - 1) : path
+})
+
 
 const navItems = computed(() => [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, pattern: /^\/dashboard/ },
@@ -116,7 +130,11 @@ const navItems = computed(() => [
 ].filter((item) => canAny(item.permissions)))
 
 function isActive(item: { pattern: RegExp }) {
-    return item.pattern.test(currentUrl.value)
+    return item.pattern.test(currentPath.value)
+}
+
+function isSettingsActive() {
+    return currentPath.value.startsWith('/settings')
 }
 
 const searchQuery = ref('')
@@ -191,13 +209,15 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                 <motion.li v-for="(item, index) in navItems" :key="item.href" :initial="shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }" :animate="shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }" :transition="{ ...sidebarTransition, duration: 0.32, delay: 0.12 + (index * 0.045) }">
                     <Link 
                         :href="item.href"
+                        :aria-current="isActive(item) ? 'page' : undefined"
                         :class="[
-                            'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                            'relative flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
                             isActive(item) 
-                                ? 'bg-[#F2F3FF] text-[#005C55] font-bold border-r-4 border-[#005C55] shadow-xs' 
+                                ? 'bg-[#E6F4F1] text-[#005C55] font-bold shadow-xs'
                                 : 'text-[#505F76] hover:bg-[#F1F5F9] hover:text-[#131B2E]'
                         ]"
                     >
+                        <span v-if="isActive(item)" aria-hidden="true" class="absolute inset-y-2 left-0 w-1 rounded-r-full bg-[#005C55]" />
                         <component :is="item.icon" class="w-4 h-4 shrink-0" />
                         <span>{{ item.name }}</span>
                     </Link>
@@ -207,15 +227,17 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
             <!-- Settings & Bottom Action -->
             <div class="px-3 pt-3 border-t border-[#E2E8F0] mt-auto">
                 <Link
-v-if="canAny(['settings.view'])"
+                    v-if="canAny(['settings.view'])"
+                    :aria-current="isSettingsActive() ? 'page' : undefined"
                     href="/settings"
                     :class="[
-                        'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                        currentUrl.startsWith('/settings') 
-                            ? 'bg-[#F2F3FF] text-[#005C55] font-bold border-r-4 border-[#005C55]' 
+                        'relative flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                        isSettingsActive()
+                            ? 'bg-[#E6F4F1] text-[#005C55] font-bold shadow-xs'
                             : 'text-[#505F76] hover:bg-[#F1F5F9] hover:text-[#131B2E]'
                     ]"
                 >
+                    <span v-if="isSettingsActive()" aria-hidden="true" class="absolute inset-y-2 left-0 w-1 rounded-r-full bg-[#005C55]" />
                     <Settings class="w-4 h-4 shrink-0" />
                     <span>Configuración</span>
                 </Link>
@@ -374,13 +396,15 @@ v-if="canAny(['settings.view'])"
                 <Link
                     v-for="item in navItems"
                     :key="item.href"
+                    :aria-current="isActive(item) ? 'page' : undefined"
                     :href="item.href"
                     :class="[
-                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
-                        isActive(item) ? 'bg-[#F2F3FF] text-[#005C55] font-bold' : 'text-[#505F76]'
+                        'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
+                        isActive(item) ? 'bg-[#E6F4F1] text-[#005C55] font-bold shadow-xs' : 'text-[#505F76]'
                     ]"
                     @click="closeMobileMenu"
                 >
+                    <span v-if="isActive(item)" aria-hidden="true" class="absolute inset-y-2 left-0 w-1 rounded-r-full bg-[#005C55]" />
                     <component :is="item.icon" class="w-4 h-4" />
                     <span>{{ item.name }}</span>
                 </Link>
