@@ -2,7 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { computed } from 'vue'
-import { AlertTriangle, ArrowRight, Boxes, Calendar, CheckCircle2, Clock, CreditCard, DollarSign, FileText, FlaskConical, Package, ReceiptText, ShieldAlert, TrendingUp, UserCheck, Users, Wallet } from 'lucide-vue-next'
+import { AlertTriangle, ArrowRight, Boxes, Calendar, CheckCircle2, Clock, CreditCard, DollarSign, FileText, FlaskConical, Package, ReceiptText, ShieldAlert, TrendingUp, UserCheck, Users, Wallet, Zap } from 'lucide-vue-next'
 
 interface Props {
     clinic: {
@@ -264,7 +264,8 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
                     </select>
 
-                    <div class="px-3 py-1.5 bg-[#F2F3FF] text-[#005C55] border border-[#BDC9C6] rounded-lg text-xs font-bold">
+                    <div class="px-3 py-1.5 bg-[#F2F3FF] text-[#005C55] border border-[#BDC9C6] rounded-lg text-xs font-bold flex items-center gap-1.5">
+                        <Zap class="w-3 h-3" />
                         En vivo
                     </div>
                 </div>
@@ -276,7 +277,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
             <template v-if="primaryRole === 'InventoryManager' && inventoryData">
                 <!-- 4 Inventory KPIs -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#005C55] shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Insumos en Catálogo</span>
                             <div class="w-8 h-8 rounded-lg bg-teal-50 text-[#005C55] flex items-center justify-center">
@@ -286,7 +287,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         <span class="text-2xl font-bold text-[#131B2E] font-data-tabular">{{ inventoryData.total_items }}</span>
                     </div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-amber-500 shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Bajo Stock Mínimo</span>
                             <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
@@ -299,7 +300,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-rose-500 shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Lotes por Vencer (&lt;60d)</span>
                             <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center">
@@ -309,7 +310,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         <span class="text-2xl font-bold text-rose-700 font-data-tabular">{{ inventoryData.expiring_batches_count }}</span>
                     </div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-blue-500 shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Movimientos Recientes</span>
                             <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
@@ -480,7 +481,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
             <template v-else-if="primaryRole === 'Cashier' && cashierData">
                 <!-- 4 Cashier KPIs -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#005C55] shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Estado de Caja</span>
                             <div class="w-8 h-8 rounded-lg bg-teal-50 text-[#005C55] flex items-center justify-center">
@@ -502,7 +503,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-emerald-500 shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Cobrado Hoy en Caja</span>
                             <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -512,7 +513,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         <span class="text-2xl font-bold text-emerald-700 font-data-tabular">{{ formatMoney(cashierData.collected_today) }}</span>
                     </div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-amber-500 shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Cargos Pendientes</span>
                             <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-800 flex items-center justify-center">
@@ -522,7 +523,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         <span class="text-2xl font-bold text-amber-800 font-data-tabular">{{ cashierData.pending_charges_count }}</span>
                     </div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-blue-500 shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Fondo de Apertura</span>
                             <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
@@ -787,7 +788,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
             <template v-else-if="primaryRole === 'Owner' || primaryRole === 'Receptionist'">
                 <!-- 4 Top KPI Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#005C55] shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Citas hoy</span>
                             <div class="w-8 h-8 rounded-lg bg-[#F2F3FF] text-[#005C55] flex items-center justify-center">
@@ -802,7 +803,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#0047BF] shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Pacientes atendidos</span>
                             <div class="w-8 h-8 rounded-lg bg-[#F2F3FF] text-[#005C55] flex items-center justify-center">
@@ -817,7 +818,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-emerald-500 shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Cobrado neto hoy</span>
                             <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -832,7 +833,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+                    <div class="bg-white rounded-xl p-4 border border-[#E2E8F0] border-l-4 border-l-[#BA1A1A] shadow-xs flex flex-col justify-between">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-semibold text-[#505F76]">Cuentas por cobrar</span>
                             <div class="w-8 h-8 rounded-lg bg-[#FFDAD6]/40 text-[#BA1A1A] flex items-center justify-center">
@@ -861,7 +862,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                             </div>
 
                             <div class="overflow-x-auto">
-                                <table v-if="todayAppointments.length > 0" class="w-full text-left border-collapse">
+                                <table v-if="todayAppointments.length > 0" class="w-full text-left border-collapse shadow-xs">
                                     <thead class="bg-[#F8FAFC] font-label-caps text-[#505F76] border-b border-[#E2E8F0]">
                                         <tr>
                                             <th class="px-4 py-2.5 font-semibold">Hora</th>
@@ -921,7 +922,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-7 gap-3 pt-4 border-t border-[#E2E8F0]">
+                            <div class="grid grid-cols-7 gap-3 pt-4 border-t border-[#E2E8F0] shadow-xs">
                                 <div 
                                     v-for="d in financialChart"
                                     :key="d.date"
@@ -955,7 +956,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                             </h3>
 
                             <div class="space-y-3">
-                                <div v-if="can('payments.view') || can('finance.view')" class="flex items-start gap-3 p-3 rounded-lg bg-[#FFDAD6]/30 border border-[#BA1A1A]/30">
+                                <div v-if="(can('payments.view') || can('finance.view')) && alerts.overdue_accounts_count > 0" class="flex items-start gap-3 p-3 rounded-lg bg-[#FFDAD6]/30 border border-[#BA1A1A]/30">
                                     <Wallet class="w-4 h-4 text-[#BA1A1A] shrink-0 mt-0.5" />
                                     <div class="flex-1">
                                         <p class="text-xs font-bold text-[#131B2E]">{{ alerts.overdue_accounts_count }} cuentas por cobrar</p>
@@ -966,7 +967,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                     </Link>
                                 </div>
 
-                                <div v-if="can('inventory.view')" class="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                                <div v-if="can('inventory.view') && alerts.low_stock_count > 0" class="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
                                     <Package class="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                                     <div class="flex-1">
                                         <p class="text-xs font-bold text-[#131B2E]">{{ alerts.low_stock_count }} insumos bajo mínimo</p>
@@ -977,7 +978,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                     </Link>
                                 </div>
 
-                                <div v-if="can('lab.view')" class="flex items-start gap-3 p-3 rounded-lg bg-[#F2F3FF] border border-[#D0E1FB]">
+                                <div v-if="can('lab.view') && alerts.pending_lab_orders_count > 0" class="flex items-start gap-3 p-3 rounded-lg bg-[#F2F3FF] border border-[#D0E1FB]">
                                     <FlaskConical class="w-4 h-4 text-[#0047BF] shrink-0 mt-0.5" />
                                     <div class="flex-1">
                                         <p class="text-xs font-bold text-[#131B2E]">{{ alerts.pending_lab_orders_count }} órdenes de prótesis</p>
@@ -986,6 +987,10 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                     <Link href="/lab" class="text-xs font-bold text-[#0047BF] hover:underline shrink-0">
                                         Órdenes
                                     </Link>
+                                </div>
+
+                                <div v-if="alerts.overdue_accounts_count === 0 && alerts.low_stock_count === 0 && alerts.pending_lab_orders_count === 0" class="p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 text-center">
+                                    ✓ Todo en orden. Sin alertas operativas.
                                 </div>
                             </div>
                         </div>
@@ -998,10 +1003,10 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                 <Link 
                                     v-if="can('appointments.create')"
                                     href="/appointments" 
-                                    class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
+                                    class="p-3 bg-[#005C55] text-white rounded-xl text-center flex flex-col items-center gap-1.5 transition group hover:bg-[#00504A]"
                                 >
-                                    <Calendar class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
-                                    <span class="text-xs font-bold text-[#131B2E]">Nueva Cita</span>
+                                    <Calendar class="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                                    <span class="text-xs font-bold text-white">Nueva Cita</span>
                                 </Link>
 
                                 <Link 
