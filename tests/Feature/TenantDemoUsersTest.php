@@ -3,6 +3,7 @@
 use App\Core\Auth\Models\Role;
 use App\Core\Auth\Models\User;
 use App\Platform\Tenancy\Models\Tenant;
+use App\Platform\Tenancy\Models\TenantDomain;
 use App\Platform\Tenancy\TenantContext;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Console\Command;
@@ -24,6 +25,21 @@ beforeEach(function () {
 it('refuses to seed the persistent demo database while testing', function () {
     expect(fn () => (new DatabaseSeeder)->run())
         ->toThrow(RuntimeException::class, 'explicit isolated tenant database path');
+});
+
+it('assigns the configured primary domain to the demo tenant', function () {
+    config()->set('multitenancy.demo_tenant_domain', 'bsdental.bsolutions.dev');
+
+    $seeder = new DatabaseSeeder($this->tenantDatabasePath('tenant_custom_domain.sqlite'));
+    $command = new Command;
+    $command->setOutput(new OutputStyle(new ArrayInput([]), new NullOutput));
+    $seeder->setCommand($command);
+    $seeder->run();
+
+    $primaryDomain = TenantDomain::query()->where('is_primary', true)->sole();
+
+    expect($primaryDomain->domain)->toBe('bsdental.bsolutions.dev')
+        ->and(TenantDomain::query()->where('domain', 'demo.localhost')->value('is_primary'))->toBeFalsy();
 });
 
 it('authenticates every demo user and assigns their appropriate clinical role', function (string $email, string $expectedRole) {

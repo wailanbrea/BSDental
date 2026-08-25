@@ -127,41 +127,28 @@ class DatabaseSeeder extends Seeder
             ],
         ]);
 
-        // Domains for local testing
-        TenantDomain::create([
-            'tenant_id' => $tenant->id,
-            'domain' => 'demo.localhost',
-            'is_primary' => true,
-            'is_verified' => true,
+        $primaryDomain = strtolower(trim((string) config('multitenancy.demo_tenant_domain')));
+        if ($primaryDomain === '') {
+            throw new RuntimeException('The seeded demo tenant requires a primary domain.');
+        }
+
+        $domains = array_unique([
+            $primaryDomain,
+            'demo.localhost',
+            'demo.lvh.me',
+            'demo.127.0.0.1.nip.io',
+            'demo.bsdental.test',
+            'app.localhost',
         ]);
 
-        TenantDomain::create([
-            'tenant_id' => $tenant->id,
-            'domain' => 'demo.lvh.me',
-            'is_primary' => false,
-            'is_verified' => true,
-        ]);
-
-        TenantDomain::create([
-            'tenant_id' => $tenant->id,
-            'domain' => 'demo.127.0.0.1.nip.io',
-            'is_primary' => false,
-            'is_verified' => true,
-        ]);
-
-        TenantDomain::create([
-            'tenant_id' => $tenant->id,
-            'domain' => 'demo.bsdental.test',
-            'is_primary' => false,
-            'is_verified' => true,
-        ]);
-
-        TenantDomain::create([
-            'tenant_id' => $tenant->id,
-            'domain' => 'app.localhost',
-            'is_primary' => false,
-            'is_verified' => true,
-        ]);
+        foreach ($domains as $domain) {
+            TenantDomain::create([
+                'tenant_id' => $tenant->id,
+                'domain' => $domain,
+                'is_primary' => $domain === $primaryDomain,
+                'is_verified' => true,
+            ]);
+        }
 
         // 2. Seed Tenant Database
         $this->command->info('2. Migrando y sembrando Tenant Demo Database...');

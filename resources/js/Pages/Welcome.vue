@@ -85,7 +85,7 @@ const modules = [
 
                 <div class="flex items-center space-x-3">
                     <a
-                        href="http://demo.localhost:8000/login"
+                        href="/login"
                         class="flex items-center gap-1.5 px-4 py-2 bg-[#005C55] hover:bg-[#004742] text-white font-semibold text-xs rounded-lg transition shadow-xs"
                     >
                         Entrar a Clínica Demo <ArrowRight class="w-3.5 h-3.5" />
@@ -101,7 +101,7 @@ const modules = [
                 <div class="max-w-3xl space-y-3">
                     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#005C55]/10 text-[#005C55] border border-[#005C55]/20 text-xs font-bold">
                         <Sparkles class="w-4 h-4" />
-                        BSDental v4 — Todos los Módulos Construidos y Verificados (97/97 Tests)
+                        BSDental v4 — Todos los Módulos Construidos y Verificados
                     </div>
                     <h1 class="text-2xl sm:text-3xl font-extrabold text-[#131B2E] tracking-tight leading-tight">
                         Sistema Clínico & ERP Odontológico de Alta Precisión
@@ -124,17 +124,10 @@ const modules = [
                         </div>
                         <div class="flex flex-wrap items-center gap-2 pt-2">
                             <a
-                                href="http://demo.localhost:8000/login"
+                                href="/login"
                                 class="inline-flex items-center gap-1.5 px-4 py-2 bg-[#005C55] hover:bg-[#004742] text-white text-xs font-bold rounded-lg transition shadow-xs"
                             >
-                                Iniciar Sesión (demo.localhost) <ExternalLink class="w-3.5 h-3.5" />
-                            </a>
-                            <a
-                                href="http://demo.127.0.0.1.nip.io:8000/login"
-                                class="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#BDC9C6] text-[#505F76] hover:text-[#131B2E] text-xs font-medium rounded-lg transition"
-                                title="Enlace alternativo si tu DNS no resuelve localhost"
-                            >
-                                Enlace Alternativo (nip.io)
+                                Iniciar Sesión <ExternalLink class="w-3.5 h-3.5" />
                             </a>
                         </div>
                     </div>
@@ -149,7 +142,7 @@ const modules = [
                         </div>
                         <div class="flex items-center gap-2 pt-2">
                             <a
-                                href="http://localhost:8000/platform/login"
+                                href="/platform/login"
                                 class="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-lg transition shadow-xs"
                             >
                                 Panel Platform (admin@bsdental.io) <ExternalLink class="w-3.5 h-3.5" />

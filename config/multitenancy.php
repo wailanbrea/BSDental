@@ -57,6 +57,11 @@ return [
     'landlord_database_connection_name' => 'landlord',
 
     /*
+     * Primary domain assigned to the seeded demo tenant.
+     */
+    'demo_tenant_domain' => env('DEMO_TENANT_DOMAIN', 'demo.localhost'),
+
+    /*
      * This key will be used to associate the current tenant in the context
      */
     'current_tenant_context_key' => 'tenantId',
