@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ref } from 'vue'
 import { Clock, Plus, Tag, X } from 'lucide-vue-next'
 
@@ -46,7 +47,7 @@ function formatMoney(amount: number) {
 }
 
 function submitProcedure() {
-    form.post('/procedures', {
+    form.post(appUrl('/procedures'), {
         onSuccess: () => {
             isCreateModal.value = false
             form.reset()

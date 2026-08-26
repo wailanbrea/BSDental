@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ref } from 'vue'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Activity, AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, FileEdit, FileSignature, HeartPulse, LockKeyhole, Pencil, Pill, Save, ShieldAlert, ShieldCheck, Stethoscope, X } from 'lucide-vue-next'
@@ -61,13 +62,13 @@ function amendmentNote(amendment: AmendmentItem) {
     return typeof amendment.amended_content.note === 'string' ? amendment.amended_content.note : JSON.stringify(amendment.amended_content)
 }
 function saveDraft() {
-    editForm.put(`/encounters/${props.encounter.id}`, { preserveScroll: true, onSuccess: () => { isEditing.value = false } })
+    editForm.put(appUrl(`/encounters/${props.encounter.id}`), { preserveScroll: true, onSuccess: () => { isEditing.value = false } })
 }
 function finalizeEncounter() {
-    finalizeForm.post(`/encounters/${props.encounter.id}/finalize`, { preserveScroll: true, onSuccess: () => { isFinalizeModal.value = false } })
+    finalizeForm.post(appUrl(`/encounters/${props.encounter.id}/finalize`), { preserveScroll: true, onSuccess: () => { isFinalizeModal.value = false } })
 }
 function submitAmendment() {
-    amendmentForm.post(`/encounters/${props.encounter.id}/amend`, {
+    amendmentForm.post(appUrl(`/encounters/${props.encounter.id}/amend`), {
         preserveScroll: true,
         onSuccess: () => { isAmendmentModal.value = false; amendmentForm.reset() },
     })

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm, Link } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { Building, DollarSign, Globe, MapPin, Phone, Save, Settings } from 'lucide-vue-next'
 
 interface TenantData {
@@ -29,7 +30,7 @@ const form = useForm({
 })
 
 function submit() {
-    form.put('/settings')
+    form.put(appUrl('/settings'))
 }
 </script>
 
@@ -55,7 +56,7 @@ function submit() {
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <Link href="/dashboard" class="px-3.5 py-2 text-xs font-medium text-[#505F76] hover:text-[#131B2E] transition">
+                    <Link :href="appUrl('/dashboard')" class="px-3.5 py-2 text-xs font-medium text-[#505F76] hover:text-[#131B2E] transition">
                         ← Dashboard
                     </Link>
                 </div>

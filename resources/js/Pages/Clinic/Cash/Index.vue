@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { computed, ref } from 'vue'
 import { AlertCircle, ArrowDownRight, ArrowUpRight, Building2, CreditCard, Lock, Plus, RotateCcw, Unlock } from 'lucide-vue-next'
 
@@ -107,7 +108,7 @@ function openReopenModalForSession(session: SessionSummary) {
 }
 
 function submitOpen() {
-    openForm.post(`/cash-registers/${selectedRegisterId.value}/open`, {
+    openForm.post(appUrl(`/cash-registers/${selectedRegisterId.value}/open`), {
         onSuccess: () => {
             isOpenModal.value = false
             openForm.reset()
@@ -117,7 +118,7 @@ function submitOpen() {
 
 function submitClose() {
     if (!selectedSessionToClose.value) return
-    closeForm.post(`/cash-sessions/${selectedSessionToClose.value.id}/close`, {
+    closeForm.post(appUrl(`/cash-sessions/${selectedSessionToClose.value.id}/close`), {
         onSuccess: () => {
             isCloseModal.value = false
             closeForm.reset()
@@ -127,7 +128,7 @@ function submitClose() {
 
 function submitMovement() {
     if (!focusedSession.value) return
-    movementForm.post(`/cash-sessions/${focusedSession.value.id}/movements`, {
+    movementForm.post(appUrl(`/cash-sessions/${focusedSession.value.id}/movements`), {
         onSuccess: () => {
             isMovementModal.value = false
             movementForm.reset()
@@ -137,7 +138,7 @@ function submitMovement() {
 
 function submitReopen() {
     if (!selectedSessionToReopen.value) return
-    reopenForm.post(`/cash-sessions/${selectedSessionToReopen.value.id}/reopen`, {
+    reopenForm.post(appUrl(`/cash-sessions/${selectedSessionToReopen.value.id}/reopen`), {
         onSuccess: () => {
             isReopenModal.value = false
             reopenForm.reset()

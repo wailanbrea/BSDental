@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { appUrl } from '@/lib/url'
 import { 
     Activity, 
     ArrowLeft, 
@@ -41,7 +42,7 @@ const handleSlugChange = () => {
 };
 
 const submit = () => {
-    form.post('/platform/tenants');
+    form.post(appUrl('/platform/tenants'));
 };
 </script>
 
@@ -52,7 +53,7 @@ const submit = () => {
         <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <div class="flex items-center space-x-3">
-                    <Link href="/platform/tenants" class="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">
+                    <Link :href="appUrl('/platform/tenants')" class="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">
                         <ArrowLeft class="w-4 h-4" />
                     </Link>
                     <div class="w-8 h-8 rounded-xl bg-teal-600 flex items-center justify-center text-white">
@@ -183,7 +184,7 @@ const submit = () => {
                     <!-- Submit Button -->
                     <div class="pt-6 border-t border-slate-800 flex justify-end gap-3">
                         <Link
-                            href="/platform/tenants"
+                            :href="appUrl('/platform/tenants')"
                             class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition"
                         >
                             Cancelar

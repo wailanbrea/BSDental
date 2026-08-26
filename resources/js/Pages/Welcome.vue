@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { Activity, ArrowRight, Boxes, Calendar, DollarSign, ExternalLink, FileText, Layers, ShieldCheck, Sparkles, UserCheck } from 'lucide-vue-next'
 
 interface Props {
@@ -85,7 +86,7 @@ const modules = [
 
                 <div class="flex items-center space-x-3">
                     <a
-                        href="/login"
+                        :href="appUrl('/login')"
                         class="flex items-center gap-1.5 px-4 py-2 bg-[#005C55] hover:bg-[#004742] text-white font-semibold text-xs rounded-lg transition shadow-xs"
                     >
                         Entrar a Clínica Demo <ArrowRight class="w-3.5 h-3.5" />
@@ -124,7 +125,7 @@ const modules = [
                         </div>
                         <div class="flex flex-wrap items-center gap-2 pt-2">
                             <a
-                                href="/login"
+                                :href="appUrl('/login')"
                                 class="inline-flex items-center gap-1.5 px-4 py-2 bg-[#005C55] hover:bg-[#004742] text-white text-xs font-bold rounded-lg transition shadow-xs"
                             >
                                 Iniciar Sesión <ExternalLink class="w-3.5 h-3.5" />
@@ -142,7 +143,7 @@ const modules = [
                         </div>
                         <div class="flex items-center gap-2 pt-2">
                             <a
-                                href="/platform/login"
+                                :href="appUrl('/platform/login')"
                                 class="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-lg transition shadow-xs"
                             >
                                 Panel Platform (admin@bsdental.io) <ExternalLink class="w-3.5 h-3.5" />

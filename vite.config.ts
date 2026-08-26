@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
 
     return {
-        base: env.VITE_BASE_PATH || '/',
+        base: env.VITE_BASE_PATH || './',
         plugins: [
             laravel({
                 input: ['resources/css/app.css', 'resources/js/app.ts'],

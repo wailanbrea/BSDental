@@ -25,7 +25,7 @@ class ResolveTenantFromHost
     {
         $host = strtolower(trim($request->getHost()));
 
-        if (app()->isLocal() && in_array($host, ['localhost', '127.0.0.1'], true)) {
+        if (in_array($host, ['localhost', '127.0.0.1'], true)) {
             $tenant = Tenant::query()
                 ->where('slug', config('multitenancy.local_tenant_slug'))
                 ->first();

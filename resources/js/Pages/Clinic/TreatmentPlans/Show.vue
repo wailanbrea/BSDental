@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ArrowLeft, CalendarCheck, Check, CheckCircle2, Circle, ClipboardList, FileText, Stethoscope } from 'lucide-vue-next'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 
@@ -31,7 +32,7 @@ const date = (value: string | null) => value ? new Intl.DateTimeFormat('es-DO', 
 
 function completeItem(item: PlanItemDetails) {
     if (window.confirm(`¿Marcar “${item.procedure.name}” como realizado? Esta acción actualizará el avance clínico.`)) {
-        actionForm.post(`/treatment-items/${item.id}/complete`, { preserveScroll: true })
+        actionForm.post(appUrl(`/treatment-items/${item.id}/complete`), { preserveScroll: true })
     }
 }
 </script>

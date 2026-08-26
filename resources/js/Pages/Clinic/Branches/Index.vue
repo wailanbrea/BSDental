@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ref } from 'vue'
 import { Building2, Plus, Trash2, MapPin, Phone, Mail, X, Armchair } from 'lucide-vue-next'
 
@@ -47,7 +48,7 @@ const roomForm = useForm({
 })
 
 function submitCreateBranch() {
-    branchForm.post('/branches', {
+    branchForm.post(appUrl('/branches'), {
         onSuccess: () => {
             branchForm.reset()
             isCreatingBranch.value = false
@@ -57,7 +58,7 @@ function submitCreateBranch() {
 
 function submitCreateRoom() {
     if (!selectedBranchForRoom.value) return
-    roomForm.post(`/branches/${selectedBranchForRoom.value.id}/rooms`, {
+    roomForm.post(appUrl(`/branches/${selectedBranchForRoom.value.id}/rooms`), {
         onSuccess: () => {
             roomForm.reset()
             selectedBranchForRoom.value = null

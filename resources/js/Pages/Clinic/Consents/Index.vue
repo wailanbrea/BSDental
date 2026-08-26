@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { computed, nextTick, ref } from 'vue'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronRight, Eye, FileCheck2, FileSignature, History, PenLine, RotateCcw, ShieldAlert, ShieldCheck, UserRoundCheck, X } from 'lucide-vue-next'
@@ -136,7 +137,7 @@ function clearSignature() {
 
 function submitSigning() {
     if (!canSubmit.value) return
-    form.post(`/patients/${props.patient.id}/consents`, {
+    form.post(appUrl(`/patients/${props.patient.id}/consents`), {
         preserveScroll: true,
         onSuccess: () => {
             closeSigning()
@@ -165,7 +166,7 @@ function integrityMeta(status: IntegrityStatus['status']) {
     <Head :title="`Consentimientos — ${patient.full_name}`" />
     <main class="space-y-5 bg-[#F8FAFC] p-4 text-[#131B2E] md:p-6">
         <nav class="flex flex-wrap items-center gap-2 text-xs text-[#64748B]">
-            <Link href="/patients" class="hover:text-[#005C55]">Pacientes</Link><ChevronRight class="h-3.5 w-3.5" />
+            <Link :href="appUrl('/patients')" class="hover:text-[#005C55]">Pacientes</Link><ChevronRight class="h-3.5 w-3.5" />
             <Link :href="`/patients/${patient.id}`" class="hover:text-[#005C55]">{{ patient.full_name }}</Link><ChevronRight class="h-3.5 w-3.5" />
             <span class="font-semibold text-[#344054]">Consentimientos</span>
         </nav>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ref } from 'vue'
 import { 
     ShieldCheck, 
@@ -26,7 +27,7 @@ const form = useForm({
 })
 
 const submit = () => {
-    form.post('/platform/login', {
+    form.post(appUrl('/platform/login'), {
         onFinish: () => {
             form.reset('password')
         },

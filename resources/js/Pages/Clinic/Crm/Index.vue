@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ref } from 'vue'
 import { Check, CheckCircle2, Clock, MessageSquare, PhoneCall, Plus, X } from 'lucide-vue-next'
 
@@ -74,7 +75,7 @@ function notificationBadge(status: string) {
 }
 
 function submitTask() {
-    taskForm.post('/crm/tasks', {
+    taskForm.post(appUrl('/crm/tasks'), {
         onSuccess: () => {
             isTaskModal.value = false
             taskForm.reset()

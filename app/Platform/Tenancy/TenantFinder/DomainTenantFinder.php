@@ -17,6 +17,12 @@ class DomainTenantFinder extends TenantFinder
     {
         $host = strtolower(trim($request->getHost()));
 
+        if (in_array($host, ['localhost', '127.0.0.1'], true)) {
+            return Tenant::query()
+                ->where('slug', config('multitenancy.local_tenant_slug'))
+                ->first();
+        }
+
         /** @var TenantDomain|null $domain */
         $domain = TenantDomain::query()
             ->where('domain', $host)

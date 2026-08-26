@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Activity, AlertTriangle, Calendar, CheckCircle2, ClipboardList, CreditCard, DollarSign, Download, Eye, FileHeart, FileText, FolderOpen, HeartPulse, Mail, Pencil, Phone, Plus, ReceiptText, ShieldAlert, Stethoscope, Upload } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
@@ -46,7 +47,7 @@ function formatDate(value: string | null, includeTime = false) { if (!value) ret
 function toothEntry(tooth: number) { return latestOdontogram.value?.entries.find((entry) => entry.tooth_number === tooth && entry.lifecycle_state === 'active') }
 function toothClass(tooth: number) { const condition = toothEntry(tooth)?.condition; if (condition === 'caries') return 'border-[#D92D20] bg-[#FEE4E2] text-[#912018]'; if (condition === 'restoration' || condition === 'resin') return 'border-[#2458C6] bg-[#DDE7FF] text-[#163F91]'; if (condition === 'crown') return 'border-[#7A5AF8] bg-[#EEEAFF] text-[#5925DC]'; if (condition === 'implant') return 'border-[#007D73] bg-[#D8ECE9] text-[#005C55]'; if (condition === 'missing') return 'border-[#98A2B3] bg-[#EAECF0] text-[#667085] line-through'; return 'border-[#BDC9C6] bg-white text-[#455653]' }
 function handleFile(event: Event) { const input = event.target as HTMLInputElement; fileForm.file = input.files?.[0] || null }
-function uploadFile() { if (!fileForm.file) return; fileForm.post(`/patients/${props.patient.id}/files`, { forceFormData: true, onSuccess: () => fileForm.reset() }) }
+function uploadFile() { if (!fileForm.file) return; fileForm.post(appUrl(`/patients/${props.patient.id}/files`), { forceFormData: true, onSuccess: () => fileForm.reset() }) }
 </script>
 
 <template>

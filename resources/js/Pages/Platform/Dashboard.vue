@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { appUrl } from '@/lib/url'
 import { 
     Activity, 
     LogOut, 
@@ -38,7 +39,7 @@ interface Props {
 defineProps<Props>();
 
 const logout = () => {
-    router.post('/platform/logout');
+    router.post(appUrl('/platform/logout'));
 };
 </script>
 

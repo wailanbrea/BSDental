@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import type { PageProps } from '@/types'
 import { ref, computed } from 'vue'
 import { 
@@ -34,7 +35,7 @@ function isActive(item: typeof navItems[0]) {
 }
 
 function logout() {
-    router.post('/platform/logout')
+    router.post(appUrl('/platform/logout'))
 }
 </script>
 
@@ -57,7 +58,7 @@ function logout() {
             <ul class="flex-1 px-3 flex flex-col gap-1 overflow-y-auto">
                 <li v-for="item in navItems" :key="item.href">
                     <Link 
-                        :href="item.href"
+                        :href="appUrl(item.href)"
                         :class="[
                             'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
                             isActive(item) 

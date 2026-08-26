@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ref, computed } from 'vue'
 import { ArrowLeft, Building2, Download, Printer, RotateCcw } from 'lucide-vue-next'
 
@@ -51,7 +52,7 @@ const reopenForm = useForm({
 })
 
 function submitReopen() {
-    reopenForm.post(`/cash-sessions/${props.session.id}/reopen`, {
+    reopenForm.post(appUrl(`/cash-sessions/${props.session.id}/reopen`), {
         onSuccess: () => {
             isReopenModal.value = false
             reopenForm.reset()
@@ -103,7 +104,7 @@ function triggerPrint() {
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0] print:hidden">
                 <div class="flex items-center gap-3">
                     <Link 
-                        href="/cash-registers" 
+                        :href="appUrl('/cash-registers')" 
                         class="p-2 text-[#505F76] hover:text-[#131B2E] hover:bg-white rounded-lg border border-[#E2E8F0] transition"
                         title="Volver a Cajas"
                     >

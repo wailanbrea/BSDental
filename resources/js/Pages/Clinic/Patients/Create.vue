@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import {
     AlertCircle,
     ArrowLeft,
@@ -176,11 +177,11 @@ watch(() => form.is_minor, (isMinor) => {
 
 function submit() {
     if (props.patient) {
-        form.put(`/patients/${props.patient.id}`, { preserveScroll: true })
+        form.put(appUrl(`/patients/${props.patient.id}`), { preserveScroll: true })
         return
     }
 
-    form.post('/patients', { preserveScroll: true })
+    form.post(appUrl('/patients'), { preserveScroll: true })
 }
 </script>
 

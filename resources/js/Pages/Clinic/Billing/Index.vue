@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { computed, ref } from 'vue'
 import { ArrowLeft, CreditCard, ExternalLink, FileText, Link2, Plus, RotateCcw, Trash2, X } from 'lucide-vue-next'
 
@@ -123,7 +124,7 @@ function updateAllocationAmount() {
 
 function submitAllocation() {
     if (!allocationPayment.value) return
-    allocationForm.post(`/payments/${allocationPayment.value.id}/allocate`, {
+    allocationForm.post(appUrl(`/payments/${allocationPayment.value.id}/allocate`), {
         onSuccess: () => {
             allocationPayment.value = null
             allocationForm.reset()
@@ -141,7 +142,7 @@ function openRefund(payment: PaymentDetails) {
 
 function submitRefund() {
     if (!refundPayment.value) return
-    refundForm.post(`/payments/${refundPayment.value.id}/refund`, {
+    refundForm.post(appUrl(`/payments/${refundPayment.value.id}/refund`), {
         onSuccess: () => {
             refundPayment.value = null
             refundForm.reset()
@@ -150,7 +151,7 @@ function submitRefund() {
 }
 
 function submitPayment() {
-    paymentForm.post(`/patients/${props.patient.id}/billing/payments`, {
+    paymentForm.post(appUrl(`/patients/${props.patient.id}/billing/payments`), {
         onSuccess: () => {
             isPaymentModal.value = false
         },
@@ -158,7 +159,7 @@ function submitPayment() {
 }
 
 function submitCharge() {
-    chargeForm.post(`/patients/${props.patient.id}/billing/charges`, {
+    chargeForm.post(appUrl(`/patients/${props.patient.id}/billing/charges`), {
         onSuccess: () => {
             isChargeModal.value = false
             chargeForm.reset()

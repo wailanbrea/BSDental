@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ref } from 'vue'
 import { BarChart3, Download, TrendingUp, DollarSign, Users, Clock, AlertCircle, Calendar, Armchair } from 'lucide-vue-next'
 
@@ -64,7 +65,7 @@ function formatMoney(amount: number) {
 }
 
 function filterPeriod() {
-    router.get('/analytics', {
+    router.get(appUrl('/analytics'), {
         start_date: localStart.value,
         end_date: localEnd.value,
     }, {

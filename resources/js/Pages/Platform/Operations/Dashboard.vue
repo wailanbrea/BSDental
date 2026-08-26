@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { Server, Database, HardDrive, CheckCircle2, AlertTriangle } from 'lucide-vue-next'
 
 interface GlobalMetrics {
@@ -55,7 +56,7 @@ function triggerBackup(tenantId: string) {
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <a href="/platform/dashboard" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">← Platform Home</a>
+                    <a :href="appUrl('/platform/dashboard')" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">← Platform Home</a>
                 </div>
             </div>
 

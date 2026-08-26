@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { computed, ref } from 'vue'
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, DollarSign, FileText, Layers, Package, Plus, Search, ShoppingCart, SlidersHorizontal, X } from 'lucide-vue-next'
 
@@ -133,7 +134,7 @@ function movementLabel(type: string) {
 }
 
 function submitNewItem() {
-    itemForm.post('/inventory/items', {
+    itemForm.post(appUrl('/inventory/items'), {
         onSuccess: () => {
             isCreateItemModal.value = false
             itemForm.reset()
@@ -142,7 +143,7 @@ function submitNewItem() {
 }
 
 function submitPurchase() {
-    purchaseForm.post('/inventory/purchases', {
+    purchaseForm.post(appUrl('/inventory/purchases'), {
         onSuccess: () => {
             isPurchaseModal.value = false
             purchaseForm.reset()
@@ -151,7 +152,7 @@ function submitPurchase() {
 }
 
 function submitAdjustment() {
-    adjustmentForm.post('/inventory/adjustments', {
+    adjustmentForm.post(appUrl('/inventory/adjustments'), {
         onSuccess: () => {
             isAdjustmentModal.value = false
             adjustmentForm.reset()

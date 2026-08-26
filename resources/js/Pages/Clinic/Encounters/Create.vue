@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { computed, ref } from 'vue'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Activity, AlertTriangle, ArrowLeft, CheckCircle2, ClipboardPlus, HeartPulse, Pill, Plus, Save, Stethoscope, Trash2, UserRound } from 'lucide-vue-next'
@@ -101,7 +102,7 @@ function removePrescription(index: number) {
 }
 
 function submit() {
-    form.post('/encounters')
+    form.post(appUrl('/encounters'))
 }
 </script>
 

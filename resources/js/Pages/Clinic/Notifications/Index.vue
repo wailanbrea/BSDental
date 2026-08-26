@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import {
     AlertTriangle,
     Bell,
@@ -46,14 +47,14 @@ const props = defineProps<{
 const unreadOnPage = computed(() => props.notificationPage.data.filter((item) => !item.read_at).length)
 
 function applyFilters(status: string, severity: string) {
-    router.get('/notifications', { status: status || undefined, severity: severity || undefined }, {
+    router.get(appUrl('/notifications'), { status: status || undefined, severity: severity || undefined }, {
         preserveState: true,
         replace: true,
     })
 }
 
 function markRead(notification: NotificationItem, navigate = false) {
-    router.patch(`/notifications/${notification.id}/read`, {}, {
+    router.patch(appUrl(`/notifications/${notification.id}/read`), {}, {
         preserveScroll: true,
         onSuccess: () => {
             if (navigate && notification.action_url) router.visit(notification.action_url)
@@ -62,7 +63,7 @@ function markRead(notification: NotificationItem, navigate = false) {
 }
 
 function markAllRead() {
-    router.patch('/notifications/read-all', {}, { preserveScroll: true })
+    router.patch(appUrl('/notifications/read-all'), {}, { preserveScroll: true })
 }
 
 function iconFor(type: string) {

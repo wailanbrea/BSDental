@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import type { PageProps } from '@/types'
 import { ref, computed } from 'vue'
 import { 
@@ -111,12 +112,12 @@ function isSettingsActive() {
 const searchQuery = ref('')
 function onSearchSubmit() {
     if (searchQuery.value.trim().length > 0) {
-        router.get('/patients', { search: searchQuery.value.trim() })
+        router.get(appUrl('/patients'), { search: searchQuery.value.trim() })
     }
 }
 
 function logout() {
-    router.post('/logout')
+    router.post(appUrl('/logout'))
 }
 
 function toggleNotifications() {
@@ -132,7 +133,7 @@ function openNotification(notification: LayoutNotification) {
         return
     }
 
-    router.patch(`/notifications/${notification.id}/read`, {}, {
+    router.patch(appUrl(`/notifications/${notification.id}/read`), {}, {
         preserveScroll: true,
         only: ['notifications'],
         onSuccess: () => {
@@ -142,7 +143,7 @@ function openNotification(notification: LayoutNotification) {
 }
 
 function markAllNotificationsRead() {
-    router.patch('/notifications/read-all', {}, {
+    router.patch(appUrl('/notifications/read-all'), {}, {
         preserveScroll: true,
         only: ['notifications'],
     })
@@ -179,7 +180,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
             <ul class="flex-1 px-3 flex flex-col gap-1 overflow-y-auto">
                 <li v-for="item in navItems" :key="item.href">
                     <Link 
-                        :href="item.href"
+                        :href="appUrl(item.href)"
                         :aria-current="isActive(item) ? 'page' : undefined"
                         :class="[
                             'relative flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
@@ -200,7 +201,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                 <Link
                     v-if="canAny(['settings.view'])"
                     :aria-current="isSettingsActive() ? 'page' : undefined"
-                    href="/settings"
+                    :href="appUrl('/settings')"
                     :class="[
                         'relative flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors',
                         isSettingsActive()
@@ -259,7 +260,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                     <!-- Inventory / Lab Quick Link -->
                     <Link 
                         v-if="canAny(['inventory.view'])"
-                        href="/inventory" 
+                        :href="appUrl('/inventory')" 
                         class="p-2 text-[#505F76] hover:text-[#005C55] hover:bg-[#F1F5F9] rounded-full transition"
                         title="Inventario & Almacén"
                     >
@@ -293,7 +294,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                             </div>
                             <div v-else class="px-5 py-10 text-center"><CheckCircle2 class="mx-auto h-7 w-7 text-[#007D73]" /><p class="mt-2 text-sm font-semibold text-[#131B2E]">Todo al día</p><p class="mt-1 text-xs text-[#667085]">No tienes notificaciones pendientes.</p></div>
 
-                            <Link href="/notifications" class="flex h-10 items-center justify-center border-t border-[#D8E0DE] text-xs font-bold text-[#006B63] hover:bg-[#F1FAF8]" @click="isNotificationsOpen = false">Ver centro de notificaciones</Link>
+                            <Link :href="appUrl('/notifications')" class="flex h-10 items-center justify-center border-t border-[#D8E0DE] text-xs font-bold text-[#006B63] hover:bg-[#F1FAF8]" @click="isNotificationsOpen = false">Ver centro de notificaciones</Link>
                         </div>
                     </div>
 
@@ -323,7 +324,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                                 <p class="text-xs font-bold text-[#131B2E]">{{ user.name }}</p>
                                 <p class="text-[10px] text-[#505F76] truncate">{{ user.email }}</p>
                             </div>
-                            <Link href="/settings" class="flex items-center gap-2 px-4 py-2 text-xs text-[#505F76] hover:bg-[#F8FAFC] hover:text-[#131B2E]">
+                            <Link :href="appUrl('/settings')" class="flex items-center gap-2 px-4 py-2 text-xs text-[#505F76] hover:bg-[#F8FAFC] hover:text-[#131B2E]">
                                 <Settings class="w-3.5 h-3.5" /> Configuración de Clínica
                             </Link>
                             <button 
@@ -343,7 +344,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                     v-for="item in navItems"
                     :key="item.href"
                     :aria-current="isActive(item) ? 'page' : undefined"
-                    :href="item.href"
+                    :href="appUrl(item.href)"
                     :class="[
                         'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
                         isActive(item) ? 'bg-[#E6F4F1] text-[#005C55] font-bold shadow-xs' : 'text-[#505F76]'

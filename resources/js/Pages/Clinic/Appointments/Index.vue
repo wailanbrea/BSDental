@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { CalendarClock, Check, ChevronLeft, ChevronRight, Clock3, Filter, LockKeyhole, MapPin, Play, Plus, RotateCcw, UserCheck, X } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
@@ -82,7 +83,7 @@ const availableRooms = computed(() => props.branches.find((branch) => branch.id 
 const appointmentRooms = computed(() => props.branches.find((branch) => branch.id === selectedAppointment.value?.branch_id)?.rooms || [])
 
 function applyFilter() {
-    router.get('/appointments', { branch_id: selectedBranch.value, professional_id: selectedProfessional.value || undefined, room_id: selectedRoom.value || undefined, date: selectedDate.value, view: view.value }, { preserveState: true, replace: true })
+    router.get(appUrl('/appointments'), { branch_id: selectedBranch.value, professional_id: selectedProfessional.value || undefined, room_id: selectedRoom.value || undefined, date: selectedDate.value, view: view.value }, { preserveState: true, replace: true })
 }
 function changeBranch() { selectedRoom.value = ''; applyFilter() }
 function changeView(next: 'day' | 'week' | 'month') { view.value = next; applyFilter() }
@@ -134,15 +135,15 @@ function openReschedule(item: AppointmentItem) {
 }
 function submitReschedule() {
     if (!selectedAppointment.value) return
-    rescheduleForm.post(`/appointments/${selectedAppointment.value.id}/reschedule`, { preserveScroll: true, onSuccess: () => { selectedAppointment.value = null; isRescheduling.value = false } })
+    rescheduleForm.post(appUrl(`/appointments/${selectedAppointment.value.id}/reschedule`), { preserveScroll: true, onSuccess: () => { selectedAppointment.value = null; isRescheduling.value = false } })
 }
 function submitCancellation() {
     if (!selectedAppointment.value) return
-    cancellationForm.put(`/appointments/${selectedAppointment.value.id}/status`, { preserveScroll: true, onSuccess: () => { selectedAppointment.value = null; isCancelling.value = false; cancellationForm.reset() } })
+    cancellationForm.put(appUrl(`/appointments/${selectedAppointment.value.id}/status`), { preserveScroll: true, onSuccess: () => { selectedAppointment.value = null; isCancelling.value = false; cancellationForm.reset() } })
 }
 function openCreate(day: string | Date = selectedDate.value, hour = 9) { newAppointmentForm.start_time = `${typeof day === 'string' ? day : isoDate(day)}T${String(hour).padStart(2, '0')}:00`; isCreatingModal.value = true }
-function submitAppointment() { newAppointmentForm.post('/appointments', { onSuccess: () => { isCreatingModal.value = false; newAppointmentForm.reset('patient_id', 'reason', 'room_id') } }) }
-function submitBlock() { blockForm.post('/appointments/blocks', { onSuccess: () => { isBlockModal.value = false; blockForm.reset('title', 'room_id') } }) }
+function submitAppointment() { newAppointmentForm.post(appUrl('/appointments'), { onSuccess: () => { isCreatingModal.value = false; newAppointmentForm.reset('patient_id', 'reason', 'room_id') } }) }
+function submitBlock() { blockForm.post(appUrl('/appointments/blocks'), { onSuccess: () => { isBlockModal.value = false; blockForm.reset('title', 'room_id') } }) }
 function formatTime(value: string) { const [hour, minute] = value.slice(11, 16).split(':').map(Number); return new Intl.DateTimeFormat('es-DO', { hour: '2-digit', minute: '2-digit' }).format(new Date(2000, 0, 1, hour, minute)) }
 function formatDateTime(value: string) {
     const [year, month, day] = value.slice(0, 10).split('-').map(Number)

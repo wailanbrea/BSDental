@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { appUrl } from '@/lib/url'
 import { 
     Activity, 
     ArrowLeft, 
@@ -51,7 +52,7 @@ defineProps<Props>();
         <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <div class="flex items-center space-x-3">
-                    <Link href="/platform/tenants" class="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">
+                    <Link :href="appUrl('/platform/tenants')" class="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">
                         <ArrowLeft class="w-4 h-4" />
                     </Link>
                     <div class="w-8 h-8 rounded-xl bg-teal-600 flex items-center justify-center text-white">

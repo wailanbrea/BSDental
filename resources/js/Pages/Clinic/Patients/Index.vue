@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { ArrowLeft, ArrowRight, ChevronRight, Plus, ReceiptText, Search, UserRound } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
@@ -42,7 +43,7 @@ const lastVisit = ref(props.filters.last_visit || '')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 function applyFilters() {
-    router.get('/patients', {
+    router.get(appUrl('/patients'), {
         search: search.value || undefined,
         status: status.value || undefined,
         branch_id: branchId.value || undefined,
@@ -82,7 +83,7 @@ function formatMoney(value: number | string | null) {
                     <h1 class="mt-1 text-2xl font-bold tracking-tight text-[#131B2E]">Pacientes</h1>
                     <p class="mt-1 text-sm text-[#64748B]">Directorio central de historias clínicas y estado financiero.</p>
                 </div>
-                <div class="flex flex-wrap gap-2"><Link href="/quotes" class="inline-flex h-10 items-center justify-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><ReceiptText class="h-4 w-4" /> Centro de presupuestos</Link><Link href="/patients/create" class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#005C55] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#004b46]"><Plus class="h-4 w-4" /> Nuevo paciente</Link></div>
+                <div class="flex flex-wrap gap-2"><Link :href="appUrl('/quotes')" class="inline-flex h-10 items-center justify-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><ReceiptText class="h-4 w-4" /> Centro de presupuestos</Link><Link :href="appUrl('/patients/create')" class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#005C55] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#004b46]"><Plus class="h-4 w-4" /> Nuevo paciente</Link></div>
             </header>
 
             <section class="rounded-lg border border-[#BDC9C6] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">

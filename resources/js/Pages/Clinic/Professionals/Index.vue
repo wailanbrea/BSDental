@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ref } from 'vue'
 import { Mail, Phone, Plus, Trash2, UserCheck, X } from 'lucide-vue-next'
 
@@ -49,7 +50,7 @@ const form = useForm({
 })
 
 function submitCreate() {
-    form.post('/professionals', {
+    form.post(appUrl('/professionals'), {
         onSuccess: () => {
             form.reset()
             isCreating.value = false

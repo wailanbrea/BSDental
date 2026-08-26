@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ArrowLeft, ArrowRight, CheckCircle2, Mail, ShieldCheck, Stethoscope } from 'lucide-vue-next'
 
 interface Props {
@@ -11,7 +12,7 @@ defineProps<Props>()
 
 const form = useForm({ email: '' })
 
-const submit = () => form.post('/forgot-password')
+const submit = () => form.post(appUrl('/forgot-password'))
 </script>
 
 <template>
@@ -71,7 +72,7 @@ const submit = () => form.post('/forgot-password')
                         </button>
                     </form>
 
-                    <Link href="/login" class="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-[#005C55] hover:underline">
+                    <Link :href="appUrl('/login')" class="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-[#005C55] hover:underline">
                         <ArrowLeft class="h-4 w-4" />
                         Volver al inicio de sesión
                     </Link>

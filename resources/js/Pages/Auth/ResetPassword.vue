@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ArrowLeft, Check, Eye, EyeOff, KeyRound, Lock, Mail, Stethoscope } from 'lucide-vue-next'
 import { ref } from 'vue'
 
@@ -19,7 +20,7 @@ const form = useForm({
     password_confirmation: '',
 })
 
-const submit = () => form.post('/reset-password', {
+const submit = () => form.post(appUrl('/reset-password'), {
     onFinish: () => form.reset('password', 'password_confirmation'),
 })
 </script>
@@ -87,7 +88,7 @@ const submit = () => form.post('/reset-password', {
                         </button>
                     </form>
 
-                    <Link href="/login" class="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-[#005C55] hover:underline">
+                    <Link :href="appUrl('/login')" class="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-[#005C55] hover:underline">
                         <ArrowLeft class="h-4 w-4" />
                         Volver al inicio de sesión
                     </Link>

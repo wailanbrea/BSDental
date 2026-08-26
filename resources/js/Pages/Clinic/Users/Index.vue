@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { computed, ref } from 'vue'
 import { KeyRound, Pencil, Plus, ShieldCheck, Users } from 'lucide-vue-next'
 import type { PageProps } from '@/types'
@@ -55,10 +56,10 @@ function openEdit(user: ClinicUser) {
 
 function submit() {
     if (editingId.value) {
-        form.put(`/users/${editingId.value}`, { preserveScroll: true, onSuccess: () => modalOpen.value = false })
+        form.put(appUrl(`/users/${editingId.value}`), { preserveScroll: true, onSuccess: () => modalOpen.value = false })
         return
     }
-    form.post('/users', { preserveScroll: true, onSuccess: () => modalOpen.value = false })
+    form.post(appUrl('/users'), { preserveScroll: true, onSuccess: () => modalOpen.value = false })
 }
 
 function openRole(role: Role) {
@@ -70,7 +71,7 @@ function openRole(role: Role) {
 
 function submitRole() {
     if (!editingRole.value) return
-    roleForm.put(`/roles/${editingRole.value.id}/permissions`, { preserveScroll: true, onSuccess: () => roleModalOpen.value = false })
+    roleForm.put(appUrl(`/roles/${editingRole.value.id}/permissions`), { preserveScroll: true, onSuccess: () => roleModalOpen.value = false })
 }
 
 function roleLabel(role: string) {

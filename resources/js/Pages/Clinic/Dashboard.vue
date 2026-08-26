@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { computed, defineAsyncComponent } from 'vue'
 import { motion } from 'motion-v'
@@ -204,7 +205,7 @@ function formatMoney(amount: number) {
 
 function onBranchChange(e: Event) {
     const target = e.target as HTMLSelectElement
-    router.get('/dashboard', { branch_id: target.value }, { preserveState: true })
+    router.get(appUrl('/dashboard'), { branch_id: target.value }, { preserveState: true })
 }
 
 function getStatusBadge(status: string) {
@@ -362,7 +363,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                     <AlertTriangle class="w-4 h-4 text-amber-600" />
                                     <h3 class="font-section-title text-[#131B2E]">Insumos con Stock Crítico (Requieren Compra)</h3>
                                 </div>
-                                <Link href="/inventory" class="text-xs font-bold text-[#005C55] hover:underline flex items-center gap-1">
+                                <Link :href="appUrl('/inventory')" class="text-xs font-bold text-[#005C55] hover:underline flex items-center gap-1">
                                     Ver Todo en Inventario <ArrowRight class="w-3.5 h-3.5" />
                                 </Link>
                             </div>
@@ -392,7 +393,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                             </td>
                                             <td class="px-4 py-3 text-center font-mono text-[#505F76]">{{ item.min_stock }} {{ item.unit }}</td>
                                             <td class="px-4 py-3 text-right">
-                                                <Link href="/inventory" class="text-xs font-bold text-[#005C55] hover:underline">
+                                                <Link :href="appUrl('/inventory')" class="text-xs font-bold text-[#005C55] hover:underline">
                                                     Reponer
                                                 </Link>
                                             </td>
@@ -453,7 +454,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
 
                             <div class="grid grid-cols-2 gap-2.5">
                                 <Link 
-                                    href="/inventory" 
+                                    :href="appUrl('/inventory')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <Package class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
@@ -461,7 +462,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                 </Link>
 
                                 <Link 
-                                    href="/inventory" 
+                                    :href="appUrl('/inventory')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <Boxes class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
@@ -571,7 +572,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         <div class="bg-white rounded-xl border border-[#E2E8F0] shadow-xs overflow-hidden">
                             <div class="p-4 border-b border-[#E2E8F0] flex justify-between items-center bg-[#FAF8FF]">
                                 <h3 class="font-section-title text-[#131B2E]">Cobros y Recibos del Día</h3>
-                                <Link href="/cash-registers" class="text-xs font-bold text-[#005C55] hover:underline">
+                                <Link :href="appUrl('/cash-registers')" class="text-xs font-bold text-[#005C55] hover:underline">
                                     Ver Arqueo
                                 </Link>
                             </div>
@@ -639,14 +640,14 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                             <h3 class="font-section-title text-[#131B2E] mb-4">Acciones de Caja</h3>
                             <div class="grid grid-cols-2 gap-2.5">
                                 <Link 
-                                    href="/cash-registers" 
+                                    :href="appUrl('/cash-registers')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <CreditCard class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
                                     <span class="text-xs font-bold text-[#131B2E]">Gestionar Cajas</span>
                                 </Link>
                                 <Link 
-                                    href="/cash-registers" 
+                                    :href="appUrl('/cash-registers')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <Wallet class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
@@ -712,7 +713,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                         <div class="bg-white rounded-xl border border-[#E2E8F0] shadow-xs overflow-hidden">
                             <div class="p-4 border-b border-[#E2E8F0] flex justify-between items-center bg-[#FAF8FF]">
                                 <h3 class="font-section-title text-[#131B2E]">Mi Agenda Quirúrgica & Consultas</h3>
-                                <Link href="/appointments" class="text-xs font-bold text-[#005C55] hover:underline">
+                                <Link :href="appUrl('/appointments')" class="text-xs font-bold text-[#005C55] hover:underline">
                                     Ver Calendario
                                 </Link>
                             </div>
@@ -761,21 +762,21 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                             <h3 class="font-section-title text-[#131B2E] mb-4">Accesos Clínicos</h3>
                             <div class="grid grid-cols-2 gap-2.5">
                                 <Link 
-                                    href="/appointments" 
+                                    :href="appUrl('/appointments')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <Calendar class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
                                     <span class="text-xs font-bold text-[#131B2E]">Mi Agenda</span>
                                 </Link>
                                 <Link 
-                                    href="/patients" 
+                                    :href="appUrl('/patients')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <Users class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
                                     <span class="text-xs font-bold text-[#131B2E]">Pacientes</span>
                                 </Link>
                                 <Link 
-                                    href="/encounters" 
+                                    :href="appUrl('/encounters')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <FileText class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
@@ -783,7 +784,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                 </Link>
                                 <Link 
                                     v-if="can('lab.view')"
-                                    href="/lab" 
+                                    :href="appUrl('/lab')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <FlaskConical class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
@@ -897,7 +898,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                     <Clock class="w-4 h-4 text-[#005C55]" />
                                     <h3 class="font-section-title text-[#131B2E]">Agenda de hoy</h3>
                                 </div>
-                                <Link href="/appointments" class="text-xs font-bold text-[#005C55] hover:underline flex items-center gap-1">
+                                <Link :href="appUrl('/appointments')" class="text-xs font-bold text-[#005C55] hover:underline flex items-center gap-1">
                                     Ver todo <ArrowRight class="w-3.5 h-3.5" />
                                 </Link>
                             </div>
@@ -1008,7 +1009,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                         <p class="text-xs font-bold text-[#131B2E]">{{ alerts.overdue_accounts_count }} cuentas por cobrar</p>
                                         <p class="text-[11px] text-[#505F76] mt-0.5">Saldos pendientes de cobro a pacientes.</p>
                                     </div>
-                                    <Link href="/patients" class="text-xs font-bold text-[#BA1A1A] hover:underline shrink-0">
+                                    <Link :href="appUrl('/patients')" class="text-xs font-bold text-[#BA1A1A] hover:underline shrink-0">
                                         Revisar
                                     </Link>
                                 </div>
@@ -1019,7 +1020,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                         <p class="text-xs font-bold text-[#131B2E]">{{ alerts.low_stock_count }} insumos bajo mínimo</p>
                                         <p class="text-[11px] text-[#505F76] mt-0.5">Alerta de reposición en almacén.</p>
                                     </div>
-                                    <Link href="/inventory" class="text-xs font-bold text-amber-800 hover:underline shrink-0">
+                                    <Link :href="appUrl('/inventory')" class="text-xs font-bold text-amber-800 hover:underline shrink-0">
                                         Kardex
                                     </Link>
                                 </div>
@@ -1030,7 +1031,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                         <p class="text-xs font-bold text-[#131B2E]">{{ alerts.pending_lab_orders_count }} órdenes de prótesis</p>
                                         <p class="text-[11px] text-[#505F76] mt-0.5">Trabajos en proceso con laboratorio.</p>
                                     </div>
-                                    <Link href="/lab" class="text-xs font-bold text-[#0047BF] hover:underline shrink-0">
+                                    <Link :href="appUrl('/lab')" class="text-xs font-bold text-[#0047BF] hover:underline shrink-0">
                                         Órdenes
                                     </Link>
                                 </div>
@@ -1048,7 +1049,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                             <div class="grid grid-cols-2 gap-2.5">
                                 <Link 
                                     v-if="can('appointments.create')"
-                                    href="/appointments" 
+                                    :href="appUrl('/appointments')" 
                                     class="p-3 bg-[#005C55] text-white rounded-xl text-center flex flex-col items-center gap-1.5 transition group hover:bg-[#00504A]"
                                 >
                                     <Calendar class="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
@@ -1057,7 +1058,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
 
                                 <Link 
                                     v-if="can('patients.create')"
-                                    href="/patients/create" 
+                                    :href="appUrl('/patients/create')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <Users class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
@@ -1066,7 +1067,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
 
                                 <Link 
                                     v-if="can('cash.open')"
-                                    href="/cash-registers" 
+                                    :href="appUrl('/cash-registers')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <CreditCard class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
@@ -1075,7 +1076,7 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
 
                                 <Link 
                                     v-if="can('finance.reports')"
-                                    href="/analytics" 
+                                    :href="appUrl('/analytics')" 
                                     class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#005C55] rounded-xl text-center flex flex-col items-center gap-1.5 transition group"
                                 >
                                     <TrendingUp class="w-5 h-5 text-[#005C55] group-hover:scale-110 transition-transform" />
@@ -1098,11 +1099,11 @@ const currentDateFormatted = new Intl.DateTimeFormat('es-ES', {
                                 <p class="text-xs text-[#505F76] mt-1">Tu acceso esta limitado a los modulos autorizados para tu rol.</p>
                             </div>
                             <div class="flex flex-wrap gap-2">
-                                <Link v-if="can('lab.view')" href="/lab" class="px-3 py-2 rounded-lg bg-[#F2F3FF] text-[#005C55] text-xs font-bold">
+                                <Link v-if="can('lab.view')" :href="appUrl('/lab')" class="px-3 py-2 rounded-lg bg-[#F2F3FF] text-[#005C55] text-xs font-bold">
                                     <FlaskConical class="w-4 h-4 inline mr-1" />
                                     Laboratorio
                                 </Link>
-                                <Link v-if="can('inventory.view')" href="/inventory" class="px-3 py-2 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold">
+                                <Link v-if="can('inventory.view')" :href="appUrl('/inventory')" class="px-3 py-2 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold">
                                     <Package class="w-4 h-4 inline mr-1" />
                                     Inventario
                                 </Link>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { computed, ref } from 'vue'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronRight, CircleDot, Clock3, FileClock, History, RotateCcw, Save, ShieldCheck, Stethoscope } from 'lucide-vue-next'
@@ -80,13 +81,13 @@ function lifecycleLabel(lifecycle: LifecycleKey) { return lifecycleOptions.find(
 function lifecycleClass(lifecycle: LifecycleKey) { if (lifecycle === 'completed') return 'bg-[#ECFDF3] text-[#027A48] border-[#ABEFC6]'; if (lifecycle === 'approved') return 'bg-[#EFF8FF] text-[#175CD3] border-[#B2DDFF]'; if (lifecycle === 'planned') return 'bg-[#FFFAEB] text-[#B54708] border-[#FEDF89]'; return 'bg-[#FFF1F0] text-[#B42318] border-[#FECDCA]' }
 function formatDate(value: string) { return new Intl.DateTimeFormat('es-DO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) }
 function resetForm() { form.surface = 'all'; form.condition = 'caries'; form.lifecycle_state = 'initial_diagnosis'; form.notes = ''; form.clearErrors() }
-function submitEntry() { form.tooth_number = selectedTooth.value; form.post(`/patients/${props.patient.id}/odontogram/entries`, { preserveScroll: true, onSuccess: () => { form.reset('notes'); historyScope.value = 'selected' } }) }
+function submitEntry() { form.tooth_number = selectedTooth.value; form.post(appUrl(`/patients/${props.patient.id}/odontogram/entries`), { preserveScroll: true, onSuccess: () => { form.reset('notes'); historyScope.value = 'selected' } }) }
 </script>
 
 <template>
     <Head :title="`Odontograma — ${patient.full_name}`" />
     <main class="space-y-5 bg-[#F8FAFC] p-4 text-[#131B2E] md:p-6">
-        <nav class="flex flex-wrap items-center gap-2 text-xs text-[#64748B]"><Link href="/patients" class="hover:text-[#005C55]">Pacientes</Link><ChevronRight class="h-3.5 w-3.5" /><Link :href="`/patients/${patient.id}`" class="hover:text-[#005C55]">{{ patient.full_name }}</Link><ChevronRight class="h-3.5 w-3.5" /><span class="font-semibold text-[#344054]">Odontograma</span></nav>
+        <nav class="flex flex-wrap items-center gap-2 text-xs text-[#64748B]"><Link :href="appUrl('/patients')" class="hover:text-[#005C55]">Pacientes</Link><ChevronRight class="h-3.5 w-3.5" /><Link :href="`/patients/${patient.id}`" class="hover:text-[#005C55]">{{ patient.full_name }}</Link><ChevronRight class="h-3.5 w-3.5" /><span class="font-semibold text-[#344054]">Odontograma</span></nav>
         <header class="flex flex-col gap-4 border border-[#D8E0DE] bg-white p-4 shadow-[0_4px_12px_rgba(15,23,42,0.04)] lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-center gap-3"><div class="grid h-12 w-12 shrink-0 place-items-center bg-[#D8ECE9] font-bold text-[#005C55]">{{ patient.full_name.charAt(0) }}</div><div><div class="flex flex-wrap items-baseline gap-2"><h1 class="text-xl font-bold">{{ patient.full_name }}</h1><span class="font-mono text-xs text-[#64748B]">{{ patient.record_number }}</span></div><p class="mt-1 text-xs text-[#64748B]">{{ patient.age ? `${patient.age} años · ` : '' }}Registro dental FDI con trazabilidad clínica</p></div></div>
             <div class="flex flex-wrap items-center gap-2"><span v-for="allergy in allergies" :key="allergy" class="inline-flex items-center gap-1.5 border border-[#FDA29B] bg-[#FEF3F2] px-2.5 py-1.5 text-xs font-semibold text-[#B42318]"><AlertTriangle class="h-3.5 w-3.5" />Alergia: {{ allergy }}</span><span v-for="condition in systemicConditions" :key="condition" class="inline-flex items-center gap-1.5 border border-[#FEDF89] bg-[#FFFAEB] px-2.5 py-1.5 text-xs font-semibold text-[#B54708]"><CircleDot class="h-3.5 w-3.5" />{{ condition }}</span><Link :href="`/patients/${patient.id}`" class="inline-flex h-9 items-center gap-2 border border-[#9AAEAA] bg-white px-3 text-xs font-semibold text-[#344054] hover:bg-[#F2F4F7]"><ArrowLeft class="h-4 w-4" />Ficha 360</Link></div>

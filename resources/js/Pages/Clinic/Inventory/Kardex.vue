@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import { Head, Link } from '@inertiajs/vue3'
+import { appUrl } from '@/lib/url'
 import { ArrowLeft, Printer } from 'lucide-vue-next'
 
 interface StockMovementDetail {
@@ -78,7 +79,7 @@ function movementLabel(type: string) {
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0] print:hidden">
                 <div class="flex items-center gap-3">
                     <Link 
-                        href="/inventory"
+                        :href="appUrl('/inventory')"
                         class="p-2 text-[#505F76] hover:text-[#131B2E] hover:bg-white rounded-lg border border-[#E2E8F0] transition"
                     >
                         <ArrowLeft class="w-4 h-4" />

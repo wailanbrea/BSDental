@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
+import { appUrl } from '@/lib/url'
 import { KeyRound, ShieldCheck } from 'lucide-vue-next';
 
 const form = useForm({
@@ -7,7 +8,7 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.post('/platform/two-factor', {
+    form.post(appUrl('/platform/two-factor'), {
         onFinish: () => {
             form.reset('code');
         },
