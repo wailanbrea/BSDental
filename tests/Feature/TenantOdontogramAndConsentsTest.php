@@ -3,8 +3,10 @@
 use App\Core\Auth\Models\User;
 use App\Core\Models\ConsentTemplate;
 use App\Core\Models\Odontogram;
+use App\Core\Models\OdontogramEntry;
 use App\Core\Models\Patient;
 use App\Core\Models\PatientConsent;
+use App\Core\Models\PeriodontalExam;
 use App\Core\Security\Models\TenantAuditLog;
 use App\Core\Services\ConsentSigningService;
 use App\Platform\Tenancy\Models\Tenant;
@@ -235,4 +237,102 @@ test('[GATE ODO] Odontogram only accepts valid permanent and primary FDI tooth n
 
     app(TenantContext::class)->makeCurrent($this->tenant);
     expect(Odontogram::where('patient_id', $this->patient->id)->firstOrFail()->entries()->count())->toBe(4);
+});
+
+test('[GATE ODO] Legacy condition and surface vocabulary remains readable without rewriting history', function () {
+    $entry = new OdontogramEntry;
+    $entry->setRawAttributes([
+        'condition' => 'resin',
+        'surface' => 'occlusal',
+        'surfaces' => json_encode(['occlusal']),
+    ]);
+
+    expect($entry->condition)->toBe('restored_composite')
+        ->and($entry->surface)->toBe('occlusal_incisal')
+        ->and($entry->surfaces)->toBe(['occlusal_incisal']);
+});
+
+test('[GATE ODO] Structured entries support multiple surfaces, immutable corrections and quote prefill', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $this->post("http://odontograma.bsdental.test/patients/{$this->patient->id}/odontogram/entries", [
+        'tooth_number' => 26,
+        'surfaces' => ['mesial', 'occlusal_incisal', 'distal'],
+        'condition' => 'caries',
+        'entry_type' => 'diagnosis',
+        'clinical_status' => 'active',
+        'verification_status' => 'confirmed',
+        'lifecycle_state' => 'initial_diagnosis',
+        'notes' => 'Lesión MOD confirmada.',
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $odontogram = Odontogram::where('patient_id', $this->patient->id)->firstOrFail();
+    $original = $odontogram->entries()->firstOrFail();
+    expect($original->surfaces)->toBe(['mesial', 'occlusal_incisal', 'distal'])
+        ->and($original->entry_type)->toBe('diagnosis');
+
+    $this->post("http://odontograma.bsdental.test/patients/{$this->patient->id}/odontogram/entries", [
+        'tooth_number' => 26,
+        'surfaces' => ['mesial', 'occlusal_incisal'],
+        'condition' => 'caries',
+        'entry_type' => 'diagnosis',
+        'clinical_status' => 'active',
+        'verification_status' => 'confirmed',
+        'lifecycle_state' => 'initial_diagnosis',
+        'notes' => 'La superficie distal no presenta lesión.',
+        'supersedes_entry_id' => $original->id,
+        'amendment_reason' => 'Corrección posterior a revisión radiográfica.',
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect($odontogram->entries()->count())->toBe(2)
+        ->and($original->fresh()->notes)->toBe('Lesión MOD confirmada.')
+        ->and($original->corrections()->firstOrFail()->amendment_reason)->toContain('radiográfica');
+
+    $this->get("http://odontograma.bsdental.test/patients/{$this->patient->id}/quotes/create?tooth_number=26&surface=mesial&clinical_note=Lesion%20MOD&odontogram_entry_id={$original->id}")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Clinic/Quotes/Create')
+            ->where('prefill.tooth_number', 26)
+            ->where('prefill.surface', 'mesial')
+            ->where('prefill.odontogram_entry_id', $original->id));
+});
+
+test('[GATE ODO] Periodontal chart stores six-site measurements and caries risk', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $sites = ['mb', 'b', 'db', 'ml', 'l', 'dl'];
+    $measurements = array_map(fn (string $site) => [
+        'site' => $site,
+        'probing_depth' => $site === 'mb' ? 5 : 3,
+        'recession' => 0,
+        'bleeding' => $site === 'mb',
+        'plaque' => false,
+        'suppuration' => false,
+        'mobility' => 0,
+        'furcation' => 0,
+        'is_implant' => false,
+    ], $sites);
+
+    $this->post("http://odontograma.bsdental.test/patients/{$this->patient->id}/odontogram/periodontal-measurements", [
+        'tooth_number' => 16,
+        'measurements' => $measurements,
+    ])->assertRedirect();
+
+    $this->post("http://odontograma.bsdental.test/patients/{$this->patient->id}/odontogram/caries-risk", [
+        'caries_risk_level' => 'high',
+        'caries_risk_factors' => ['Caries activa reciente'],
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $exam = PeriodontalExam::with('measurements')->firstOrFail();
+    $odontogram = Odontogram::where('patient_id', $this->patient->id)->firstOrFail();
+    expect($exam->measurements)->toHaveCount(6)
+        ->and($exam->measurements->firstWhere('site', 'mb')->probing_depth)->toBe(5)
+        ->and($exam->measurements->firstWhere('site', 'mb')->bleeding)->toBeTrue()
+        ->and($odontogram->caries_risk_level)->toBe('high')
+        ->and($odontogram->caries_risk_factors)->toBe(['Caries activa reciente']);
 });

@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property string $id
@@ -54,7 +55,18 @@ class OdontogramEntry extends Model
         'encounter_id',
         'tooth_number',
         'surface',
+        'surfaces',
         'condition',
+        'entry_type',
+        'code_system',
+        'clinical_code',
+        'clinical_display',
+        'clinical_status',
+        'verification_status',
+        'procedure_id',
+        'supersedes_entry_id',
+        'amendment_reason',
+        'device_details',
         'lifecycle_state',
         'notes',
         'recorded_by_user_id',
@@ -70,8 +82,55 @@ class OdontogramEntry extends Model
     {
         return [
             'tooth_number' => 'integer',
+            'surfaces' => 'array',
+            'device_details' => 'array',
             'recorded_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Normalize condition values written before the clinical vocabulary was finalized.
+     */
+    public function getConditionAttribute(string $value): string
+    {
+        return match ($value) {
+            'resin', 'restoration' => 'restored_composite',
+            'amalgam' => 'restored_amalgam',
+            'absent' => 'missing',
+            'root_canal' => 'endodontic',
+            default => $value,
+        };
+    }
+
+    /**
+     * Normalize legacy surface labels without rewriting immutable history.
+     */
+    public function getSurfaceAttribute(string $value): string
+    {
+        return match ($value) {
+            'occlusal', 'incisal' => 'occlusal_incisal',
+            'lingual', 'palatal' => 'lingual_palatal',
+            default => $value,
+        };
+    }
+
+    /**
+     * Normalize every legacy label in structured surface arrays on read.
+     *
+     * @return list<string>
+     */
+    public function getSurfacesAttribute(mixed $value): array
+    {
+        $surfaces = is_array($value) ? $value : json_decode((string) $value, true);
+        if (! is_array($surfaces) || $surfaces === []) {
+            $surfaces = [$this->attributes['surface'] ?? 'all'];
+        }
+
+        return array_values(array_unique(array_map(fn (string $surface): string => match ($surface) {
+            'occlusal', 'incisal' => 'occlusal_incisal',
+            'lingual', 'palatal' => 'lingual_palatal',
+            default => $surface,
+        }, $surfaces)));
     }
 
     /**
@@ -102,5 +161,15 @@ class OdontogramEntry extends Model
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by_user_id');
+    }
+
+    public function supersededEntry(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'supersedes_entry_id');
+    }
+
+    public function corrections(): HasMany
+    {
+        return $this->hasMany(self::class, 'supersedes_entry_id');
     }
 }

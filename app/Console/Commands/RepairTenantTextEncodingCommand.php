@@ -64,18 +64,18 @@ class RepairTenantTextEncodingCommand extends Command
                         foreach ($columnNames as $columnName) {
                             $value = $row->{$columnName};
 
-                            if (! is_string($value) || ! $this->hasMojibake($value)) {
+                            if (! is_string($value)) {
                                 continue;
                             }
 
-                            $repaired = mb_convert_encoding($value, 'Windows-1252', 'UTF-8');
+                            $repaired = $this->repairStoredValue($value);
 
-                            if ($repaired === $value || ! mb_check_encoding($repaired, 'UTF-8')) {
+                            if ($repaired === $value) {
                                 continue;
                             }
 
                             $updates[$columnName] = $repaired;
-                            $examples[] = "{$tableName}.{$columnName}: {$value} -> {$repaired}";
+                            $examples[] = "{$tableName}.{$columnName} [{$primaryKey->name}={$row->{$primaryKey->name}}]";
                         }
 
                         if ($updates === []) {
@@ -125,5 +125,53 @@ class RepairTenantTextEncodingCommand extends Command
     private function hasMojibake(string $value): bool
     {
         return preg_match('/(?:\\x{00C3}.|\\x{00C2}.|\\x{00E2}..)/u', $value) === 1;
+    }
+
+    private function repairStoredValue(string $value): string
+    {
+        $decoded = json_decode($value, true);
+
+        if (json_last_error() === JSON_ERROR_NONE) {
+            $changed = false;
+            $decoded = $this->repairDecodedValue($decoded, $changed);
+
+            if ($changed) {
+                return json_encode(
+                    $decoded,
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+                );
+            }
+        }
+
+        return $this->repairString($value);
+    }
+
+    private function repairDecodedValue(mixed $value, bool &$changed): mixed
+    {
+        if (is_string($value)) {
+            $repaired = $this->repairString($value);
+            $changed = $changed || $repaired !== $value;
+
+            return $repaired;
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $key => $item) {
+                $value[$key] = $this->repairDecodedValue($item, $changed);
+            }
+        }
+
+        return $value;
+    }
+
+    private function repairString(string $value): string
+    {
+        if (! $this->hasMojibake($value)) {
+            return $value;
+        }
+
+        $repaired = mb_convert_encoding($value, 'Windows-1252', 'UTF-8');
+
+        return mb_check_encoding($repaired, 'UTF-8') ? $repaired : $value;
     }
 }

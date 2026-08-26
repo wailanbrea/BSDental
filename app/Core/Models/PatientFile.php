@@ -59,6 +59,11 @@ class PatientFile extends Model
         'size_bytes',
         'stored_path',
         'notes',
+        'tooth_number',
+        'odontogram_entry_id',
+        'encounter_id',
+        'taken_at',
+        'metadata',
         'uploaded_by_user_id',
     ];
 
@@ -81,6 +86,9 @@ class PatientFile extends Model
     {
         return [
             'size_bytes' => 'integer',
+            'tooth_number' => 'integer',
+            'taken_at' => 'datetime',
+            'metadata' => 'array',
         ];
     }
 
@@ -102,5 +110,15 @@ class PatientFile extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by_user_id');
+    }
+
+    public function odontogramEntry(): BelongsTo
+    {
+        return $this->belongsTo(OdontogramEntry::class, 'odontogram_entry_id');
+    }
+
+    public function encounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class, 'encounter_id');
     }
 }

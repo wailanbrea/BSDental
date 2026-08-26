@@ -9,6 +9,7 @@ use App\Core\Models\CreditAdjustment;
 use App\Core\Models\FollowUpTask;
 use App\Core\Models\LabOrder;
 use App\Core\Models\Odontogram;
+use App\Core\Models\OdontogramEntry;
 use App\Core\Models\Patient;
 use App\Core\Models\PatientCharge;
 use App\Core\Models\PatientConsent;
@@ -30,6 +31,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -397,11 +399,20 @@ class PatientController extends Controller
     {
         $patient = Patient::findOrFail($id);
 
-        $request->validate([
+        $validated = $request->validate([
             'file' => ['required', 'file', 'max:20480'], // max 20MB
             'category' => ['required', 'string', 'in:radiography,lab_result,document,consent,photo'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'tooth_number' => ['nullable', 'integer', Rule::in($this->validFdiToothNumbers())],
+            'odontogram_entry_id' => ['nullable', 'uuid', 'exists:tenant.odontogram_entries,id'],
+            'encounter_id' => ['nullable', 'uuid', 'exists:tenant.clinical_encounters,id'],
+            'taken_at' => ['nullable', 'date'],
         ]);
+
+        if (! empty($validated['odontogram_entry_id'])) {
+            OdontogramEntry::whereHas('odontogram', fn ($query) => $query->where('patient_id', $patient->id))
+                ->findOrFail($validated['odontogram_entry_id']);
+        }
 
         $file = $request->file('file');
         if (! $file) {
@@ -418,6 +429,10 @@ class PatientController extends Controller
             'size_bytes' => $stored['size_bytes'],
             'stored_path' => $stored['stored_path'],
             'notes' => $request->input('notes'),
+            'tooth_number' => $validated['tooth_number'] ?? null,
+            'odontogram_entry_id' => $validated['odontogram_entry_id'] ?? null,
+            'encounter_id' => $validated['encounter_id'] ?? null,
+            'taken_at' => $validated['taken_at'] ?? null,
             'uploaded_by_user_id' => Auth::guard('web')->id(),
         ]);
 
@@ -548,5 +563,13 @@ class PatientController extends Controller
 
         return redirect()->route('clinic.patients.show', $master->id)
             ->with('success', "Paciente {$duplicate->full_name} ({$duplicate->record_number}) fusionado exitosamente con {$master->full_name} ({$master->record_number}).");
+    }
+
+    /** @return list<int> */
+    private function validFdiToothNumbers(): array
+    {
+        return array_merge(
+            ...array_map(fn (int $quadrant) => array_map(fn (int $position) => ($quadrant * 10) + $position, range(1, $quadrant <= 4 ? 8 : 5)), range(1, 8))
+        );
     }
 }

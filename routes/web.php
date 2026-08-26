@@ -154,6 +154,8 @@ Route::group([], function () {
             // Odontogram FDI
             Route::get('/patients/{patientId}/odontogram', [OdontogramController::class, 'show'])->middleware('permission:odontogram.view')->name('clinic.odontogram.show');
             Route::post('/patients/{patientId}/odontogram/entries', [OdontogramController::class, 'storeEntry'])->middleware('permission:odontogram.write')->name('clinic.odontogram.store_entry');
+            Route::post('/patients/{patientId}/odontogram/periodontal-measurements', [OdontogramController::class, 'storePeriodontalMeasurements'])->middleware('permission:odontogram.write')->name('clinic.odontogram.periodontal_measurements');
+            Route::post('/patients/{patientId}/odontogram/caries-risk', [OdontogramController::class, 'storeCariesRisk'])->middleware('permission:odontogram.write')->name('clinic.odontogram.caries_risk');
 
             // Informed Consents
             Route::get('/patients/{patientId}/consents', [ConsentController::class, 'index'])->middleware('permission:clinical.view')->name('clinic.consents.index');

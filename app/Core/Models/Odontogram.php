@@ -48,8 +48,19 @@ class Odontogram extends Model
         'patient_id',
         'type',
         'notes',
+        'caries_risk_level',
+        'caries_risk_factors',
+        'caries_risk_assessed_at',
         'created_by_user_id',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'caries_risk_factors' => 'array',
+            'caries_risk_assessed_at' => 'datetime',
+        ];
+    }
 
     /**
      * Patient relation.
@@ -69,5 +80,10 @@ class Odontogram extends Model
     public function entries(): HasMany
     {
         return $this->hasMany(OdontogramEntry::class, 'odontogram_id')->orderBy('recorded_at', 'asc');
+    }
+
+    public function periodontalExams(): HasMany
+    {
+        return $this->hasMany(PeriodontalExam::class, 'odontogram_id');
     }
 }

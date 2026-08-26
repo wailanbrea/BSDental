@@ -9,17 +9,18 @@ interface ProfessionalDetails { id: string; full_name: string }
 interface ProcedureItem { id: string; code: string | null; name: string; price: number }
 interface CategoryItem { id: string; name: string; procedures: ProcedureItem[] }
 interface FormItem { procedure_id: string; tooth_number: number | null; surface: string; quantity: number; discount_percentage: number }
+interface QuotePrefill { tooth_number?: number | null; surface?: string | null; clinical_note?: string | null; odontogram_entry_id?: string | null }
 
-const props = defineProps<{ patient: PatientDetails | null; mode?: 'patient' | 'prospect'; professionals: ProfessionalDetails[]; categories: CategoryItem[]; suggestedNumber: string }>()
+const props = defineProps<{ patient: PatientDetails | null; mode?: 'patient' | 'prospect'; professionals: ProfessionalDetails[]; categories: CategoryItem[]; suggestedNumber: string; prefill?: QuotePrefill }>()
 const isProspect = computed(() => props.mode === 'prospect' || !props.patient)
 const backUrl = computed(() => isProspect.value ? '/quotes' : `/patients/${props.patient!.id}/quotes`)
 const form = useForm({
     prospect_first_name: '', prospect_last_name: '', prospect_phone: '', prospect_email: '',
-    professional_id: props.professionals[0]?.id || '', alternative_name: 'Plan principal', notes: '', items: [] as FormItem[],
+    professional_id: props.professionals[0]?.id || '', alternative_name: 'Plan principal', notes: props.prefill?.clinical_note || '', items: [] as FormItem[],
 })
 const selectedProcId = ref('')
-const selectedTooth = ref<number | null>(null)
-const selectedSurface = ref('all')
+const selectedTooth = ref<number | null>(props.prefill?.tooth_number ?? null)
+const selectedSurface = ref(props.prefill?.surface || 'all')
 const validTeeth = [
     ...[1, 2, 3, 4].flatMap(quadrant => Array.from({ length: 8 }, (_, index) => quadrant * 10 + index + 1)),
     ...[5, 6, 7, 8].flatMap(quadrant => Array.from({ length: 5 }, (_, index) => quadrant * 10 + index + 1)),

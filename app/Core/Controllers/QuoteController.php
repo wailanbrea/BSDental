@@ -88,12 +88,21 @@ class QuoteController extends Controller
     /**
      * Show form for creating a new quote.
      */
-    public function create(string $patientId): Response
+    public function create(Request $request, string $patientId): Response
     {
         $patient = Patient::findOrFail($patientId);
         $professionals = Professional::where('is_active', true)->get();
         $categories = ProcedureCategory::with('procedures')->get();
         $suggestedNumber = $this->calculationService->generateQuoteNumber();
+        $prefill = $request->validate([
+            'tooth_number' => ['nullable', 'integer', Rule::in($this->validFdiToothNumbers())],
+            'surface' => ['nullable', 'in:all,vestibular,lingual_palatal,mesial,distal,occlusal_incisal'],
+            'clinical_note' => ['nullable', 'string', 'max:500'],
+            'odontogram_entry_id' => ['nullable', 'uuid', 'exists:tenant.odontogram_entries,id'],
+        ]);
+        if (isset($prefill['tooth_number'])) {
+            $prefill['tooth_number'] = (int) $prefill['tooth_number'];
+        }
 
         return Inertia::render('Clinic/Quotes/Create', [
             'patient' => $patient,
@@ -101,6 +110,7 @@ class QuoteController extends Controller
             'professionals' => $professionals,
             'categories' => $categories,
             'suggestedNumber' => $suggestedNumber,
+            'prefill' => $prefill,
         ]);
     }
 
