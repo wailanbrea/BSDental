@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3'
-import { Activity, Save } from 'lucide-vue-next'
+import { Activity, Eraser, FlaskConical, Info, Save } from 'lucide-vue-next'
 import { watch } from 'vue'
 import { appUrl } from '@/lib/url'
 
@@ -40,6 +40,24 @@ function loadTooth(tooth: number) {
     form.clearErrors()
 }
 
+function loadEducationalExample() {
+    const example: Record<SiteKey, Pick<Measurement, 'probing_depth' | 'recession' | 'bleeding' | 'plaque' | 'suppuration' | 'mobility' | 'furcation'>> = {
+        mb: { probing_depth: 3, recession: 0, bleeding: false, plaque: false, suppuration: false, mobility: 0, furcation: 0 },
+        b: { probing_depth: 2, recession: 0, bleeding: false, plaque: false, suppuration: false, mobility: 0, furcation: 0 },
+        db: { probing_depth: 4, recession: 0, bleeding: true, plaque: true, suppuration: false, mobility: 0, furcation: 0 },
+        ml: { probing_depth: 3, recession: 0, bleeding: false, plaque: false, suppuration: false, mobility: 0, furcation: 0 },
+        l: { probing_depth: 3, recession: 1, bleeding: false, plaque: false, suppuration: false, mobility: 0, furcation: 0 },
+        dl: { probing_depth: 3, recession: 0, bleeding: false, plaque: false, suppuration: false, mobility: 0, furcation: 0 },
+    }
+
+    form.measurements = emptyMeasurements().map((measurement) => ({ ...measurement, ...example[measurement.site] }))
+}
+
+function clearMeasurements() {
+    form.measurements = emptyMeasurements()
+    form.clearErrors()
+}
+
 watch(() => [props.selectedTooth, props.exam] as const, () => loadTooth(props.selectedTooth), { immediate: true })
 function submit() { form.post(appUrl(`/patients/${props.patientId}/odontogram/periodontal-measurements`), { preserveScroll: true }) }
 </script>
@@ -48,12 +66,16 @@ function submit() { form.post(appUrl(`/patients/${props.patientId}/odontogram/pe
     <section class="border border-[#D8E0DE] bg-white shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
         <header class="flex flex-wrap items-center justify-between gap-3 border-b border-[#D8E0DE] bg-[#F7FAF9] px-4 py-3">
             <div><h2 class="flex items-center gap-2 text-sm font-bold"><Activity class="h-4 w-4 text-[#005C55]" />Periodontograma · pieza {{ selectedTooth }}</h2><p class="mt-0.5 text-xs text-[#64748B]">Sondaje de seis sitios. BOP = sangrado al sondaje.</p></div>
-            <span class="border border-[#B7D9D4] bg-[#F1FAF8] px-2 py-1 text-[10px] font-bold uppercase text-[#006B63]">{{ exam ? 'Examen en curso' : 'Nuevo examen' }}</span>
+            <div class="flex flex-wrap items-center gap-2"><button type="button" class="inline-flex h-8 items-center gap-1.5 border border-[#9AAEAA] bg-white px-3 text-[11px] font-bold text-[#344054] hover:bg-[#F2F4F7]" @click="loadEducationalExample"><FlaskConical class="h-3.5 w-3.5" />Cargar ejemplo</button><button type="button" class="inline-flex h-8 items-center gap-1.5 border border-[#D0D5DD] bg-white px-3 text-[11px] font-bold text-[#667085] hover:bg-[#F2F4F7]" @click="clearMeasurements"><Eraser class="h-3.5 w-3.5" />Limpiar</button><span class="border border-[#B7D9D4] bg-[#F1FAF8] px-2 py-1 text-[10px] font-bold uppercase text-[#006B63]">{{ exam ? 'Examen en curso' : 'Nuevo examen' }}</span></div>
         </header>
+        <div class="grid gap-3 border-b border-[#D8E0DE] bg-[#FFFCF5] px-4 py-3 text-[11px] text-[#52615E] lg:grid-cols-[1.4fr_1fr]">
+            <p class="flex gap-2"><Info class="mt-0.5 h-4 w-4 shrink-0 text-[#B54708]" /><span><strong class="text-[#344054]">Cómo leerlo:</strong> el sondaje mide la profundidad entre encía y diente; 1-3 mm suele ser compatible con salud. Un valor de 4 mm o más, especialmente con BOP, placa o supuración, requiere valoración profesional.</span></p>
+            <p><strong class="text-[#344054]">Escalas:</strong> recesión = encía desplazada en mm; movilidad 0-3; furca 0-3. El ejemplo educativo muestra cinco sitios de 2-3 mm y uno de 4 mm con placa y sangrado. No se guarda hasta pulsar “Guardar sondaje”.</p>
+        </div>
         <form class="overflow-x-auto" @submit.prevent="submit">
             <table class="w-full min-w-[780px] text-left text-xs">
                 <thead class="border-b border-[#D8E0DE] bg-[#FBFCFC] text-[10px] uppercase tracking-wide text-[#64748B]"><tr><th class="px-4 py-2">Sitio</th><th class="px-2 py-2">Sondaje mm</th><th class="px-2 py-2">Recesión mm</th><th class="px-2 py-2 text-center">BOP</th><th class="px-2 py-2 text-center">Placa</th><th class="px-2 py-2 text-center">Supuración</th><th class="px-2 py-2">Movilidad</th><th class="px-2 py-2">Furca</th></tr></thead>
-                <tbody class="divide-y divide-[#E4E7EC]"><tr v-for="(measurement, index) in form.measurements" :key="measurement.site"><td class="px-4 py-2 font-semibold">{{ sites[index].label }}</td><td class="px-2 py-2"><input v-model.number="measurement.probing_depth" type="number" min="0" max="15" class="h-9 w-20 border border-[#9AAEAA] px-2" /></td><td class="px-2 py-2"><input v-model.number="measurement.recession" type="number" min="-10" max="15" class="h-9 w-20 border border-[#9AAEAA] px-2" /></td><td class="px-2 py-2 text-center"><input v-model="measurement.bleeding" type="checkbox" class="h-4 w-4 accent-[#D92D20]" /></td><td class="px-2 py-2 text-center"><input v-model="measurement.plaque" type="checkbox" class="h-4 w-4 accent-[#EAAA08]" /></td><td class="px-2 py-2 text-center"><input v-model="measurement.suppuration" type="checkbox" class="h-4 w-4 accent-[#B42318]" /></td><td class="px-2 py-2"><input v-model.number="measurement.mobility" type="number" min="0" max="3" class="h-9 w-16 border border-[#9AAEAA] px-2" /></td><td class="px-2 py-2"><input v-model.number="measurement.furcation" type="number" min="0" max="3" class="h-9 w-16 border border-[#9AAEAA] px-2" /></td></tr></tbody>
+                <tbody class="divide-y divide-[#E4E7EC]"><tr v-for="(measurement, index) in form.measurements" :key="measurement.site" :class="Number(measurement.probing_depth) >= 4 ? 'bg-[#FFFAEB]' : ''"><td class="px-4 py-2 font-semibold">{{ sites[index].label }}</td><td class="px-2 py-2"><input v-model.number="measurement.probing_depth" :aria-label="`Sondaje ${sites[index].label}`" type="number" min="0" max="15" placeholder="2-3" class="h-9 w-20 border px-2" :class="Number(measurement.probing_depth) >= 4 ? 'border-[#F79009] bg-white font-bold text-[#B54708]' : 'border-[#9AAEAA]'" /></td><td class="px-2 py-2"><input v-model.number="measurement.recession" :aria-label="`Recesión ${sites[index].label}`" type="number" min="-10" max="15" placeholder="0" class="h-9 w-20 border border-[#9AAEAA] px-2" /></td><td class="px-2 py-2 text-center"><input v-model="measurement.bleeding" :aria-label="`BOP ${sites[index].label}`" type="checkbox" class="h-4 w-4 accent-[#D92D20]" /></td><td class="px-2 py-2 text-center"><input v-model="measurement.plaque" :aria-label="`Placa ${sites[index].label}`" type="checkbox" class="h-4 w-4 accent-[#EAAA08]" /></td><td class="px-2 py-2 text-center"><input v-model="measurement.suppuration" :aria-label="`Supuración ${sites[index].label}`" type="checkbox" class="h-4 w-4 accent-[#B42318]" /></td><td class="px-2 py-2"><input v-model.number="measurement.mobility" :aria-label="`Movilidad ${sites[index].label}`" type="number" min="0" max="3" placeholder="0" class="h-9 w-16 border border-[#9AAEAA] px-2" /></td><td class="px-2 py-2"><input v-model.number="measurement.furcation" :aria-label="`Furca ${sites[index].label}`" type="number" min="0" max="3" placeholder="0" class="h-9 w-16 border border-[#9AAEAA] px-2" /></td></tr></tbody>
             </table>
             <div class="flex items-center justify-between gap-3 border-t border-[#D8E0DE] p-3"><p class="text-[11px] text-[#64748B]">Valores 4 mm o mayores requieren evaluación periodontal.</p><button type="submit" :disabled="form.processing" class="inline-flex h-9 items-center gap-2 bg-[#005C55] px-4 text-xs font-bold text-white disabled:opacity-60"><Save class="h-3.5 w-3.5" />Guardar sondaje</button></div>
         </form>

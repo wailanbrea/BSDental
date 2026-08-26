@@ -2,26 +2,18 @@
 import { createApp, h, type DefineComponent } from 'vue';
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { appUrl } from '@/lib/url';
 
 const appName = import.meta.env.VITE_APP_NAME || 'BSDental';
-const appBasePath = (import.meta.env.VITE_BASE_PATH || '').replace(/\/build\/?$/, '');
 
 type VisitUrl = Parameters<typeof router.visit>[0];
 
-function withAppBasePath(url: string): string {
-    if (!appBasePath || !url.startsWith('/') || url.startsWith('//') || url === appBasePath || url.startsWith(`${appBasePath}/`)) {
-        return url;
-    }
-
-    return `${appBasePath}${url}`;
-}
-
 function resolveVisitUrl(url: VisitUrl): VisitUrl {
     if (typeof url === 'string' || url instanceof URL) {
-        return typeof url === 'string' ? withAppBasePath(url) : url;
+        return typeof url === 'string' ? appUrl(url) : url;
     }
 
-    return { ...url, url: withAppBasePath(url.url) };
+    return { ...url, url: appUrl(url.url) };
 }
 
 const visit = router.visit.bind(router);
@@ -35,7 +27,7 @@ document.addEventListener('click', (event) => {
     if (anchor === null) return;
 
     const href = anchor.getAttribute('href');
-    if (href !== null) anchor.setAttribute('href', String(withAppBasePath(href)));
+    if (href !== null) anchor.setAttribute('href', appUrl(href));
 }, true);
 
 createInertiaApp({
