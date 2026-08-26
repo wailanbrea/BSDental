@@ -7,11 +7,13 @@ use App\Platform\Tenancy\Models\ClinicProfile;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
 use App\Platform\Tenancy\TenantContext;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -108,6 +110,18 @@ test('tenant login page displays clinic details for verified host', function () 
             ->component('Auth/Login')
             ->where('clinic.trade_name', 'Alfa Dental Clinic')
         );
+});
+
+test('expired csrf sessions return to a recoverable page instead of rendering a 419', function () {
+    Route::middleware('web')->post('/expired-session-test', function () {
+        throw new TokenMismatchException;
+    });
+
+    $this->withHeader('Referer', 'http://alfa.bsdental.test/login')
+        ->post('http://alfa.bsdental.test/expired-session-test')
+        ->assertRedirect('http://alfa.bsdental.test/login')
+        ->assertSessionHas('error', 'Tu sesión expiró. La página fue recargada; intenta realizar la acción nuevamente.')
+        ->assertSessionHas('status', 'Tu sesión expiró. Inicia sesión nuevamente para continuar.');
 });
 
 test('tenant login fails with invalid credentials', function () {

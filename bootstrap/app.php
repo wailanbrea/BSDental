@@ -11,6 +11,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -44,5 +45,14 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->respond(function (Response $response) {
+            if ($response->getStatusCode() !== 419) {
+                return $response;
+            }
+
+            return back()->with([
+                'error' => 'Tu sesión expiró. La página fue recargada; intenta realizar la acción nuevamente.',
+                'status' => 'Tu sesión expiró. Inicia sesión nuevamente para continuar.',
+            ]);
+        });
     })->create();
