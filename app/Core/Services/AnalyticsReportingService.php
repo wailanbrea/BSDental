@@ -49,7 +49,7 @@ class AnalyticsReportingService
         $receivables = (float) PatientCharge::whereIn('status', ['pending', 'partially_paid'])
             ->sum('balance_due');
 
-        $directMaterialCosts = (float) StockMovement::where('type', 'consumption')
+        $directMaterialCosts = (float) StockMovement::whereIn('type', ['consumption', 'procedure_consumption'])
             ->whereBetween('created_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
             ->sum('total_cost');
 
@@ -91,7 +91,7 @@ class AnalyticsReportingService
      */
     public function getDoctorProductivity(Carbon $startDate, Carbon $endDate): array
     {
-        $professionals = Professional::where('status', 'active')->get();
+        $professionals = Professional::with('specialties')->where('is_active', true)->get();
         $results = [];
 
         foreach ($professionals as $prof) {
@@ -100,11 +100,9 @@ class AnalyticsReportingService
                 ->whereBetween('start_time', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
                 ->count();
 
-            $completedProcedures = TreatmentPlanItem::where('status', 'completed')
-                ->whereHas('treatmentPlan.patient', function ($q) {
-                    // or directly matching charge professional
-                })
-                ->whereBetween('completed_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
+            $completedProcedures = PatientCharge::where('professional_id', $prof->id)
+                ->whereNotNull('treatment_plan_item_id')
+                ->whereBetween('created_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
                 ->count();
 
             $productionValue = (float) PatientCharge::where('professional_id', $prof->id)

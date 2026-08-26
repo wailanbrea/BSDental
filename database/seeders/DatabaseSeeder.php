@@ -712,6 +712,8 @@ class DatabaseSeeder extends Seeder
                 'source' => 'Instagram ADS',
                 'estimated_lifetime_value' => 50.00,
             ]);
+
+            $this->call(ClinicDemoShowcaseSeeder::class);
         });
 
         $this->command->info('¡Sembrado de BSDental completado con éxito!');

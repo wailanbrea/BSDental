@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3'
-import { Activity, Eraser, FlaskConical, Info, Save } from 'lucide-vue-next'
-import { watch } from 'vue'
+import { Activity, Eraser, Info, Save } from 'lucide-vue-next'
+import { computed, watch } from 'vue'
 import { appUrl } from '@/lib/url'
 
 interface Measurement {
@@ -30,6 +30,7 @@ function emptyMeasurements(): Measurement[] {
 }
 
 const form = useForm({ tooth_number: props.selectedTooth, measurements: emptyMeasurements() })
+const savedMeasurementCount = computed(() => props.exam?.measurements.filter((item) => item.tooth_number === props.selectedTooth).length ?? 0)
 
 function loadTooth(tooth: number) {
     form.tooth_number = tooth
@@ -38,19 +39,6 @@ function loadTooth(tooth: number) {
         return saved ? { ...blank, ...saved } : blank
     })
     form.clearErrors()
-}
-
-function loadEducationalExample() {
-    const example: Record<SiteKey, Pick<Measurement, 'probing_depth' | 'recession' | 'bleeding' | 'plaque' | 'suppuration' | 'mobility' | 'furcation'>> = {
-        mb: { probing_depth: 3, recession: 0, bleeding: false, plaque: false, suppuration: false, mobility: 0, furcation: 0 },
-        b: { probing_depth: 2, recession: 0, bleeding: false, plaque: false, suppuration: false, mobility: 0, furcation: 0 },
-        db: { probing_depth: 4, recession: 0, bleeding: true, plaque: true, suppuration: false, mobility: 0, furcation: 0 },
-        ml: { probing_depth: 3, recession: 0, bleeding: false, plaque: false, suppuration: false, mobility: 0, furcation: 0 },
-        l: { probing_depth: 3, recession: 1, bleeding: false, plaque: false, suppuration: false, mobility: 0, furcation: 0 },
-        dl: { probing_depth: 3, recession: 0, bleeding: false, plaque: false, suppuration: false, mobility: 0, furcation: 0 },
-    }
-
-    form.measurements = emptyMeasurements().map((measurement) => ({ ...measurement, ...example[measurement.site] }))
 }
 
 function clearMeasurements() {
@@ -66,11 +54,11 @@ function submit() { form.post(appUrl(`/patients/${props.patientId}/odontogram/pe
     <section class="border border-[#D8E0DE] bg-white shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
         <header class="flex flex-wrap items-center justify-between gap-3 border-b border-[#D8E0DE] bg-[#F7FAF9] px-4 py-3">
             <div><h2 class="flex items-center gap-2 text-sm font-bold"><Activity class="h-4 w-4 text-[#005C55]" />Periodontograma · pieza {{ selectedTooth }}</h2><p class="mt-0.5 text-xs text-[#64748B]">Sondaje de seis sitios. BOP = sangrado al sondaje.</p></div>
-            <div class="flex flex-wrap items-center gap-2"><button type="button" class="inline-flex h-8 items-center gap-1.5 border border-[#9AAEAA] bg-white px-3 text-[11px] font-bold text-[#344054] hover:bg-[#F2F4F7]" @click="loadEducationalExample"><FlaskConical class="h-3.5 w-3.5" />Cargar ejemplo</button><button type="button" class="inline-flex h-8 items-center gap-1.5 border border-[#D0D5DD] bg-white px-3 text-[11px] font-bold text-[#667085] hover:bg-[#F2F4F7]" @click="clearMeasurements"><Eraser class="h-3.5 w-3.5" />Limpiar</button><span class="border border-[#B7D9D4] bg-[#F1FAF8] px-2 py-1 text-[10px] font-bold uppercase text-[#006B63]">{{ exam ? 'Examen en curso' : 'Nuevo examen' }}</span></div>
+            <div class="flex flex-wrap items-center gap-2"><button type="button" class="inline-flex h-8 items-center gap-1.5 border border-[#D0D5DD] bg-white px-3 text-[11px] font-bold text-[#667085] hover:bg-[#F2F4F7]" @click="clearMeasurements"><Eraser class="h-3.5 w-3.5" />Limpiar</button><span class="border border-[#B7D9D4] bg-[#F1FAF8] px-2 py-1 text-[10px] font-bold uppercase text-[#006B63]">{{ savedMeasurementCount ? `${savedMeasurementCount} mediciones guardadas` : 'Sin mediciones guardadas' }}</span></div>
         </header>
         <div class="grid gap-3 border-b border-[#D8E0DE] bg-[#FFFCF5] px-4 py-3 text-[11px] text-[#52615E] lg:grid-cols-[1.4fr_1fr]">
             <p class="flex gap-2"><Info class="mt-0.5 h-4 w-4 shrink-0 text-[#B54708]" /><span><strong class="text-[#344054]">Cómo leerlo:</strong> el sondaje mide la profundidad entre encía y diente; 1-3 mm suele ser compatible con salud. Un valor de 4 mm o más, especialmente con BOP, placa o supuración, requiere valoración profesional.</span></p>
-            <p><strong class="text-[#344054]">Escalas:</strong> recesión = encía desplazada en mm; movilidad 0-3; furca 0-3. El ejemplo educativo muestra cinco sitios de 2-3 mm y uno de 4 mm con placa y sangrado. No se guarda hasta pulsar “Guardar sondaje”.</p>
+            <p><strong class="text-[#344054]">Escalas:</strong> recesión = encía desplazada en mm; movilidad 0-3; furca 0-3. Al seleccionar una pieza, sus mediciones guardadas se cargan automáticamente.</p>
         </div>
         <form class="overflow-x-auto" @submit.prevent="submit">
             <table class="w-full min-w-[780px] text-left text-xs">
