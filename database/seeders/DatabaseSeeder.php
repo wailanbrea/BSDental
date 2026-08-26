@@ -370,6 +370,8 @@ class DatabaseSeeder extends Seeder
                 'recorded_at' => Carbon::now(),
             ]);
 
+            $this->call(PeriodontalDemoSeeder::class);
+
             // Quote and Treatment Plan for Carlos Mendoza
             $quote = Quote::create([
                 'patient_id' => $p1->id,

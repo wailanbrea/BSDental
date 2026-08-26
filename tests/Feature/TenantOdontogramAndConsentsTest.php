@@ -7,11 +7,13 @@ use App\Core\Models\OdontogramEntry;
 use App\Core\Models\Patient;
 use App\Core\Models\PatientConsent;
 use App\Core\Models\PeriodontalExam;
+use App\Core\Models\PeriodontalMeasurement;
 use App\Core\Security\Models\TenantAuditLog;
 use App\Core\Services\ConsentSigningService;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
 use App\Platform\Tenancy\TenantContext;
+use Database\Seeders\PeriodontalDemoSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -335,4 +337,38 @@ test('[GATE ODO] Periodontal chart stores six-site measurements and caries risk'
         ->and($exam->measurements->firstWhere('site', 'mb')->bleeding)->toBeTrue()
         ->and($odontogram->caries_risk_level)->toBe('high')
         ->and($odontogram->caries_risk_factors)->toBe(['Caries activa reciente']);
+});
+
+test('[GATE ODO] Demo periodontal chart provides two teeth without overwriting saved measurements', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    Odontogram::create([
+        'patient_id' => $this->patient->id,
+        'type' => 'initial',
+        'notes' => 'Odontograma inicial de valoración',
+    ]);
+
+    app(PeriodontalDemoSeeder::class)->run();
+
+    $exam = PeriodontalExam::with('measurements')->firstOrFail();
+    expect($exam->measurements)->toHaveCount(12)
+        ->and($exam->measurements->where('tooth_number', 16))->toHaveCount(6)
+        ->and($exam->measurements->where('tooth_number', 21))->toHaveCount(6)
+        ->and($exam->measurements->firstWhere(fn ($item) => $item->tooth_number === 16 && $item->site === 'db')->probing_depth)->toBe(4)
+        ->and($exam->measurements->firstWhere(fn ($item) => $item->tooth_number === 16 && $item->site === 'db')->bleeding)->toBeTrue()
+        ->and($exam->measurements->firstWhere(fn ($item) => $item->tooth_number === 21 && $item->site === 'b')->recession)->toBe(1);
+
+    PeriodontalMeasurement::query()
+        ->where('periodontal_exam_id', $exam->id)
+        ->where('tooth_number', 16)
+        ->where('site', 'mb')
+        ->update(['probing_depth' => 7]);
+
+    app(PeriodontalDemoSeeder::class)->run();
+
+    expect(PeriodontalMeasurement::query()
+        ->where('periodontal_exam_id', $exam->id)
+        ->where('tooth_number', 16)
+        ->where('site', 'mb')
+        ->value('probing_depth'))->toBe(7)
+        ->and(PeriodontalMeasurement::count())->toBe(12);
 });
