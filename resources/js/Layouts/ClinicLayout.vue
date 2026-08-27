@@ -227,7 +227,7 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
         <!-- Main Wrapper -->
         <div class="flex-1 ml-0 md:ml-[260px] flex flex-col min-h-screen">
             <!-- TopNavBar Sticky (64px) -->
-            <header class="h-16 bg-white border-b border-[#E2E8F0] sticky top-0 z-40 px-4 sm:px-6 flex items-center justify-between shadow-xs">
+            <header :class="isNotificationsOpen ? 'z-[60]' : 'z-40'" class="h-16 bg-white border-b border-[#E2E8F0] sticky top-0 px-4 sm:px-6 flex items-center justify-between shadow-xs">
                 <!-- Mobile Menu Button & Search -->
                 <div class="flex items-center gap-4 flex-1">
                     <button 
@@ -288,13 +288,13 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                             <span v-if="notificationCenter.unread_count" class="absolute -right-1 -top-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-[#BA1A1A] px-1 text-[9px] font-bold text-white">{{ Math.min(notificationCenter.unread_count, 99) }}</span>
                         </button>
 
-                        <div v-if="isNotificationsOpen" class="absolute right-0 z-50 mt-2 w-[min(380px,calc(100vw-2rem))] overflow-hidden border border-[#D8E0DE] bg-white shadow-[0_4px_12px_rgba(15,23,42,0.08)]">
+                        <div v-if="isNotificationsOpen" class="fixed inset-x-4 top-16 z-50 max-h-[calc(100dvh-5rem)] overflow-hidden border border-[#D8E0DE] bg-white shadow-[0_12px_28px_rgba(15,23,42,0.16)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:max-h-none sm:w-[min(380px,calc(100vw-2rem))] sm:shadow-[0_4px_12px_rgba(15,23,42,0.08)]">
                             <div class="flex items-center justify-between border-b border-[#D8E0DE] bg-[#F1F5F9] px-4 py-3">
                                 <div><p class="text-sm font-bold text-[#131B2E]">Notificaciones</p><p class="text-[11px] text-[#667085]">{{ notificationCenter.unread_count }} pendientes</p></div>
                                 <button v-if="notificationCenter.unread_count" type="button" class="text-[11px] font-bold text-[#006B63] hover:underline" @click="markAllNotificationsRead">Marcar todas</button>
                             </div>
 
-                            <div v-if="notificationCenter.items.length" class="max-h-[420px] overflow-y-auto">
+                            <div v-if="notificationCenter.items.length" class="max-h-[calc(100dvh-11rem)] overflow-y-auto sm:max-h-[420px]">
                                 <button v-for="notification in notificationCenter.items" :key="notification.id" type="button" class="grid w-full grid-cols-[32px_1fr] gap-3 border-b border-[#E2E8F0] p-3 text-left last:border-0 hover:bg-[#F8FAFC]" :class="notification.read_at ? 'opacity-70' : 'bg-white'" @click="openNotification(notification)">
                                     <span class="grid h-8 w-8 place-items-center border" :class="notificationTone(notification.severity)"><AlertCircle v-if="notification.severity === 'critical' || notification.severity === 'warning'" class="h-4 w-4" /><CheckCircle2 v-else-if="notification.severity === 'success'" class="h-4 w-4" /><Bell v-else class="h-4 w-4" /></span>
                                     <span class="min-w-0"><span class="flex items-start gap-2"><strong class="flex-1 text-xs text-[#131B2E]">{{ notification.title }}</strong><span v-if="!notification.read_at" class="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#007D73]"></span></span><span class="mt-1 line-clamp-2 block text-[11px] leading-4 text-[#52615E]">{{ notification.message }}</span><span class="mt-1 block font-mono text-[10px] text-[#667085]">{{ formatNotificationDate(notification.created_at) }}</span></span>
