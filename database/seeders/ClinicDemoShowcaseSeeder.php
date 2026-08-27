@@ -10,6 +10,7 @@ use App\Core\Models\ClinicalEvolution;
 use App\Core\Models\ClinicalPrescription;
 use App\Core\Models\CrmStage;
 use App\Core\Models\DentalLaboratory;
+use App\Core\Models\Employee;
 use App\Core\Models\InventoryBatch;
 use App\Core\Models\InventoryCategory;
 use App\Core\Models\InventoryItem;
@@ -99,7 +100,67 @@ class ClinicDemoShowcaseSeeder extends Seeder
         }
 
         $this->seedReceivables($sofia, $elena, $doctor, $owner);
+        $this->seedPayroll($doctor, $periodontist);
         $this->seedOperations($carlos, $elena, $doctor, $owner);
+    }
+
+    private function seedPayroll(Professional $doctor, Professional $periodontist): void
+    {
+        Employee::updateOrCreate(
+            ['professional_id' => $doctor->id],
+            [
+                'employee_number' => 'EMP-DOC-001',
+                'full_name' => $doctor->full_name,
+                'position' => 'Odontólogo rehabilitador',
+                'compensation_type' => 'commission',
+                'monthly_salary' => 0,
+                'commission_rate' => 35,
+                'hire_date' => now()->subYears(2)->startOfYear(),
+                'status' => 'active',
+            ],
+        );
+
+        Employee::updateOrCreate(
+            ['professional_id' => $periodontist->id],
+            [
+                'employee_number' => 'EMP-DOC-002',
+                'full_name' => $periodontist->full_name,
+                'position' => 'Periodoncista',
+                'compensation_type' => 'commission',
+                'monthly_salary' => 0,
+                'commission_rate' => 40,
+                'hire_date' => now()->subYear()->startOfYear(),
+                'status' => 'active',
+            ],
+        );
+
+        Employee::updateOrCreate(
+            ['employee_number' => 'EMP-FIX-001'],
+            [
+                'professional_id' => null,
+                'full_name' => 'Laura Salazar',
+                'position' => 'Recepcionista',
+                'compensation_type' => 'fixed_salary',
+                'monthly_salary' => 32000,
+                'commission_rate' => 0,
+                'hire_date' => now()->subYears(2)->startOfYear(),
+                'status' => 'active',
+            ],
+        );
+
+        Employee::updateOrCreate(
+            ['employee_number' => 'EMP-FIX-002'],
+            [
+                'professional_id' => null,
+                'full_name' => 'Marcos Peña',
+                'position' => 'Caja y cobranzas',
+                'compensation_type' => 'fixed_salary',
+                'monthly_salary' => 35000,
+                'commission_rate' => 0,
+                'hire_date' => now()->subYear()->startOfYear(),
+                'status' => 'active',
+            ],
+        );
     }
 
     private function seedReceivables(Patient $sofia, Patient $elena, Professional $doctor, User $owner): void

@@ -3,7 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3'
 import { appUrl } from '@/lib/url'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 import OdontogramChart from '@/Components/Odontogram/OdontogramChart.vue'
-import { Activity, AlertTriangle, Calendar, CheckCircle2, ClipboardList, CreditCard, DollarSign, Download, Eye, FileHeart, FileText, FolderOpen, HeartPulse, Mail, Pencil, Phone, Plus, ReceiptText, ShieldAlert, Stethoscope, Upload } from 'lucide-vue-next'
+import { Activity, AlertTriangle, Calendar, Camera, CheckCircle2, ClipboardList, CreditCard, DollarSign, Download, Eye, FileHeart, FileText, FolderOpen, HeartPulse, Mail, Pencil, Phone, Plus, ReceiptText, ShieldAlert, Stethoscope, Upload } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 interface Professional { full_name: string }
@@ -23,13 +23,14 @@ interface PatientDetails {
     age: number | null; gender: string | null; phone: string | null; email: string | null; address: string | null; blood_type: string | null; status: string
     emergency_contact_name: string | null; emergency_contact_phone: string | null
     medical_history: { allergies: string[] | null; systemic_conditions: string[] | null; current_medications: string[] | null; is_pregnant: boolean; has_pacemaker: boolean; bleeding_disorders: boolean; medical_notes: string | null } | null
-    files: PatientFile[]; appointments: Appointment[]; clinical_encounters: Encounter[]; treatment_plans: TreatmentPlan[]; quotes: Quote[]; charges: Charge[]; payments: Payment[]; consents: Consent[]
+    files: PatientFile[]; profile_photo: PatientFile | null; appointments: Appointment[]; clinical_encounters: Encounter[]; treatment_plans: TreatmentPlan[]; quotes: Quote[]; charges: Charge[]; payments: Payment[]; consents: Consent[]
     odontograms: Array<{ id: string; type: string; entries: OdontogramEntry[] }>
 }
 
 const props = defineProps<{ patient: PatientDetails; summary: { balance_due: number; next_appointment: Appointment | null; active_treatment_plan: TreatmentPlan | null; latest_encounter: Encounter | null } }>()
 const activeTab = ref<'summary' | 'history' | 'odontogram' | 'appointments' | 'treatments' | 'quotes' | 'payments' | 'files'>('summary')
 const fileForm = useForm({ file: null as File | null, category: 'document', tooth_number: null as number | null, notes: '' })
+const profilePhotoForm = useForm({ file: null as File | null, category: 'profile_photo' })
 const tabs = [
     { id: 'summary', label: 'Resumen', icon: Activity }, { id: 'history', label: 'Historia clínica', icon: FileHeart }, { id: 'odontogram', label: 'Odontograma', icon: Stethoscope },
     { id: 'appointments', label: 'Citas', icon: Calendar }, { id: 'treatments', label: 'Tratamientos', icon: ClipboardList }, { id: 'quotes', label: 'Presupuestos', icon: ReceiptText },
@@ -59,6 +60,19 @@ function toothEntry(tooth: number) { return latestOdontogram.value?.entries.find
 function toothClass(tooth: number) { const condition = toothEntry(tooth)?.condition; if (condition === 'caries') return 'border-[#D92D20] bg-[#FEE4E2] text-[#912018]'; if (condition === 'restoration' || condition === 'resin') return 'border-[#2458C6] bg-[#DDE7FF] text-[#163F91]'; if (condition === 'crown') return 'border-[#7A5AF8] bg-[#EEEAFF] text-[#5925DC]'; if (condition === 'implant') return 'border-[#007D73] bg-[#D8ECE9] text-[#005C55]'; if (condition === 'missing') return 'border-[#98A2B3] bg-[#EAECF0] text-[#667085] line-through'; return 'border-[#BDC9C6] bg-white text-[#455653]' }
 function handleFile(event: Event) { const input = event.target as HTMLInputElement; fileForm.file = input.files?.[0] || null }
 function uploadFile() { if (!fileForm.file) return; fileForm.post(appUrl(`/patients/${props.patient.id}/files`), { forceFormData: true, onSuccess: () => fileForm.reset() }) }
+function uploadProfilePhoto(event: Event) {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
+    if (!file) return
+
+    profilePhotoForm.file = file
+    profilePhotoForm.post(appUrl(`/patients/${props.patient.id}/files`), {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => profilePhotoForm.reset(),
+    })
+    input.value = ''
+}
 </script>
 
 <template>
@@ -68,7 +82,17 @@ function uploadFile() { if (!fileForm.file) return; fileForm.post(appUrl(`/patie
             <section class="border-b border-[#BDC9C6] bg-[#FAF8FF] px-6 py-5 lg:px-8">
                 <div class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                     <div class="flex items-start gap-4">
-                        <div class="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-[#2458C6] text-xl font-bold text-white">{{ patient.first_name[0] }}{{ patient.last_name[0] }}</div>
+                        <div class="w-20 shrink-0">
+                            <div class="grid h-20 w-20 place-items-center overflow-hidden rounded-lg border border-[#B7C8C4] bg-[#2458C6] text-xl font-bold text-white">
+                                <img v-if="patient.profile_photo" :src="appUrl(`/patient-files/${patient.profile_photo.id}/view`)" :alt="`Foto de ${patient.full_name}`" class="h-full w-full object-cover" />
+                                <span v-else>{{ patient.first_name[0] }}{{ patient.last_name[0] }}</span>
+                            </div>
+                            <label class="mt-2 flex cursor-pointer items-center justify-center gap-1 text-[11px] font-bold text-[#006B63] hover:underline">
+                                <Camera class="h-3.5 w-3.5" />{{ profilePhotoForm.processing ? 'Subiendo…' : patient.profile_photo ? 'Cambiar foto' : 'Agregar foto' }}
+                                <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" :disabled="profilePhotoForm.processing" @change="uploadProfilePhoto" />
+                            </label>
+                            <p v-if="profilePhotoForm.errors.file" class="mt-1 text-center text-[10px] leading-3 text-[#B42318]">{{ profilePhotoForm.errors.file }}</p>
+                        </div>
                         <div><div class="flex flex-wrap items-center gap-2"><h1 class="text-2xl font-bold text-[#131B2E]">{{ patient.full_name }}</h1><span class="bg-[#D8ECE9] px-2 py-1 text-xs font-bold text-[#006B63]">● Activo</span></div><div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#52615E]"><span class="font-mono"># {{ patient.record_number }}</span><span>• {{ patient.age ? `${patient.age} años` : 'Edad no registrada' }}</span><span v-if="patient.phone" class="inline-flex items-center gap-1"><Phone class="h-3.5 w-3.5" /> {{ patient.phone }}</span><span v-if="patient.email" class="inline-flex items-center gap-1"><Mail class="h-3.5 w-3.5" /> {{ patient.email }}</span></div></div>
                     </div>
                     <div class="flex flex-wrap gap-2"><Link :href="`/appointments?create=1&patient_id=${patient.id}`" class="inline-flex h-10 items-center gap-2 bg-[#005C55] px-4 text-sm font-semibold text-white"><Calendar class="h-4 w-4" /> Agendar cita</Link><Link :href="`/patients/${patient.id}/encounters/create`" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><FileHeart class="h-4 w-4" /> Nueva evolución</Link><Link :href="`/patients/${patient.id}/quotes/create`" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><FileText class="h-4 w-4" /> Presupuesto</Link><Link :href="`/patients/${patient.id}/billing`" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><DollarSign class="h-4 w-4" /> Cobro</Link><Link :href="`/patients/${patient.id}/edit`" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-3 text-sm font-semibold text-[#344054]" aria-label="Editar paciente"><Pencil class="h-4 w-4" /> Editar</Link></div>

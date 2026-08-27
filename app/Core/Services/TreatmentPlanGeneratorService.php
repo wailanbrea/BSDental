@@ -2,6 +2,7 @@
 
 namespace App\Core\Services;
 
+use App\Core\Models\Professional;
 use App\Core\Models\Quote;
 use App\Core\Models\TreatmentPlan;
 use App\Core\Models\TreatmentPlanItem;
@@ -10,6 +11,10 @@ use InvalidArgumentException;
 
 class TreatmentPlanGeneratorService
 {
+    public function __construct(
+        protected PayrollService $payrollService,
+    ) {}
+
     /**
      * Convert an approved quote into an active treatment plan.
      */
@@ -63,24 +68,35 @@ class TreatmentPlanGeneratorService
     public function completeItem(
         TreatmentPlanItem $item,
         string $userId,
-        ?string $encounterId = null
+        ?string $encounterId = null,
+        ?Professional $professional = null,
     ): TreatmentPlanItem {
         if ($item->status === 'completed') {
             return $item; // Idempotent
         }
 
-        DB::connection('tenant')->transaction(function () use ($item, $userId, $encounterId) {
-            $item->update([
+        DB::connection('tenant')->transaction(function () use ($item, $userId, $encounterId, $professional) {
+            $lockedItem = TreatmentPlanItem::whereKey($item->id)->lockForUpdate()->firstOrFail();
+            if ($lockedItem->status === 'completed') {
+                return;
+            }
+
+            $lockedItem->update([
                 'status' => 'completed',
                 'encounter_id' => $encounterId,
+                'professional_id' => $professional?->id,
                 'completed_at' => now(),
                 'completed_by_user_id' => $userId,
             ]);
 
-            $this->recalculateProgress($item->treatmentPlan);
+            if ($professional !== null) {
+                $this->payrollService->accrueProcedureCommission($lockedItem->fresh(), $professional);
+            }
+
+            $this->recalculateProgress($lockedItem->treatmentPlan);
         });
 
-        return $item;
+        return $item->refresh();
     }
 
     /**

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -115,5 +116,10 @@ class Professional extends Model
     public function specialties(): BelongsToMany
     {
         return $this->belongsToMany(Specialty::class, 'professional_specialty');
+    }
+
+    public function employee(): HasOne
+    {
+        return $this->hasOne(Employee::class);
     }
 }

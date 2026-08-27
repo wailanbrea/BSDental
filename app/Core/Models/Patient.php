@@ -45,6 +45,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property-read string $full_name
  * @property-read int|null $age
  * @property PatientMedicalHistory|null $medicalHistory
+ * @property PatientFile|null $profilePhoto
  * @property Collection<int, PatientFile> $files
  * @property Collection<int, Appointment> $appointments
  * @property Collection<int, ClinicalEncounter> $clinicalEncounters
@@ -169,6 +170,14 @@ class Patient extends Model
     public function files(): HasMany
     {
         return $this->hasMany(PatientFile::class, 'patient_id');
+    }
+
+    /** @return HasOne<PatientFile, $this> */
+    public function profilePhoto(): HasOne
+    {
+        return $this->hasOne(PatientFile::class, 'patient_id')
+            ->where('category', 'profile_photo')
+            ->latestOfMany();
     }
 
     /** @return HasMany<Appointment, $this> */

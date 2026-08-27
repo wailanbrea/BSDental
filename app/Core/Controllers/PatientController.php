@@ -256,6 +256,7 @@ class PatientController extends Controller
     {
         $patient = Patient::with([
             'medicalHistory',
+            'profilePhoto',
             'files.uploader',
             'appointments' => fn ($q) => $q->with(['professional', 'appointmentType', 'room'])->latest('start_time'),
             'clinicalEncounters' => fn ($q) => $q
@@ -398,10 +399,13 @@ class PatientController extends Controller
     public function uploadFile(Request $request, string $id): RedirectResponse
     {
         $patient = Patient::findOrFail($id);
+        $isProfilePhoto = $request->input('category') === 'profile_photo';
 
         $validated = $request->validate([
-            'file' => ['required', 'file', 'max:20480'], // max 20MB
-            'category' => ['required', 'string', 'in:radiography,lab_result,document,consent,photo'],
+            'file' => $isProfilePhoto
+                ? ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120']
+                : ['required', 'file', 'max:20480'],
+            'category' => ['required', 'string', 'in:radiography,lab_result,document,consent,photo,profile_photo'],
             'notes' => ['nullable', 'string', 'max:500'],
             'tooth_number' => ['nullable', 'integer', Rule::in($this->validFdiToothNumbers())],
             'odontogram_entry_id' => ['nullable', 'uuid', 'exists:tenant.odontogram_entries,id'],
@@ -419,7 +423,11 @@ class PatientController extends Controller
             return redirect()->back()->withErrors(['file' => 'Archivo no proporcionado']);
         }
 
-        $stored = $this->uploadService->store($file, $request->input('category', 'documents'));
+        $stored = $this->uploadService->store(
+            $file,
+            $request->input('category', 'documents'),
+            $isProfilePhoto ? 5 * 1024 * 1024 : null,
+        );
 
         $patient->files()->create([
             'category' => $request->input('category'),
@@ -441,7 +449,10 @@ class PatientController extends Controller
             'category' => $request->input('category'),
         ]);
 
-        return redirect()->back()->with('success', 'Archivo clínico subido y adjuntado con éxito.');
+        return redirect()->back()->with(
+            'success',
+            $isProfilePhoto ? 'Foto de perfil actualizada.' : 'Archivo clínico subido y adjuntado con éxito.',
+        );
     }
 
     /** Display a private clinical file inline when the browser supports its MIME type. */

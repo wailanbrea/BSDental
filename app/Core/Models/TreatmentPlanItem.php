@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property string $id
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $status
  * @property string|null $appointment_id
  * @property string|null $encounter_id
+ * @property string|null $professional_id
  * @property Carbon|null $completed_at
  * @property string|null $completed_by_user_id
  * @property Carbon|null $created_at
@@ -61,6 +63,7 @@ class TreatmentPlanItem extends Model
         'status',
         'appointment_id',
         'encounter_id',
+        'professional_id',
         'completed_at',
         'completed_by_user_id',
     ];
@@ -118,5 +121,15 @@ class TreatmentPlanItem extends Model
     public function encounter(): BelongsTo
     {
         return $this->belongsTo(ClinicalEncounter::class, 'encounter_id');
+    }
+
+    public function professional(): BelongsTo
+    {
+        return $this->belongsTo(Professional::class, 'professional_id');
+    }
+
+    public function compensation(): HasOne
+    {
+        return $this->hasOne(ProfessionalCompensation::class, 'treatment_plan_item_id');
     }
 }

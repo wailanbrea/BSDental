@@ -35,6 +35,7 @@ class ProfessionalCompensation extends Model
         'id',
         'professional_id',
         'patient_charge_id',
+        'treatment_plan_item_id',
         'rule_type',
         'rate',
         'base_amount',
@@ -73,5 +74,10 @@ class ProfessionalCompensation extends Model
     public function charge(): BelongsTo
     {
         return $this->belongsTo(PatientCharge::class, 'patient_charge_id');
+    }
+
+    public function treatmentPlanItem(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentPlanItem::class, 'treatment_plan_item_id');
     }
 }

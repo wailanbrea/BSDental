@@ -20,6 +20,7 @@ use App\Core\Controllers\InventoryController;
 use App\Core\Controllers\NotificationCenterController;
 use App\Core\Controllers\OdontogramController;
 use App\Core\Controllers\PatientController;
+use App\Core\Controllers\PayrollController;
 use App\Core\Controllers\ProcedureCatalogController;
 use App\Core\Controllers\ProfessionalController;
 use App\Core\Controllers\QuoteController;
@@ -207,6 +208,13 @@ Route::group([], function () {
             Route::post('/payments/{paymentId}/allocate', [BillingController::class, 'allocate'])->middleware('permission:payments.create')->name('clinic.billing.allocate');
             Route::post('/payments/{paymentId}/refund', [BillingController::class, 'refund'])->middleware('permission:payments.refund')->name('clinic.billing.refund');
             Route::get('/billing/aging-receivables', [BillingController::class, 'agingReport'])->middleware('permission:finance.reports')->name('clinic.billing.aging');
+
+            // Payroll & Professional Commissions
+            Route::get('/payroll', [PayrollController::class, 'index'])->middleware('permission:finance.reports')->name('clinic.payroll.index');
+            Route::post('/payroll/employees', [PayrollController::class, 'storeEmployee'])->middleware('permission:finance.reports')->name('clinic.payroll.employees.store');
+            Route::put('/payroll/employees/{employee}', [PayrollController::class, 'updateEmployee'])->middleware('permission:finance.reports')->name('clinic.payroll.employees.update');
+            Route::post('/payroll/runs', [PayrollController::class, 'storeRun'])->middleware('permission:finance.reports')->name('clinic.payroll.runs.store');
+            Route::post('/payroll/runs/{run}/pay', [PayrollController::class, 'payRun'])->middleware('permission:finance.reports')->name('clinic.payroll.runs.pay');
 
             // Cash Registers & Sessions
             Route::get('/cash-registers', [CashRegisterController::class, 'index'])->middleware('permission:cash.view')->name('clinic.cash.index');

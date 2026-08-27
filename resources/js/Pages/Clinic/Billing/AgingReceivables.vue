@@ -231,7 +231,7 @@ function triggerPrint() {
                             <tr v-for="c in report.buckets[activeBucketKey].charges" :key="c.id" class="hover:bg-[#F8FAFC] transition-colors h-11">
                                 <td class="px-4 py-2 font-mono font-bold text-[#131B2E]">{{ c.charge_number }}</td>
                                 <td class="px-4 py-2 font-medium text-[#131B2E]">
-                                    <Link :href="`/patients/${c.patient_id}`" class="hover:text-[#005C55] hover:underline">
+                                    <Link :href="appUrl(`/patients/${c.patient_id}`)" class="hover:text-[#005C55] hover:underline">
                                         {{ c.patient_name }}
                                     </Link>
                                     <span class="text-[10px] text-[#505F76] block font-mono">{{ c.patient_record }}</span>
@@ -247,7 +247,7 @@ function triggerPrint() {
                                 <td class="px-4 py-2 text-right font-data-tabular font-bold text-[#BA1A1A]">{{ formatMoney(c.balance_due) }}</td>
                                 <td class="px-4 py-2 text-center print:hidden">
                                     <Link 
-                                        :href="`/patients/${c.patient_id}/billing`"
+                                        :href="appUrl(`/patients/${c.patient_id}/billing`)"
                                         class="px-2.5 py-1 text-xs font-semibold text-[#005C55] bg-[#A3FAEF]/30 hover:bg-[#A3FAEF]/60 rounded-md transition"
                                     >
                                         Cobrar / Ver Ficha

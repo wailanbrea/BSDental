@@ -1,12 +1,17 @@
 <?php
 
 use App\Core\Auth\Models\User;
+use App\Core\Models\Employee;
 use App\Core\Models\Patient;
 use App\Core\Models\PatientMedicalHistory;
+use App\Core\Models\PayrollRun;
 use App\Core\Models\Procedure;
 use App\Core\Models\ProcedureCategory;
+use App\Core\Models\Professional;
+use App\Core\Models\ProfessionalCompensation;
 use App\Core\Models\Quote;
 use App\Core\Models\TreatmentPlan;
+use App\Core\Models\TreatmentPlanItem;
 use App\Core\Security\Models\TenantAuditLog;
 use App\Core\Services\TreatmentPlanGeneratorService;
 use App\Platform\Tenancy\Models\Tenant;
@@ -60,6 +65,15 @@ beforeEach(function () {
             'status' => 'active',
         ]);
         grantTenantOwnerAccess($this->user);
+
+        $this->professional = Professional::create([
+            'user_id' => $this->user->id,
+            'first_name' => 'Fernando',
+            'last_name' => 'Arancel',
+            'license_number' => 'ODO-TEST-01',
+            'color' => '#0d9488',
+            'is_active' => true,
+        ]);
 
         $this->patient = Patient::create([
             'record_number' => 'HC-00001',
@@ -178,7 +192,9 @@ test('[GATE QUO] Full lifecycle: procedure catalog, quote calculation, approval 
 
     // 5. Execute 1st Treatment Item (Resina Pz 16)
     $item1 = $plan->items()->where('tooth_number', 16)->firstOrFail();
-    $completeResponse = $this->post("http://presupuestos.bsdental.test/treatment-items/{$item1->id}/complete");
+    $completeResponse = $this->post("http://presupuestos.bsdental.test/treatment-items/{$item1->id}/complete", [
+        'professional_id' => $this->professional->id,
+    ]);
     $completeResponse->assertRedirect();
 
     $context->makeCurrent($this->tenant);
@@ -192,7 +208,9 @@ test('[GATE QUO] Full lifecycle: procedure catalog, quote calculation, approval 
 
     // 6. Execute 2nd Treatment Item (Profilaxis) -> Reaches 100%
     $item2 = $plan->items()->whereNull('tooth_number')->firstOrFail();
-    $completeResponse2 = $this->post("http://presupuestos.bsdental.test/treatment-items/{$item2->id}/complete");
+    $completeResponse2 = $this->post("http://presupuestos.bsdental.test/treatment-items/{$item2->id}/complete", [
+        'professional_id' => $this->professional->id,
+    ]);
     $completeResponse2->assertRedirect();
 
     $context->makeCurrent($this->tenant);
@@ -208,6 +226,84 @@ test('[GATE QUO] Full lifecycle: procedure catalog, quote calculation, approval 
     expect(TenantAuditLog::where('action', 'quote.created')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'quote.approved')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'treatment_item.completed')->exists())->toBeTrue();
+});
+
+test('[FIN PAY] Monthly payroll combines fixed salaries with idempotent production commissions', function () {
+    $context = app(TenantContext::class);
+    $context->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $this->post('http://presupuestos.bsdental.test/payroll/employees', [
+        'full_name' => 'Laura Recepción',
+        'position' => 'Recepcionista',
+        'compensation_type' => 'fixed_salary',
+        'monthly_salary' => 30000,
+    ])->assertRedirect()->assertSessionHas('success', 'Empleado agregado a nómina.');
+    $context->makeCurrent($this->tenant);
+
+    $this->post('http://presupuestos.bsdental.test/payroll/employees', [
+        'professional_id' => $this->professional->id,
+        'full_name' => $this->professional->full_name,
+        'position' => 'Odontólogo',
+        'compensation_type' => 'commission',
+        'commission_rate' => 30,
+    ])->assertRedirect()->assertSessionHas('success', 'Empleado agregado a nómina.');
+    $context->makeCurrent($this->tenant);
+    expect(Employee::where('status', 'active')->count())->toBe(2);
+
+    $plan = TreatmentPlan::create([
+        'patient_id' => $this->patient->id,
+        'title' => 'Plan para nómina',
+        'status' => 'active',
+        'total_estimated' => 1000,
+        'total_performed' => 0,
+        'progress_percentage' => 0,
+    ]);
+    $item = TreatmentPlanItem::create([
+        'treatment_plan_id' => $plan->id,
+        'procedure_id' => $this->procResina->id,
+        'price' => 1000,
+        'status' => 'pending',
+    ]);
+
+    app(TreatmentPlanGeneratorService::class)->completeItem(
+        $item,
+        (string) $this->user->id,
+        null,
+        $this->professional,
+    );
+
+    $compensation = ProfessionalCompensation::where('treatment_plan_item_id', $item->id)->firstOrFail();
+    expect($compensation->base_amount)->toBe(1000.0)
+        ->and($compensation->rate)->toBe(30.0)
+        ->and($compensation->commission_amount)->toBe(300.0);
+
+    $this->get('http://presupuestos.bsdental.test/payroll')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Clinic/Payroll/Index')
+            ->where('summary.active_employees', 2));
+
+    $month = now()->format('Y-m');
+    $this->post('http://presupuestos.bsdental.test/payroll/runs', ['month' => $month])->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $run = PayrollRun::with('items.lines')->firstOrFail();
+    expect($run->fixed_salary_total)->toBe(30000.0)
+        ->and($run->commission_total)->toBe(300.0)
+        ->and($run->net_total)->toBe(30300.0)
+        ->and($compensation->fresh()->status)->toBe('settled');
+
+    $this->post("http://presupuestos.bsdental.test/payroll/runs/{$run->id}/pay")->assertRedirect();
+    $context->makeCurrent($this->tenant);
+    expect($run->fresh()->status)->toBe('paid')
+        ->and($compensation->fresh()->status)->toBe('paid');
+
+    $this->post('http://presupuestos.bsdental.test/payroll/runs', ['month' => $month])
+        ->assertSessionHasErrors('month');
+    $context->makeCurrent($this->tenant);
+    expect(PayrollRun::count())->toBe(1)
+        ->and(ProfessionalCompensation::where('treatment_plan_item_id', $item->id)->count())->toBe(1);
 });
 
 test('[GATE QUO] Quote items only accept valid permanent and primary FDI tooth numbers', function () {

@@ -204,7 +204,39 @@ test('[GATE PAT] Comprehensive patient lifecycle: creation, anamnesis, duplicate
     expect(TenantAuditLog::where('action', 'patient.file_viewed')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'patient.file_downloaded')->exists())->toBeTrue();
 
-    // 7. Soft Delete with Audit Log
+    // 7. Add a private profile photo and expose only its safe metadata.
+    $profilePhotoResponse = $this->post("http://pacientes.bsdental.test/patients/{$patient->id}/files", [
+        'category' => 'profile_photo',
+        'file' => UploadedFile::fake()->image('perfil.png', 400, 400),
+    ]);
+    $profilePhotoResponse->assertRedirect()->assertSessionHas('success', 'Foto de perfil actualizada.');
+
+    $context->makeCurrent($this->tenant);
+    $profilePhoto = $patient->profilePhoto()->firstOrFail();
+    expect($profilePhoto->category)->toBe('profile_photo')
+        ->and($profilePhoto->mime_type)->toBe('image/png');
+
+    $this->post("http://pacientes.bsdental.test/patients/{$patient->id}/files", [
+        'category' => 'profile_photo',
+        'file' => UploadedFile::fake()->image('perfil-actualizado.jpg', 500, 500),
+    ])->assertRedirect();
+
+    $context->makeCurrent($this->tenant);
+    $profilePhoto = $patient->profilePhoto()->firstOrFail();
+    expect($profilePhoto->original_name)->toBe('perfil-actualizado.jpg');
+
+    $this->get("http://pacientes.bsdental.test/patients/{$patient->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('patient.profile_photo.id', $profilePhoto->id)
+            ->missing('patient.profile_photo.filename')
+            ->missing('patient.profile_photo.stored_path'));
+
+    $this->post("http://pacientes.bsdental.test/patients/{$patient->id}/files", [
+        'category' => 'profile_photo',
+        'file' => UploadedFile::fake()->create('perfil.pdf', 100, 'application/pdf'),
+    ])->assertSessionHasErrors('file');
+
+    // 8. Soft Delete with Audit Log
     $deleteResponse = $this->delete("http://pacientes.bsdental.test/patients/{$patient->id}");
     $deleteResponse->assertRedirect('http://pacientes.bsdental.test/patients');
 

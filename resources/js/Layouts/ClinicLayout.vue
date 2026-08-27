@@ -25,6 +25,8 @@ import {
     ShieldCheck,
     ReceiptText,
     FlaskConical,
+    Landmark,
+    Wallet,
 } from 'lucide-vue-next'
 
 interface LayoutNotification {
@@ -94,6 +96,8 @@ const navItems = computed(() => [
     { name: 'Clínica', href: '/encounters', icon: Stethoscope, pattern: /^\/(encounters|odontogram)/, permissions: ['clinical.view', 'odontogram.view'] },
     { name: 'Presupuestos', href: '/quotes', icon: Briefcase, pattern: /^\/(quotes|treatment-plans)/, permissions: ['quotes.view'] },
     { name: 'Facturación', href: '/cash-registers', icon: ReceiptText, pattern: /^\/(cash-registers|charges|payments)/, permissions: ['cash.view', 'payments.view', 'finance.view'] },
+    { name: 'Cuentas por cobrar', href: '/billing/aging-receivables', icon: Wallet, pattern: /^\/billing\/aging-receivables/, permissions: ['finance.reports'] },
+    { name: 'Nómina', href: '/payroll', icon: Landmark, pattern: /^\/payroll/, permissions: ['finance.reports'] },
     { name: 'Inventario', href: '/inventory', icon: Package, pattern: /^\/inventory/, permissions: ['inventory.view'] },
     { name: 'Laboratorio', href: '/lab', icon: FlaskConical, pattern: /^\/lab/, permissions: ['lab.view'] },
     { name: 'CRM', href: '/crm', icon: Megaphone, pattern: /^\/crm/, permissions: ['crm.view'] },

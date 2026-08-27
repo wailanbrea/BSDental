@@ -3,6 +3,7 @@
 namespace App\Core\Controllers;
 
 use App\Core\Models\Patient;
+use App\Core\Models\Professional;
 use App\Core\Models\TreatmentPlan;
 use App\Core\Models\TreatmentPlanItem;
 use App\Core\Services\TreatmentPlanGeneratorService;
@@ -43,10 +44,11 @@ class TreatmentPlanController extends Controller
      */
     public function show(string $id): Response
     {
-        $plan = TreatmentPlan::with(['patient', 'quote', 'items.procedure', 'items.appointment'])->findOrFail($id);
+        $plan = TreatmentPlan::with(['patient', 'quote', 'items.procedure', 'items.appointment', 'items.professional'])->findOrFail($id);
 
         return Inertia::render('Clinic/TreatmentPlans/Show', [
             'plan' => $plan,
+            'professionals' => Professional::where('is_active', true)->orderBy('first_name')->orderBy('last_name')->get(),
         ]);
     }
 
@@ -55,14 +57,19 @@ class TreatmentPlanController extends Controller
      */
     public function completeItem(Request $request, string $itemId): RedirectResponse
     {
+        $validated = $request->validate([
+            'professional_id' => ['required', 'uuid', 'exists:tenant.professionals,id'],
+        ]);
         $item = TreatmentPlanItem::with('treatmentPlan')->findOrFail($itemId);
+        $professional = Professional::where('is_active', true)->findOrFail($validated['professional_id']);
         $userId = (string) Auth::guard('web')->id();
 
-        $completed = $this->planService->completeItem($item, $userId);
+        $completed = $this->planService->completeItem($item, $userId, null, $professional);
 
         $this->auditLogger->logTenant('treatment_item.completed', 'TreatmentPlanItem', $completed->id, [
             'plan_id' => $completed->treatment_plan_id,
             'procedure_id' => $completed->procedure_id,
+            'professional_id' => $professional->id,
         ]);
 
         return redirect()->back()->with('success', 'Procedimiento marcado como realizado.');

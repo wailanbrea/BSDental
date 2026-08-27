@@ -8,10 +8,11 @@ import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 interface PatientDetails { id: string; record_number: string; full_name: string }
 interface ProcedureDetails { id: string; name: string; code?: string | null }
 interface AppointmentSummary { id: string; starts_at?: string; status?: string }
+interface ProfessionalSummary { id: string; full_name: string }
 interface PlanItemDetails {
     id: string; phase: number; tooth_number: number | null; surface: string; price: number
     status: 'pending' | 'scheduled' | 'in_progress' | 'completed'; completed_at: string | null
-    procedure: ProcedureDetails; appointment?: AppointmentSummary | null
+    procedure: ProcedureDetails; appointment?: AppointmentSummary | null; professional?: ProfessionalSummary | null
 }
 interface QuoteSummary { id: string; quote_number: string; alternative_name: string; grand_total: number }
 interface PlanDetails {
@@ -20,8 +21,8 @@ interface PlanDetails {
     patient: PatientDetails; quote?: QuoteSummary | null; items: PlanItemDetails[]
 }
 
-const props = defineProps<{ plan: PlanDetails }>()
-const actionForm = useForm({})
+const props = defineProps<{ plan: PlanDetails; professionals: ProfessionalSummary[] }>()
+const actionForm = useForm({ professional_id: props.professionals.length === 1 ? props.professionals[0].id : '' })
 const money = (value: number) => new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(value || 0)
 const completedCount = computed(() => props.plan.items.filter(item => item.status === 'completed').length)
 const displayProgress = computed(() => props.plan.items.length ? Math.round((completedCount.value / props.plan.items.length) * 100) : 0)
@@ -31,6 +32,11 @@ const itemStatus = (status: PlanItemDetails['status']) => ({ pending: 'Pendiente
 const date = (value: string | null) => value ? new Intl.DateTimeFormat('es-DO', { dateStyle: 'medium' }).format(new Date(value)) : ''
 
 function completeItem(item: PlanItemDetails) {
+    if (!actionForm.professional_id) {
+        window.alert('Selecciona el doctor que realizó el procedimiento.')
+        return
+    }
+
     if (window.confirm(`¿Marcar “${item.procedure.name}” como realizado? Esta acción actualizará el avance clínico.`)) {
         actionForm.post(appUrl(`/treatment-items/${item.id}/complete`), { preserveScroll: true })
     }
@@ -58,14 +64,14 @@ function completeItem(item: PlanItemDetails) {
             </section>
 
             <section class="border border-[#BDC9C6] bg-white">
-                <div class="border-b border-[#D8E0DE] p-5"><h2 class="flex items-center gap-2 font-semibold text-[#131B2E]"><ClipboardList class="h-5 w-5 text-[#006B63]" /> Secuencia de procedimientos</h2><p class="mt-1 text-sm text-[#667085]">Completa cada prestación cuando exista evidencia clínica de su realización.</p></div>
+                <div class="flex flex-col justify-between gap-3 border-b border-[#D8E0DE] p-5 md:flex-row md:items-end"><div><h2 class="flex items-center gap-2 font-semibold text-[#131B2E]"><ClipboardList class="h-5 w-5 text-[#006B63]" /> Secuencia de procedimientos</h2><p class="mt-1 text-sm text-[#667085]">Completa cada prestación cuando exista evidencia clínica de su realización.</p></div><label class="text-xs font-bold text-[#455653]">Doctor que realizó el procedimiento<select v-model="actionForm.professional_id" class="mt-1 block h-10 min-w-64 border border-[#9AAEAA] bg-white px-3 text-sm font-normal"><option value="">Seleccionar doctor</option><option v-for="professional in professionals" :key="professional.id" :value="professional.id">{{ professional.full_name }}</option></select></label></div>
                 <div class="divide-y divide-[#E2E8F0]">
                     <article v-for="item in plan.items" :key="item.id" class="flex flex-col justify-between gap-4 p-4 md:flex-row md:items-center md:p-5">
                         <div class="flex min-w-0 items-start gap-3">
                             <div class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full" :class="item.status === 'completed' ? 'bg-[#D8ECE9] text-[#006B63]' : 'bg-[#F2F6F5] text-[#667085]'">
                                 <CheckCircle2 v-if="item.status === 'completed'" class="h-5 w-5" /><Circle v-else class="h-5 w-5" />
                             </div>
-                            <div><div class="flex flex-wrap items-center gap-2"><p class="font-semibold text-[#131B2E]">{{ item.procedure.name }}</p><span class="bg-[#F2F6F5] px-2 py-1 text-xs font-semibold text-[#455653]">Fase {{ item.phase }}</span></div><p class="mt-1 font-mono text-xs text-[#667085]">{{ item.procedure.code || 'Sin código' }} · {{ item.tooth_number ? `Pieza ${item.tooth_number}` : 'General' }} · {{ item.surface }}</p><p v-if="item.completed_at" class="mt-1 text-xs font-semibold text-[#006B63]">Realizado {{ date(item.completed_at) }}</p><p v-else-if="item.appointment" class="mt-1 flex items-center gap-1 text-xs text-[#455653]"><CalendarCheck class="h-3.5 w-3.5" /> Cita vinculada</p></div>
+                            <div><div class="flex flex-wrap items-center gap-2"><p class="font-semibold text-[#131B2E]">{{ item.procedure.name }}</p><span class="bg-[#F2F6F5] px-2 py-1 text-xs font-semibold text-[#455653]">Fase {{ item.phase }}</span></div><p class="mt-1 font-mono text-xs text-[#667085]">{{ item.procedure.code || 'Sin código' }} · {{ item.tooth_number ? `Pieza ${item.tooth_number}` : 'General' }} · {{ item.surface }}</p><p v-if="item.completed_at" class="mt-1 text-xs font-semibold text-[#006B63]">Realizado {{ date(item.completed_at) }}<span v-if="item.professional"> · {{ item.professional.full_name }}</span></p><p v-else-if="item.appointment" class="mt-1 flex items-center gap-1 text-xs text-[#455653]"><CalendarCheck class="h-3.5 w-3.5" /> Cita vinculada</p></div>
                         </div>
                         <div class="flex items-center justify-between gap-5 md:justify-end"><div class="text-right"><p class="font-mono font-bold text-[#131B2E]">{{ money(item.price) }}</p><p class="text-xs text-[#667085]">{{ itemStatus(item.status) }}</p></div><button v-if="item.status !== 'completed'" type="button" class="inline-flex h-9 items-center gap-2 rounded-md bg-[#005C55] px-3 text-xs font-semibold text-white disabled:opacity-50" :disabled="actionForm.processing" @click="completeItem(item)"><Check class="h-4 w-4" /> Marcar realizado</button></div>
                     </article>
