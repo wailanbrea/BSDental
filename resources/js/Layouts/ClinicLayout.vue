@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3'
 import { appUrl } from '@/lib/url'
 import type { PageProps } from '@/types'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { 
     LayoutDashboard, 
     Users, 
@@ -60,6 +60,10 @@ function closeMobileMenu() {
 function toggleMobileMenu() {
     isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
+
+watch(isMobileMenuOpen, (isOpen) => {
+    document.body.classList.toggle('overflow-hidden', isOpen)
+})
 
 
 const user = computed(() => page.props.auth?.user || { id: '', name: 'Usuario', email: 'usuario@bsdental.com', permissions: [], roles: [], branch_ids: [] })
@@ -342,29 +346,34 @@ function notificationTone(severity: 'info' | 'success' | 'warning' | 'critical')
                 </div>
             </header>
 
-            <!-- Mobile Drawer Navigation -->
-            <div v-if="isMobileMenuOpen" id="mobile-navigation" class="md:hidden bg-white border-b border-[#E2E8F0] px-4 py-3 space-y-1">
-                <Link
-                    v-for="item in navItems"
-                    :key="item.href"
-                    :aria-current="isActive(item) ? 'page' : undefined"
-                    :href="appUrl(item.href)"
-                    :class="[
-                        'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
-                        isActive(item) ? 'bg-[#E6F4F1] text-[#005C55] font-bold shadow-xs' : 'text-[#505F76]'
-                    ]"
-                    @click="closeMobileMenu"
-                >
-                    <span v-if="isActive(item)" aria-hidden="true" class="absolute inset-y-2 left-0 w-1 rounded-r-full bg-[#005C55]" />
-                    <component :is="item.icon" class="w-4 h-4" />
-                    <span>{{ item.name }}</span>
-                </Link>
-                <button 
-                    class="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#BA1A1A] text-left"
-                    @click="closeMobileMenu(); logout()"
-                >
-                    <LogOut class="w-4 h-4" /> Cerrar Sesión
-                </button>
+            <!-- Mobile drawer overlays the workspace instead of pushing it down. -->
+            <div v-if="isMobileMenuOpen" id="mobile-navigation" class="fixed inset-x-0 bottom-0 top-16 z-50 md:hidden">
+                <button type="button" class="absolute inset-0 bg-[#0F172A]/35" aria-label="Cerrar menú" @click="closeMobileMenu" />
+                <nav class="absolute inset-y-0 left-0 flex w-[min(320px,calc(100%-3rem))] flex-col overflow-y-auto bg-white px-4 py-4 shadow-[8px_0_24px_rgba(15,23,42,0.18)]">
+                    <div class="space-y-1">
+                        <Link
+                            v-for="item in navItems"
+                            :key="item.href"
+                            :aria-current="isActive(item) ? 'page' : undefined"
+                            :href="appUrl(item.href)"
+                            :class="[
+                                'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium',
+                                isActive(item) ? 'bg-[#E6F4F1] text-[#005C55] font-bold shadow-xs' : 'text-[#505F76] hover:bg-[#F1F5F9]'
+                            ]"
+                            @click="closeMobileMenu"
+                        >
+                            <span v-if="isActive(item)" aria-hidden="true" class="absolute inset-y-2 left-0 w-1 rounded-r-full bg-[#005C55]" />
+                            <component :is="item.icon" class="w-4 h-4" />
+                            <span>{{ item.name }}</span>
+                        </Link>
+                    </div>
+                    <button
+                        class="mt-auto flex w-full items-center gap-3 border-t border-[#E2E8F0] px-3 py-4 text-left text-sm text-[#BA1A1A]"
+                        @click="closeMobileMenu(); logout()"
+                    >
+                        <LogOut class="w-4 h-4" /> Cerrar Sesión
+                    </button>
+                </nav>
             </div>
 
             <!-- Global Toast Messages -->
