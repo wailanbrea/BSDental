@@ -101,8 +101,8 @@ const periodontalByTooth = computed<Record<number, PeriodontalSummary>>(() => {
     }))
 })
 const quoteUrl = computed(() => {
-    const entry = loadedEntry.value || latestEntryFor(selectedTooth.value)
-    const query = new URLSearchParams({ tooth_number: String(selectedTooth.value), surface: entry?.surfaces?.[0] || entry?.surface || 'all' })
+    const entry = loadedEntry.value
+    const query = new URLSearchParams({ tooth_number: String(selectedTooth.value), surface: form.surfaces[0] || entry?.surfaces?.[0] || entry?.surface || 'all' })
     if (entry) {
         query.set('odontogram_entry_id', entry.id)
         query.set('clinical_note', `Pieza ${selectedTooth.value}: ${conditionLabel(entry.condition)}${entry.notes ? ` — ${entry.notes}` : ''}`)
@@ -111,8 +111,11 @@ const quoteUrl = computed(() => {
 })
 
 function latestEntryFor(tooth: number): EntryLog | undefined { return props.entries.find((entry) => entry.tooth_number === tooth) }
-function populateFormFromTooth(tooth: number) {
-    const entry = latestEntryFor(tooth)
+function latestEntryForSurface(tooth: number, surface: Exclude<SurfaceKey, 'all'>): EntryLog | undefined {
+    return props.entries.find((entry) => entry.tooth_number === tooth && (entry.surfaces?.length ? entry.surfaces : [entry.surface]).some((value) => value === surface || value === 'all'))
+}
+function populateFormFromTooth(tooth: number, surface?: Exclude<SurfaceKey, 'all'>) {
+    const entry = surface ? latestEntryForSurface(tooth, surface) : latestEntryFor(tooth)
     form.tooth_number = tooth
     form.clearErrors()
     loadedEntry.value = entry || null
@@ -121,7 +124,7 @@ function populateFormFromTooth(tooth: number) {
     form.amendment_reason = ''
 
     if (!entry) {
-        form.surfaces = ['all']
+        form.surfaces = surface ? [surface] : ['all']
         form.condition = 'caries'
         form.entry_type = 'diagnosis'
         form.clinical_status = 'active'
@@ -131,7 +134,7 @@ function populateFormFromTooth(tooth: number) {
         return
     }
 
-    form.surfaces = entry.surfaces?.length ? [...entry.surfaces] : [entry.surface]
+    form.surfaces = surface ? [surface] : (entry.surfaces?.length ? [...entry.surfaces] : [entry.surface])
     form.condition = entry.condition
     form.entry_type = entry.entry_type || entryTypeForCondition(entry.condition)
     form.clinical_status = entry.clinical_status || 'active'
@@ -144,6 +147,12 @@ function selectTooth(tooth: number) {
     historyScope.value = 'selected'
     savedEntryNotice.value = false
     populateFormFromTooth(tooth)
+}
+function selectSurface(tooth: number, surface: Exclude<SurfaceKey, 'all'>) {
+    selectedTooth.value = tooth
+    historyScope.value = 'selected'
+    savedEntryNotice.value = false
+    populateFormFromTooth(tooth, surface)
 }
 function switchDentition(value: 'permanent' | 'primary') { dentition.value = value; selectTooth(value === 'permanent' ? 11 : 51) }
 function conditionLabel(condition?: ConditionKey) { return conditions.find((item) => item.value === condition)?.short || 'Sin hallazgos' }
@@ -185,14 +194,16 @@ watch(() => form.condition, (condition) => { if (!loadedEntry.value || !amendmen
 
         <section class="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
             <div class="min-w-0 border border-[#D8E0DE] bg-white shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
-                <header class="flex flex-col gap-3 border-b border-[#D8E0DE] bg-[#F7FAF9] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="flex items-center gap-2 text-sm font-bold"><Stethoscope class="h-4 w-4 text-[#005C55]" />Odontograma interactivo</h2><p class="mt-0.5 text-xs text-[#64748B]">Selecciona una pieza para documentar sus superficies.</p></div><div class="inline-flex w-fit border border-[#9AAEAA] bg-white p-0.5"><button type="button" class="h-8 px-3 text-xs font-semibold" :class="dentition === 'permanent' ? 'bg-[#005C55] text-white' : 'text-[#52615E]'" @click="switchDentition('permanent')">Permanente · 32</button><button type="button" class="h-8 px-3 text-xs font-semibold" :class="dentition === 'primary' ? 'bg-[#005C55] text-white' : 'text-[#52615E]'" @click="switchDentition('primary')">Temporal · 20</button></div></header>
+                <header class="flex flex-col gap-3 border-b border-[#D8E0DE] bg-[#F7FAF9] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="flex items-center gap-2 text-sm font-bold"><Stethoscope class="h-4 w-4 text-[#005C55]" />Odontograma interactivo</h2><p class="mt-0.5 text-xs text-[#64748B]">Selecciona una pieza o haz clic directamente sobre una de sus superficies.</p></div><div class="inline-flex w-fit border border-[#9AAEAA] bg-white p-0.5"><button type="button" class="h-8 px-3 text-xs font-semibold" :class="dentition === 'permanent' ? 'bg-[#005C55] text-white' : 'text-[#52615E]'" @click="switchDentition('permanent')">Permanente · 32</button><button type="button" class="h-8 px-3 text-xs font-semibold" :class="dentition === 'primary' ? 'bg-[#005C55] text-white' : 'text-[#52615E]'" @click="switchDentition('primary')">Temporal · 20</button></div></header>
                 <div class="overflow-x-auto bg-[#FBFCFC] p-4 sm:p-6 lg:p-8">
                     <OdontogramChart
                         :matrix="matrix"
                         :dentition="dentition"
                         :selected-tooth="selectedTooth"
+                        :selected-surfaces="form.surfaces"
                         :periodontal-by-tooth="periodontalByTooth"
                         @select="selectTooth"
+                        @select-surface="selectSurface"
                     />
                 </div>
                 <footer class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#D8E0DE] px-4 py-3"><span class="mr-1 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Convenciones</span><span v-for="condition in conditions.slice(0, 8)" :key="condition.value" class="inline-flex items-center gap-1.5 text-[11px] text-[#52615E]"><i class="h-2.5 w-2.5 rounded-full" :class="condition.dot"></i>{{ condition.short }}</span><span class="w-full border-t border-[#E4E7EC] pt-2 text-[10px] text-[#64748B]">Los segmentos coloreados dentro del diente representan las superficies afectadas; el contorno completo se reserva para estados de toda la pieza.</span></footer>

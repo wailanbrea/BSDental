@@ -41,10 +41,11 @@ const props = defineProps<{
   matrix: Record<number, ToothData>
   dentition: 'permanent' | 'primary'
   selectedTooth?: number
+  selectedSurfaces?: SurfaceKey[]
   periodontalByTooth?: Record<number, PeriodontalSummary>
 }>()
 
-const emit = defineEmits<{ select: [tooth: number] }>()
+const emit = defineEmits<{ select: [tooth: number]; selectSurface: [tooth: number, surface: Exclude<SurfaceKey, 'all'>] }>()
 const hoveredTooth = ref<number | null>(null)
 
 const conditionColors: Record<ConditionKey, { fill: string; stroke: string }> = {
@@ -153,8 +154,7 @@ function wedgePath(center: Point, direction: Point, radius = 24): string {
   return `M${center.x},${center.y} L${point(radius, radius * 0.72)} L${point(radius * 1.65, 0)} L${point(radius, -radius * 0.72)} Z`
 }
 
-function surfacePatches(tooth: { number: number; localCenter: Point }): SurfacePatch[] {
-  const states = stateFor(tooth.number)?.surfaces ?? {}
+function surfaceGeometry(tooth: { number: number; localCenter: Point }): SurfacePatch[] {
   const index = tooth.number % 10 - 1
   const center = tooth.localCenter
   const mesialTarget = index > 0 ? centers[index - 1] : { x: 204.5, y: center.y }
@@ -167,19 +167,22 @@ function surfacePatches(tooth: { number: number; localCenter: Point }): SurfaceP
   const patches: SurfacePatch[] = []
 
   for (const surface of ['mesial', 'distal', 'vestibular', 'lingual_palatal'] as const) {
-    const state = states[surface]
-    if (!state) continue
-    const visual = conditionColors[normalizedCondition(state.condition)]
-    patches.push({ surface, path: wedgePath(center, directions[surface]), fill: visual.fill, stroke: visual.stroke })
+    patches.push({ surface, path: wedgePath(center, directions[surface]), fill: 'transparent', stroke: 'transparent' })
   }
-
-  const occlusal = states.occlusal_incisal
-  if (occlusal) {
-    const visual = conditionColors[normalizedCondition(occlusal.condition)]
-    patches.push({ surface: 'occlusal_incisal', cx: center.x, cy: center.y, radius: 8, fill: visual.fill, stroke: visual.stroke })
-  }
+  patches.push({ surface: 'occlusal_incisal', cx: center.x, cy: center.y, radius: 8, fill: 'transparent', stroke: 'transparent' })
 
   return patches
+}
+
+function surfacePatches(tooth: { number: number; localCenter: Point }): SurfacePatch[] {
+  const states = stateFor(tooth.number)?.surfaces ?? {}
+
+  return surfaceGeometry(tooth).flatMap((geometry) => {
+    const state = states[geometry.surface]
+    if (!state) return []
+    const visual = conditionColors[normalizedCondition(state.condition)]
+    return [{ ...geometry, fill: visual.fill, stroke: visual.stroke }]
+  })
 }
 
 function clipId(tooth: number): string { return `tooth-surface-clip-${props.dentition}-${tooth}` }
@@ -242,6 +245,13 @@ function selectTooth(tooth: number): void {
   hoveredTooth.value = tooth
   emit('select', tooth)
 }
+function selectSurface(tooth: number, surface: Exclude<SurfaceKey, 'all'>): void {
+  hoveredTooth.value = tooth
+  emit('selectSurface', tooth, surface)
+}
+function isSelectedSurface(tooth: number, surface: Exclude<SurfaceKey, 'all'>): boolean {
+  return props.selectedTooth === tooth && (props.selectedSurfaces ?? []).includes(surface)
+}
 
 function historyCount(tooth: number): number { return stateFor(tooth)?.conditions.length ?? 0 }
 function tooltipSurface(tooth: number): string { return entrySurfaces(tooth).map(surface => surfaceFullLabels[surface]).join(' · ') }
@@ -301,6 +311,12 @@ function tooltipStyle(tooth: number): Record<string, string> {
         </g>
         <path class="tooth-outline" :d="tooth.geometry.outlinePath" :stroke="wholeToothVisual(tooth.number).stroke" />
         <path v-for="detail in Array.isArray(tooth.geometry.lineHighlightPath) ? tooth.geometry.lineHighlightPath : [tooth.geometry.lineHighlightPath]" :key="detail" class="tooth-detail" :d="detail" :stroke="wholeToothVisual(tooth.number).stroke" />
+        <g :clip-path="`url(#${clipId(tooth.number)})`" class="tooth-surface-hit-layer">
+          <template v-for="surface in surfaceGeometry(tooth)" :key="`${tooth.number}-hit-${surface.surface}`">
+            <path v-if="surface.path" :d="surface.path" :class="['tooth-surface-hit', { selected: isSelectedSurface(tooth.number, surface.surface) }]" role="button" tabindex="0" :aria-label="`${surfaceFullLabels[surface.surface]} de pieza FDI ${tooth.number}`" @click.stop="selectSurface(tooth.number, surface.surface)" @keydown.enter.stop.prevent="selectSurface(tooth.number, surface.surface)" @keydown.space.stop.prevent="selectSurface(tooth.number, surface.surface)" />
+            <circle v-else :cx="surface.cx" :cy="surface.cy" :r="surface.radius" :class="['tooth-surface-hit', { selected: isSelectedSurface(tooth.number, surface.surface) }]" role="button" tabindex="0" :aria-label="`${surfaceFullLabels[surface.surface]} de pieza FDI ${tooth.number}`" @click.stop="selectSurface(tooth.number, surface.surface)" @keydown.enter.stop.prevent="selectSurface(tooth.number, surface.surface)" @keydown.space.stop.prevent="selectSurface(tooth.number, surface.surface)" />
+          </template>
+        </g>
       </g>
 
       <g v-for="tooth in displayedTeeth" :key="`overlay-${tooth.number}`" class="tooth-overlay" aria-hidden="true">
@@ -351,6 +367,9 @@ function tooltipStyle(tooth: number): Record<string, string> {
 .tooth { cursor: pointer; outline: none; }
 .tooth-fill { opacity: 0.72; transition: fill 160ms ease, opacity 160ms ease; }
 .tooth-surface-patch { stroke-width: 1.4; opacity: 0.94; vector-effect: non-scaling-stroke; }
+.tooth-surface-hit { cursor: crosshair; fill: transparent; stroke: transparent; stroke-width: 1.5; vector-effect: non-scaling-stroke; transition: fill 120ms ease, stroke 120ms ease; }
+.tooth-surface-hit:hover, .tooth-surface-hit:focus-visible { fill: rgba(0, 143, 131, 0.16); stroke: #008f83; outline: none; }
+.tooth-surface-hit.selected { fill: rgba(0, 143, 131, 0.12); stroke: #005c55; stroke-width: 2.2; }
 .tooth-outline, .tooth-detail { fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke 160ms ease, stroke-width 160ms ease, opacity 160ms ease; }
 .tooth-outline { stroke-width: 2; }
 .tooth-detail { stroke-width: 1; opacity: 0.75; }
