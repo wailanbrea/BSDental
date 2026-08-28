@@ -23,6 +23,16 @@ interface ToothData {
   latest_state: LifecycleKey
 }
 
+interface PeriodontalSummary {
+  sites: number
+  maxProbingDepth: number | null
+  bleedingSites: number
+  plaqueSites: number
+  suppurationSites: number
+  mobility: number | null
+  furcation: number | null
+}
+
 interface Point { x: number; y: number }
 interface ArchGroup { quadrant: number; transform: string; mirrorX: boolean; mirrorY: boolean }
 
@@ -30,6 +40,7 @@ const props = defineProps<{
   matrix: Record<number, ToothData>
   dentition: 'permanent' | 'primary'
   selectedTooth?: number
+  periodontalByTooth?: Record<number, PeriodontalSummary>
 }>()
 
 const emit = defineEmits<{ select: [tooth: number] }>()
@@ -190,6 +201,15 @@ function tooltipDate(tooth: number): string | null {
   if (!value) return null
   return new Intl.DateTimeFormat('es-DO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
+function periodontalFor(tooth: number): PeriodontalSummary | undefined { return props.periodontalByTooth?.[tooth] }
+function periodontalFlags(summary: PeriodontalSummary): string {
+  const flags = [
+    summary.bleedingSites ? `BOP ${summary.bleedingSites}/6` : null,
+    summary.plaqueSites ? `Placa ${summary.plaqueSites}/6` : null,
+    summary.suppurationSites ? `Supuración ${summary.suppurationSites}/6` : null,
+  ].filter(Boolean)
+  return flags.length ? flags.join(' · ') : 'Sin BOP, placa ni supuración'
+}
 function tooltipStyle(tooth: number): Record<string, string> {
   const current = displayedTeeth.value.find((item) => item.number === tooth)
   if (!current) return {}
@@ -249,6 +269,12 @@ function tooltipStyle(tooth: number): Record<string, string> {
         <p v-if="latestEntry(hoveredTooth)?.notes" class="tooth-tooltip__notes">{{ latestEntry(hoveredTooth)?.notes }}</p>
       </template>
       <p v-else class="tooth-tooltip__empty">Sin registros clínicos. Selecciona la pieza para documentarla.</p>
+      <div v-if="periodontalFor(hoveredTooth)" class="tooth-tooltip__periodontal">
+        <strong>Resumen periodontal</strong>
+        <span>{{ periodontalFor(hoveredTooth)?.sites }}/6 sitios · Sondaje máx. {{ periodontalFor(hoveredTooth)?.maxProbingDepth ?? '—' }} mm</span>
+        <span>{{ periodontalFlags(periodontalFor(hoveredTooth)!) }}</span>
+        <span>Movilidad {{ periodontalFor(hoveredTooth)?.mobility ?? '—' }} · Furca {{ periodontalFor(hoveredTooth)?.furcation ?? '—' }}</span>
+      </div>
       <p class="tooth-tooltip__hint">El detalle guardado aparece en “Trazabilidad del odontograma”.</p>
     </aside>
     </div>
@@ -299,6 +325,8 @@ function tooltipStyle(tooth: number): Record<string, string> {
 .tooth-tooltip__details dd { margin: 0; font-size: 11px; font-weight: 700; }
 .tooth-tooltip__notes { margin: 9px 0 0; border-left: 2px solid #8fbeb7; padding-left: 8px; color: #52615e; font-size: 10px; line-height: 1.45; }
 .tooth-tooltip__empty { margin: 10px 0 0; color: #52615e; font-size: 11px; line-height: 1.45; }
+.tooth-tooltip__periodontal { display: grid; gap: 3px; margin-top: 10px; border: 1px solid #fedf89; background: #fffcf5; padding: 8px; color: #52615e; font-size: 9px; line-height: 1.4; }
+.tooth-tooltip__periodontal strong { color: #b54708; font-size: 10px; }
 .tooth-tooltip__hint { margin: 10px 0 0; border-top: 1px solid #e4e7ec; padding-top: 8px; color: #667085; font-size: 9px; line-height: 1.4; }
 @media (max-width: 640px) { .odontogram-heading { padding-inline: 12px; } .odontogram-svg { min-width: 390px; } .odontogram-shell { overflow-x: auto; } }
 @media (prefers-reduced-motion: reduce) { .tooth-fill, .tooth-outline, .tooth-detail { transition: none; } }

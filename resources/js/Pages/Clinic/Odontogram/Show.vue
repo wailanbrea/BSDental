@@ -23,6 +23,7 @@ interface ToothData { tooth_number: number; conditions: ConditionSummary[]; surf
 interface EntryLog extends ConditionSummary { tooth_number: number; recorded_by?: { name: string } | null; encounter?: { id: string; encounter_date?: string } | null }
 interface PeriodontalMeasurement { tooth_number: number; site: 'mb' | 'b' | 'db' | 'ml' | 'l' | 'dl'; probing_depth: number | null; recession: number | null; bleeding: boolean; plaque: boolean; suppuration: boolean; mobility: number | null; furcation: number | null; is_implant: boolean }
 interface PeriodontalExam { id: string; status: string; recorded_at: string; measurements: PeriodontalMeasurement[] }
+interface PeriodontalSummary { sites: number; maxProbingDepth: number | null; bleedingSites: number; plaqueSites: number; suppurationSites: number; mobility: number | null; furcation: number | null }
 interface DentalFile { id: string; category: string; original_name: string; mime_type: string; tooth_number: number | null; odontogram_entry_id: string | null; taken_at: string | null; created_at: string }
 
 const props = defineProps<{ patient: PatientDetails; odontogram: OdontogramDetails; matrix: Record<number, ToothData>; entries: EntryLog[]; periodontalExam: PeriodontalExam | null; dentalFiles: DentalFile[] }>()
@@ -77,6 +78,28 @@ const visibleEntries = computed(() => historyScope.value === 'selected' ? select
 const allergies = computed(() => props.patient.medical_history?.allergies || [])
 const systemicConditions = computed(() => props.patient.medical_history?.systemic_conditions || [])
 const selectedDentalFiles = computed(() => props.dentalFiles.filter((file) => !file.tooth_number || file.tooth_number === selectedTooth.value))
+const periodontalByTooth = computed<Record<number, PeriodontalSummary>>(() => {
+    const grouped: Record<number, PeriodontalMeasurement[]> = {}
+    for (const measurement of props.periodontalExam?.measurements ?? []) {
+        ;(grouped[measurement.tooth_number] ??= []).push(measurement)
+    }
+
+    return Object.fromEntries(Object.entries(grouped).map(([tooth, measurements]) => {
+        const numericMax = (field: 'probing_depth' | 'mobility' | 'furcation') => {
+            const values = measurements.map((item) => item[field]).filter((value): value is number => value !== null)
+            return values.length ? Math.max(...values) : null
+        }
+        return [Number(tooth), {
+            sites: measurements.length,
+            maxProbingDepth: numericMax('probing_depth'),
+            bleedingSites: measurements.filter((item) => item.bleeding).length,
+            plaqueSites: measurements.filter((item) => item.plaque).length,
+            suppurationSites: measurements.filter((item) => item.suppuration).length,
+            mobility: numericMax('mobility'),
+            furcation: numericMax('furcation'),
+        }]
+    }))
+})
 const quoteUrl = computed(() => {
     const entry = loadedEntry.value || latestEntryFor(selectedTooth.value)
     const query = new URLSearchParams({ tooth_number: String(selectedTooth.value), surface: entry?.surfaces?.[0] || entry?.surface || 'all' })
@@ -168,6 +191,7 @@ watch(() => form.condition, (condition) => { if (!loadedEntry.value || !amendmen
                         :matrix="matrix"
                         :dentition="dentition"
                         :selected-tooth="selectedTooth"
+                        :periodontal-by-tooth="periodontalByTooth"
                         @select="selectTooth"
                     />
                 </div>
