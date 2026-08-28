@@ -2,6 +2,7 @@
 
 namespace App\Core\Controllers;
 
+use App\Core\Models\OdontogramEntry;
 use App\Core\Models\Patient;
 use App\Core\Models\PatientMedicalHistory;
 use App\Core\Models\Procedure;
@@ -102,6 +103,12 @@ class QuoteController extends Controller
         ]);
         if (isset($prefill['tooth_number'])) {
             $prefill['tooth_number'] = (int) $prefill['tooth_number'];
+        }
+        if (! empty($prefill['odontogram_entry_id'])) {
+            $belongsToPatient = OdontogramEntry::whereKey($prefill['odontogram_entry_id'])
+                ->whereHas('odontogram', fn ($query) => $query->where('patient_id', $patient->id))
+                ->exists();
+            abort_unless($belongsToPatient, 404);
         }
 
         return Inertia::render('Clinic/Quotes/Create', [
