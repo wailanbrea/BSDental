@@ -47,6 +47,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ select: [tooth: number]; selectSurface: [tooth: number, surface: Exclude<SurfaceKey, 'all'>] }>()
 const hoveredTooth = ref<number | null>(null)
+const hoveredSurface = ref<Exclude<SurfaceKey, 'all'> | null>(null)
 
 const conditionColors: Record<ConditionKey, { fill: string; stroke: string }> = {
   caries: { fill: '#FEE4E2', stroke: '#D92D20' },
@@ -243,6 +244,7 @@ const lifecycleLabels: Record<LifecycleKey, string> = {
 
 function selectTooth(tooth: number): void {
   hoveredTooth.value = tooth
+  hoveredSurface.value = null
   emit('select', tooth)
 }
 function selectSurface(tooth: number, surface: Exclude<SurfaceKey, 'all'>): void {
@@ -253,11 +255,30 @@ function isSelectedSurface(tooth: number, surface: Exclude<SurfaceKey, 'all'>): 
   return props.selectedTooth === tooth && (props.selectedSurfaces ?? []).includes(surface)
 }
 
-function historyCount(tooth: number): number { return stateFor(tooth)?.conditions.length ?? 0 }
-function tooltipSurface(tooth: number): string { return entrySurfaces(tooth).map(surface => surfaceFullLabels[surface]).join(' · ') }
-function tooltipLifecycle(tooth: number): string { return lifecycleLabels[lifecycleFor(tooth)] }
+function surfacesForEntry(entry?: ConditionSummary): SurfaceKey[] {
+  return (entry?.surfaces?.length ? entry.surfaces : [entry?.surface]).map(normalizedSurface)
+}
+function entriesForSurface(tooth: number, surface: Exclude<SurfaceKey, 'all'>): ConditionSummary[] {
+  return (stateFor(tooth)?.conditions ?? []).filter((entry) => surfacesForEntry(entry).some(value => value === surface || value === 'all'))
+}
+function tooltipEntry(tooth: number): ConditionSummary | undefined {
+  if (!hoveredSurface.value) return latestEntry(tooth)
+  const entries = entriesForSurface(tooth, hoveredSurface.value)
+  return entries[entries.length - 1]
+}
+function historyCount(tooth: number): number {
+  return hoveredSurface.value ? entriesForSurface(tooth, hoveredSurface.value).length : (stateFor(tooth)?.conditions.length ?? 0)
+}
+function tooltipSurface(tooth: number): string {
+  return hoveredSurface.value ? surfaceFullLabels[hoveredSurface.value] : surfacesForEntry(tooltipEntry(tooth)).map(surface => surfaceFullLabels[surface]).join(' · ')
+}
+function tooltipLifecycle(tooth: number): string {
+  const value = tooltipEntry(tooth)?.lifecycle_state
+  const lifecycle = value === 'planned' || value === 'approved' || value === 'completed' ? value : 'initial_diagnosis'
+  return lifecycleLabels[lifecycle]
+}
 function tooltipDate(tooth: number): string | null {
-  const value = latestEntry(tooth)?.recorded_at
+  const value = tooltipEntry(tooth)?.recorded_at
   if (!value) return null
   return new Intl.DateTimeFormat('es-DO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
@@ -301,7 +322,7 @@ function tooltipStyle(tooth: number): Record<string, string> {
       <text x="204.5" y="218" class="anatomy-label">PALADAR</text>
       <text x="204.5" y="488" class="anatomy-label">LENGUA</text>
 
-      <g v-for="tooth in displayedTeeth" :key="tooth.number" :transform="tooth.transform" :class="['tooth', `condition-${conditionFor(tooth.number)}`, `lifecycle-${lifecycleFor(tooth.number)}`, { selected: selectedTooth === tooth.number }]" role="button" tabindex="0" :aria-label="ariaLabel(tooth.number)" :aria-pressed="selectedTooth === tooth.number" @mouseenter="hoveredTooth = tooth.number" @mouseleave="hoveredTooth = null" @focus="hoveredTooth = tooth.number" @blur="hoveredTooth = null" @click="selectTooth(tooth.number)" @keydown.enter.prevent="selectTooth(tooth.number)" @keydown.space.prevent="selectTooth(tooth.number)">
+      <g v-for="tooth in displayedTeeth" :key="tooth.number" :transform="tooth.transform" :class="['tooth', `condition-${conditionFor(tooth.number)}`, `lifecycle-${lifecycleFor(tooth.number)}`, { selected: selectedTooth === tooth.number }]" role="button" tabindex="0" :aria-label="ariaLabel(tooth.number)" :aria-pressed="selectedTooth === tooth.number" @mouseenter="hoveredTooth = tooth.number" @mouseleave="hoveredTooth = null; hoveredSurface = null" @focus="hoveredTooth = tooth.number" @blur="hoveredTooth = null; hoveredSurface = null" @click="selectTooth(tooth.number)" @keydown.enter.prevent="selectTooth(tooth.number)" @keydown.space.prevent="selectTooth(tooth.number)">
         <path class="tooth-fill" :d="tooth.geometry.shadowPath" :fill="wholeToothVisual(tooth.number).fill" />
         <g :clip-path="`url(#${clipId(tooth.number)})`" class="tooth-surface-layer" aria-hidden="true">
           <template v-for="patch in surfacePatches(tooth)" :key="`${tooth.number}-${patch.surface}`">
@@ -313,8 +334,8 @@ function tooltipStyle(tooth: number): Record<string, string> {
         <path v-for="detail in Array.isArray(tooth.geometry.lineHighlightPath) ? tooth.geometry.lineHighlightPath : [tooth.geometry.lineHighlightPath]" :key="detail" class="tooth-detail" :d="detail" :stroke="wholeToothVisual(tooth.number).stroke" />
         <g :clip-path="`url(#${clipId(tooth.number)})`" class="tooth-surface-hit-layer">
           <template v-for="surface in surfaceGeometry(tooth)" :key="`${tooth.number}-hit-${surface.surface}`">
-            <path v-if="surface.path" :d="surface.path" :class="['tooth-surface-hit', { selected: isSelectedSurface(tooth.number, surface.surface) }]" role="button" tabindex="0" :aria-label="`${surfaceFullLabels[surface.surface]} de pieza FDI ${tooth.number}`" @click.stop="selectSurface(tooth.number, surface.surface)" @keydown.enter.stop.prevent="selectSurface(tooth.number, surface.surface)" @keydown.space.stop.prevent="selectSurface(tooth.number, surface.surface)" />
-            <circle v-else :cx="surface.cx" :cy="surface.cy" :r="surface.radius" :class="['tooth-surface-hit', { selected: isSelectedSurface(tooth.number, surface.surface) }]" role="button" tabindex="0" :aria-label="`${surfaceFullLabels[surface.surface]} de pieza FDI ${tooth.number}`" @click.stop="selectSurface(tooth.number, surface.surface)" @keydown.enter.stop.prevent="selectSurface(tooth.number, surface.surface)" @keydown.space.stop.prevent="selectSurface(tooth.number, surface.surface)" />
+            <path v-if="surface.path" :d="surface.path" :class="['tooth-surface-hit', { selected: isSelectedSurface(tooth.number, surface.surface) }]" role="button" tabindex="0" :aria-label="`${surfaceFullLabels[surface.surface]} de pieza FDI ${tooth.number}`" @mouseenter="hoveredSurface = surface.surface" @mouseleave="hoveredSurface = null" @focus="hoveredTooth = tooth.number; hoveredSurface = surface.surface" @blur="hoveredSurface = null" @click.stop="selectSurface(tooth.number, surface.surface)" @keydown.enter.stop.prevent="selectSurface(tooth.number, surface.surface)" @keydown.space.stop.prevent="selectSurface(tooth.number, surface.surface)" />
+            <circle v-else :cx="surface.cx" :cy="surface.cy" :r="surface.radius" :class="['tooth-surface-hit', { selected: isSelectedSurface(tooth.number, surface.surface) }]" role="button" tabindex="0" :aria-label="`${surfaceFullLabels[surface.surface]} de pieza FDI ${tooth.number}`" @mouseenter="hoveredSurface = surface.surface" @mouseleave="hoveredSurface = null" @focus="hoveredTooth = tooth.number; hoveredSurface = surface.surface" @blur="hoveredSurface = null" @click.stop="selectSurface(tooth.number, surface.surface)" @keydown.enter.stop.prevent="selectSurface(tooth.number, surface.surface)" @keydown.space.stop.prevent="selectSurface(tooth.number, surface.surface)" />
           </template>
         </g>
       </g>
@@ -329,19 +350,19 @@ function tooltipStyle(tooth: number): Record<string, string> {
     </svg>
     <aside v-if="hoveredTooth !== null" class="tooth-tooltip" :style="tooltipStyle(hoveredTooth)" role="status">
       <div class="tooth-tooltip__header">
-        <div><span class="tooth-tooltip__eyebrow">Ficha dental</span><strong>Pieza FDI {{ hoveredTooth }}</strong></div>
+        <div><span class="tooth-tooltip__eyebrow">Ficha dental</span><strong>Pieza FDI {{ hoveredTooth }}</strong><span v-if="hoveredSurface" class="tooth-tooltip__surface">{{ surfaceFullLabels[hoveredSurface] }}</span></div>
         <span class="tooth-tooltip__count">{{ historyCount(hoveredTooth) }} registro{{ historyCount(hoveredTooth) === 1 ? '' : 's' }}</span>
       </div>
-      <template v-if="latestEntry(hoveredTooth)">
+      <template v-if="tooltipEntry(hoveredTooth)">
         <dl class="tooth-tooltip__details">
-          <div><dt>Condición</dt><dd>{{ conditionLabels[conditionFor(hoveredTooth)] }}</dd></div>
+          <div><dt>Condición</dt><dd>{{ conditionLabels[normalizedCondition(tooltipEntry(hoveredTooth)?.condition)] }}</dd></div>
           <div><dt>Superficie</dt><dd>{{ tooltipSurface(hoveredTooth) }}</dd></div>
           <div><dt>Estado</dt><dd>{{ tooltipLifecycle(hoveredTooth) }}</dd></div>
           <div v-if="tooltipDate(hoveredTooth)"><dt>Registrado</dt><dd>{{ tooltipDate(hoveredTooth) }}</dd></div>
         </dl>
-        <p v-if="latestEntry(hoveredTooth)?.notes" class="tooth-tooltip__notes">{{ latestEntry(hoveredTooth)?.notes }}</p>
+        <p v-if="tooltipEntry(hoveredTooth)?.notes" class="tooth-tooltip__notes">{{ tooltipEntry(hoveredTooth)?.notes }}</p>
       </template>
-      <p v-else class="tooth-tooltip__empty">Sin registros clínicos. Selecciona la pieza para documentarla.</p>
+      <p v-else class="tooth-tooltip__empty">{{ hoveredSurface ? `Sin registros clínicos en la superficie ${surfaceFullLabels[hoveredSurface].toLowerCase()}.` : 'Sin registros clínicos. Selecciona la pieza para documentarla.' }}</p>
       <div v-if="periodontalFor(hoveredTooth)" class="tooth-tooltip__periodontal">
         <strong>Resumen periodontal</strong>
         <span>{{ periodontalFor(hoveredTooth)?.sites }}/6 sitios · Sondaje máx. {{ periodontalFor(hoveredTooth)?.maxProbingDepth ?? '—' }} mm</span>
@@ -394,6 +415,7 @@ function tooltipStyle(tooth: number): Record<string, string> {
 .tooth-tooltip { position: absolute; z-index: 20; width: min(280px, calc(100vw - 48px)); border: 1px solid #9aaEaa; background: rgba(255, 255, 255, 0.98); padding: 12px; color: #344054; box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18); pointer-events: none; }
 .tooth-tooltip__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .tooth-tooltip__header strong { display: block; margin-top: 2px; color: #005c55; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 16px; }
+.tooth-tooltip__surface { display: block; margin-top: 2px; color: #52615e; font-size: 9px; font-weight: 700; }
 .tooth-tooltip__eyebrow { display: block; color: #667085; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
 .tooth-tooltip__count { border: 1px solid #b7d4cf; background: #edf8f6; padding: 3px 6px; color: #005c55; font-size: 9px; font-weight: 800; white-space: nowrap; }
 .tooth-tooltip__details { display: grid; gap: 5px; margin-top: 10px; }
