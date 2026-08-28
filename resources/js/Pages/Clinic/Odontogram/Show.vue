@@ -195,7 +195,7 @@ watch(() => form.condition, (condition) => { if (!loadedEntry.value || !amendmen
                         @select="selectTooth"
                     />
                 </div>
-                <footer class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#D8E0DE] px-4 py-3"><span class="mr-1 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Convenciones</span><span v-for="condition in conditions.slice(0, 8)" :key="condition.value" class="inline-flex items-center gap-1.5 text-[11px] text-[#52615E]"><i class="h-2.5 w-2.5 rounded-full" :class="condition.dot"></i>{{ condition.short }}</span></footer>
+                <footer class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#D8E0DE] px-4 py-3"><span class="mr-1 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Convenciones</span><span v-for="condition in conditions.slice(0, 8)" :key="condition.value" class="inline-flex items-center gap-1.5 text-[11px] text-[#52615E]"><i class="h-2.5 w-2.5 rounded-full" :class="condition.dot"></i>{{ condition.short }}</span><span class="w-full border-t border-[#E4E7EC] pt-2 text-[10px] text-[#64748B]">Los segmentos coloreados dentro del diente representan las superficies afectadas; el contorno completo se reserva para estados de toda la pieza.</span></footer>
             </div>
 
             <aside class="h-fit border border-[#D8E0DE] bg-white shadow-[0_4px_12px_rgba(15,23,42,0.04)] 2xl:sticky 2xl:top-20">

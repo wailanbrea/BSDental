@@ -10,6 +10,7 @@ use App\Core\Models\PeriodontalExam;
 use App\Core\Models\PeriodontalMeasurement;
 use App\Core\Security\Models\TenantAuditLog;
 use App\Core\Services\ConsentSigningService;
+use App\Core\Services\OdontogramService;
 use App\Platform\Tenancy\Models\Tenant;
 use App\Platform\Tenancy\Models\TenantDomain;
 use App\Platform\Tenancy\TenantContext;
@@ -300,6 +301,33 @@ test('[GATE ODO] Structured entries support multiple surfaces, immutable correct
             ->where('prefill.tooth_number', 26)
             ->where('prefill.surface', 'mesial')
             ->where('prefill.odontogram_entry_id', $original->id));
+});
+
+test('[GATE ODO] Tooth matrix preserves independent visual state for each surface', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+
+    $service = app(OdontogramService::class);
+    $odontogram = $service->getOrCreateForPatient($this->patient->id);
+
+    $service->recordClinicalEntry($odontogram, [
+        'tooth_number' => 16,
+        'surfaces' => ['occlusal_incisal'],
+        'condition' => 'caries',
+        'lifecycle_state' => 'initial_diagnosis',
+    ], $this->user->id);
+    $service->recordClinicalEntry($odontogram, [
+        'tooth_number' => 16,
+        'surfaces' => ['vestibular'],
+        'condition' => 'restored_composite',
+        'lifecycle_state' => 'completed',
+    ], $this->user->id);
+
+    $matrix = $service->getToothMatrix($odontogram);
+
+    expect($matrix[16]['surfaces']['occlusal_incisal']['condition'])->toBe('caries')
+        ->and($matrix[16]['surfaces']['vestibular']['condition'])->toBe('restored_composite')
+        ->and($matrix[16]['surfaces']['occlusal_incisal']['lifecycle_state'])->toBe('initial_diagnosis')
+        ->and($matrix[16]['surfaces']['vestibular']['lifecycle_state'])->toBe('completed');
 });
 
 test('[GATE ODO] Periodontal chart stores six-site measurements and caries risk', function () {

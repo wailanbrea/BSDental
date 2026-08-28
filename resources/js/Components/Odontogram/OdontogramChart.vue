@@ -35,6 +35,7 @@ interface PeriodontalSummary {
 
 interface Point { x: number; y: number }
 interface ArchGroup { quadrant: number; transform: string; mirrorX: boolean; mirrorY: boolean }
+interface SurfacePatch { surface: Exclude<SurfaceKey, 'all'>; path?: string; cx?: number; cy?: number; radius?: number; fill: string; stroke: string }
 
 const props = defineProps<{
   matrix: Record<number, ToothData>
@@ -113,6 +114,7 @@ const displayedTeeth = computed(() => {
     number: (group.quadrant * 10) + index + 1,
     geometry,
     transform: group.transform,
+    localCenter: centers[index],
     center: mapPoint(centers[index], group),
     label: mapPoint(labelPoints[index], group),
   })))
@@ -123,8 +125,7 @@ function latestEntry(tooth: number): ConditionSummary | undefined {
   const conditions = stateFor(tooth)?.conditions ?? []
   return conditions[conditions.length - 1]
 }
-function conditionFor(tooth: number): ConditionKey {
-  const value = latestEntry(tooth)?.condition
+function normalizedCondition(value?: string): ConditionKey {
   const aliases: Record<string, ConditionKey> = {
     resin: 'restored_composite', restoration: 'restored_composite', amalgam: 'restored_amalgam',
     absent: 'missing', root_canal: 'endodontic',
@@ -132,7 +133,56 @@ function conditionFor(tooth: number): ConditionKey {
   if (!value) return 'healthy'
   return aliases[value] ?? (value in conditionColors ? value as ConditionKey : 'healthy')
 }
+function conditionFor(tooth: number): ConditionKey { return normalizedCondition(latestEntry(tooth)?.condition) }
 function visualFor(tooth: number) { return conditionColors[conditionFor(tooth)] }
+function hasSurfaceStates(tooth: number): boolean { return Object.keys(stateFor(tooth)?.surfaces ?? {}).some(surface => surface !== 'all') }
+function wholeToothVisual(tooth: number) {
+  return entrySurfaces(tooth).includes('all') || !hasSurfaceStates(tooth) ? visualFor(tooth) : conditionColors.healthy
+}
+
+function normalizedVector(from: Point, to: Point): Point {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const length = Math.hypot(dx, dy) || 1
+  return { x: dx / length, y: dy / length }
+}
+
+function wedgePath(center: Point, direction: Point, radius = 24): string {
+  const side = { x: -direction.y, y: direction.x }
+  const point = (forward: number, lateral: number) => `${center.x + direction.x * forward + side.x * lateral},${center.y + direction.y * forward + side.y * lateral}`
+  return `M${center.x},${center.y} L${point(radius, radius * 0.72)} L${point(radius * 1.65, 0)} L${point(radius, -radius * 0.72)} Z`
+}
+
+function surfacePatches(tooth: { number: number; localCenter: Point }): SurfacePatch[] {
+  const states = stateFor(tooth.number)?.surfaces ?? {}
+  const index = tooth.number % 10 - 1
+  const center = tooth.localCenter
+  const mesialTarget = index > 0 ? centers[index - 1] : { x: 204.5, y: center.y }
+  const directions: Record<Exclude<SurfaceKey, 'all' | 'occlusal_incisal'>, Point> = {
+    mesial: normalizedVector(center, mesialTarget),
+    distal: normalizedVector(mesialTarget, center),
+    vestibular: normalizedVector({ x: 204.5, y: 347 }, center),
+    lingual_palatal: normalizedVector(center, { x: 204.5, y: 347 }),
+  }
+  const patches: SurfacePatch[] = []
+
+  for (const surface of ['mesial', 'distal', 'vestibular', 'lingual_palatal'] as const) {
+    const state = states[surface]
+    if (!state) continue
+    const visual = conditionColors[normalizedCondition(state.condition)]
+    patches.push({ surface, path: wedgePath(center, directions[surface]), fill: visual.fill, stroke: visual.stroke })
+  }
+
+  const occlusal = states.occlusal_incisal
+  if (occlusal) {
+    const visual = conditionColors[normalizedCondition(occlusal.condition)]
+    patches.push({ surface: 'occlusal_incisal', cx: center.x, cy: center.y, radius: 8, fill: visual.fill, stroke: visual.stroke })
+  }
+
+  return patches
+}
+
+function clipId(tooth: number): string { return `tooth-surface-clip-${props.dentition}-${tooth}` }
 function lifecycleFor(tooth: number): LifecycleKey {
   const value = latestEntry(tooth)?.lifecycle_state
   return value === 'planned' || value === 'approved' || value === 'completed' ? value : 'initial_diagnosis'
@@ -232,6 +282,7 @@ function tooltipStyle(tooth: number): Record<string, string> {
         <filter id="selected-tooth-glow" x="-35%" y="-35%" width="170%" height="170%"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#008F83" flood-opacity="0.35" /></filter>
         <linearGradient id="palate-wash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF8F7" /><stop offset="1" stop-color="#F8EEEC" /></linearGradient>
         <linearGradient id="tongue-wash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6F8F8" /><stop offset="1" stop-color="#EEF2F1" /></linearGradient>
+        <clipPath v-for="tooth in displayedTeeth" :id="clipId(tooth.number)" :key="`clip-${tooth.number}`" clipPathUnits="userSpaceOnUse"><path :d="tooth.geometry.shadowPath" /></clipPath>
       </defs>
 
       <path class="anatomy-zone" d="M94 243 Q204.5 79 315 243 Q204.5 309 94 243Z" fill="url(#palate-wash)" />
@@ -241,14 +292,20 @@ function tooltipStyle(tooth: number): Record<string, string> {
       <text x="204.5" y="488" class="anatomy-label">LENGUA</text>
 
       <g v-for="tooth in displayedTeeth" :key="tooth.number" :transform="tooth.transform" :class="['tooth', `condition-${conditionFor(tooth.number)}`, `lifecycle-${lifecycleFor(tooth.number)}`, { selected: selectedTooth === tooth.number }]" role="button" tabindex="0" :aria-label="ariaLabel(tooth.number)" :aria-pressed="selectedTooth === tooth.number" @mouseenter="hoveredTooth = tooth.number" @mouseleave="hoveredTooth = null" @focus="hoveredTooth = tooth.number" @blur="hoveredTooth = null" @click="selectTooth(tooth.number)" @keydown.enter.prevent="selectTooth(tooth.number)" @keydown.space.prevent="selectTooth(tooth.number)">
-        <path class="tooth-fill" :d="tooth.geometry.shadowPath" :fill="visualFor(tooth.number).fill" />
-        <path class="tooth-outline" :d="tooth.geometry.outlinePath" :stroke="visualFor(tooth.number).stroke" />
-        <path v-for="detail in Array.isArray(tooth.geometry.lineHighlightPath) ? tooth.geometry.lineHighlightPath : [tooth.geometry.lineHighlightPath]" :key="detail" class="tooth-detail" :d="detail" :stroke="visualFor(tooth.number).stroke" />
+        <path class="tooth-fill" :d="tooth.geometry.shadowPath" :fill="wholeToothVisual(tooth.number).fill" />
+        <g :clip-path="`url(#${clipId(tooth.number)})`" class="tooth-surface-layer" aria-hidden="true">
+          <template v-for="patch in surfacePatches(tooth)" :key="`${tooth.number}-${patch.surface}`">
+            <path v-if="patch.path" class="tooth-surface-patch" :d="patch.path" :fill="patch.fill" :stroke="patch.stroke" />
+            <circle v-else class="tooth-surface-patch" :cx="patch.cx" :cy="patch.cy" :r="patch.radius" :fill="patch.fill" :stroke="patch.stroke" />
+          </template>
+        </g>
+        <path class="tooth-outline" :d="tooth.geometry.outlinePath" :stroke="wholeToothVisual(tooth.number).stroke" />
+        <path v-for="detail in Array.isArray(tooth.geometry.lineHighlightPath) ? tooth.geometry.lineHighlightPath : [tooth.geometry.lineHighlightPath]" :key="detail" class="tooth-detail" :d="detail" :stroke="wholeToothVisual(tooth.number).stroke" />
       </g>
 
       <g v-for="tooth in displayedTeeth" :key="`overlay-${tooth.number}`" class="tooth-overlay" aria-hidden="true">
-        <circle v-if="surfaceSymbol(tooth.number)" :cx="tooth.center.x" :cy="tooth.center.y" r="9" :fill="visualFor(tooth.number).stroke" class="surface-badge" />
-        <text v-if="surfaceSymbol(tooth.number)" :x="tooth.center.x" :y="tooth.center.y + 0.5" class="surface-symbol">{{ surfaceSymbol(tooth.number) }}</text>
+        <circle v-if="surfaceSymbol(tooth.number) && !hasSurfaceStates(tooth.number)" :cx="tooth.center.x" :cy="tooth.center.y" r="9" :fill="visualFor(tooth.number).stroke" class="surface-badge" />
+        <text v-if="surfaceSymbol(tooth.number) && !hasSurfaceStates(tooth.number)" :x="tooth.center.x" :y="tooth.center.y + 0.5" class="surface-symbol">{{ surfaceSymbol(tooth.number) }}</text>
         <text v-else-if="statusSymbol(tooth.number)" :x="tooth.center.x" :y="tooth.center.y + 1" class="status-symbol" :fill="visualFor(tooth.number).stroke">{{ statusSymbol(tooth.number) }}</text>
         <rect v-if="selectedTooth === tooth.number" :x="tooth.label.x - 15" :y="tooth.label.y - 11" width="30" height="22" rx="11" class="selected-label-bg" />
         <text :x="tooth.label.x" :y="tooth.label.y" class="tooth-number" :class="{ selected: selectedTooth === tooth.number }">{{ tooth.number }}</text>
@@ -293,6 +350,7 @@ function tooltipStyle(tooth: number): Record<string, string> {
 .anatomy-label { fill: #98a2b3; font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-anchor: middle; }
 .tooth { cursor: pointer; outline: none; }
 .tooth-fill { opacity: 0.72; transition: fill 160ms ease, opacity 160ms ease; }
+.tooth-surface-patch { stroke-width: 1.4; opacity: 0.94; vector-effect: non-scaling-stroke; }
 .tooth-outline, .tooth-detail { fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke 160ms ease, stroke-width 160ms ease, opacity 160ms ease; }
 .tooth-outline { stroke-width: 2; }
 .tooth-detail { stroke-width: 1; opacity: 0.75; }
