@@ -63,7 +63,7 @@ const verificationStatuses: Array<{ value: VerificationStatus; label: string }> 
 
 const dentition = ref<'permanent' | 'primary'>(props.odontogram.type === 'pediatric' ? 'primary' : 'permanent')
 const selectedTooth = ref(dentition.value === 'primary' ? 51 : 11)
-const historyScope = ref<'selected' | 'all'>('selected')
+const historyScope = ref<'surface' | 'selected' | 'all'>('selected')
 const historySection = ref<HTMLElement | null>(null)
 const savedEntryNotice = ref(false)
 const loadedEntry = ref<EntryLog | null>(null)
@@ -74,7 +74,14 @@ const riskForm = useForm<{ caries_risk_level: string; caries_risk_factors: strin
 const arches = computed(() => dentition.value === 'permanent' ? { upper: permanentUpper, lower: permanentLower, count: 32, label: 'Permanente' } : { upper: primaryUpper, lower: primaryLower, count: 20, label: 'Temporal' })
 const selectedData = computed(() => props.matrix[selectedTooth.value])
 const selectedEntries = computed(() => props.entries.filter((entry) => entry.tooth_number === selectedTooth.value))
-const visibleEntries = computed(() => historyScope.value === 'selected' ? selectedEntries.value : props.entries)
+const activeHistorySurface = computed<Exclude<SurfaceKey, 'all'> | null>(() => form.surfaces.length === 1 && form.surfaces[0] !== 'all' ? form.surfaces[0] as Exclude<SurfaceKey, 'all'> : null)
+const visibleEntries = computed(() => {
+    if (historyScope.value === 'all') return props.entries
+    if (historyScope.value === 'surface' && activeHistorySurface.value) {
+        return selectedEntries.value.filter((entry) => entrySurfaceValues(entry).some((surface) => surface === activeHistorySurface.value || surface === 'all'))
+    }
+    return selectedEntries.value
+})
 const allergies = computed(() => props.patient.medical_history?.allergies || [])
 const systemicConditions = computed(() => props.patient.medical_history?.systemic_conditions || [])
 const selectedDentalFiles = computed(() => props.dentalFiles.filter((file) => !file.tooth_number || file.tooth_number === selectedTooth.value))
@@ -111,8 +118,9 @@ const quoteUrl = computed(() => {
 })
 
 function latestEntryFor(tooth: number): EntryLog | undefined { return props.entries.find((entry) => entry.tooth_number === tooth) }
+function entrySurfaceValues(entry: EntryLog): SurfaceKey[] { return entry.surfaces?.length ? entry.surfaces : [entry.surface] }
 function latestEntryForSurface(tooth: number, surface: Exclude<SurfaceKey, 'all'>): EntryLog | undefined {
-    return props.entries.find((entry) => entry.tooth_number === tooth && (entry.surfaces?.length ? entry.surfaces : [entry.surface]).some((value) => value === surface || value === 'all'))
+    return props.entries.find((entry) => entry.tooth_number === tooth && entrySurfaceValues(entry).some((value) => value === surface || value === 'all'))
 }
 function populateFormFromTooth(tooth: number, surface?: Exclude<SurfaceKey, 'all'>) {
     const entry = surface ? latestEntryForSurface(tooth, surface) : latestEntryFor(tooth)
@@ -150,7 +158,7 @@ function selectTooth(tooth: number) {
 }
 function selectSurface(tooth: number, surface: Exclude<SurfaceKey, 'all'>) {
     selectedTooth.value = tooth
-    historyScope.value = 'selected'
+    historyScope.value = 'surface'
     savedEntryNotice.value = false
     populateFormFromTooth(tooth, surface)
 }
@@ -161,9 +169,19 @@ function lifecycleLabel(lifecycle: LifecycleKey) { return lifecycleOptions.find(
 function lifecycleClass(lifecycle: LifecycleKey) { if (lifecycle === 'completed') return 'bg-[#ECFDF3] text-[#027A48] border-[#ABEFC6]'; if (lifecycle === 'approved') return 'bg-[#EFF8FF] text-[#175CD3] border-[#B2DDFF]'; if (lifecycle === 'planned') return 'bg-[#FFFAEB] text-[#B54708] border-[#FEDF89]'; return 'bg-[#FFF1F0] text-[#B42318] border-[#FECDCA]' }
 function formatDate(value: string) { return new Intl.DateTimeFormat('es-DO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) }
 function entryTypeForCondition(condition: ConditionKey): EntryType { if (['caries', 'fracture'].includes(condition)) return 'diagnosis'; if (condition === 'missing') return 'anatomical_state'; if (condition === 'implant') return 'device'; if (['restored_composite', 'restored_amalgam', 'crown', 'endodontic', 'prosthesis', 'sealant'].includes(condition)) return 'procedure'; return 'finding' }
-function toggleSurface(surface: SurfaceKey) { if (surface === 'all') { form.surfaces = ['all']; return } const next = form.surfaces.filter((value) => value !== 'all'); form.surfaces = next.includes(surface) ? next.filter((value) => value !== surface) : [...next, surface]; if (!form.surfaces.length) form.surfaces = ['all'] }
+function toggleSurface(surface: SurfaceKey) {
+    if (surface === 'all') {
+        form.surfaces = ['all']
+        historyScope.value = 'selected'
+        return
+    }
+    const next = form.surfaces.filter((value) => value !== 'all')
+    form.surfaces = next.includes(surface) ? next.filter((value) => value !== surface) : [...next, surface]
+    if (!form.surfaces.length) form.surfaces = ['all']
+    historyScope.value = form.surfaces.length === 1 && form.surfaces[0] !== 'all' ? 'surface' : 'selected'
+}
 function toggleAmendment() { amendmentMode.value = !amendmentMode.value; form.supersedes_entry_id = amendmentMode.value ? loadedEntry.value?.id || null : null; if (!amendmentMode.value) form.amendment_reason = '' }
-function resetForm() { loadedEntry.value = null; amendmentMode.value = false; form.surfaces = ['all']; form.condition = 'caries'; form.entry_type = 'diagnosis'; form.clinical_status = 'active'; form.verification_status = 'confirmed'; form.lifecycle_state = 'initial_diagnosis'; form.notes = ''; form.supersedes_entry_id = null; form.amendment_reason = ''; form.clearErrors() }
+function resetForm() { loadedEntry.value = null; amendmentMode.value = false; historyScope.value = 'selected'; form.surfaces = ['all']; form.condition = 'caries'; form.entry_type = 'diagnosis'; form.clinical_status = 'active'; form.verification_status = 'confirmed'; form.lifecycle_state = 'initial_diagnosis'; form.notes = ''; form.supersedes_entry_id = null; form.amendment_reason = ''; form.clearErrors() }
 function submitRisk() { riskForm.post(appUrl(`/patients/${props.patient.id}/odontogram/caries-risk`), { preserveScroll: true }) }
 function submitEntry() {
     form.tooth_number = selectedTooth.value
@@ -171,7 +189,7 @@ function submitEntry() {
     form.post(appUrl(`/patients/${props.patient.id}/odontogram/entries`), {
         preserveScroll: true,
         onSuccess: () => {
-            historyScope.value = 'selected'
+            historyScope.value = form.surfaces.length === 1 && form.surfaces[0] !== 'all' ? 'surface' : 'selected'
             savedEntryNotice.value = true
             nextTick(() => {
                 populateFormFromTooth(selectedTooth.value)
@@ -235,10 +253,10 @@ watch(() => form.condition, (condition) => { if (!loadedEntry.value || !amendmen
         </section>
 
         <section ref="historySection" class="scroll-mt-20 border border-[#D8E0DE] bg-white shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
-<header class="flex flex-col gap-3 border-b border-[#D8E0DE] bg-[#F7FAF9] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="flex items-center gap-2 text-sm font-bold"><History class="h-4 w-4 text-[#005C55]" />Trazabilidad del odontograma</h2><p class="mt-0.5 text-xs text-[#64748B]">Diagnósticos y transiciones conservados en orden cronológico inverso.</p></div><div class="inline-flex w-fit border border-[#9AAEAA] bg-white p-0.5"><button type="button" class="h-8 px-3 text-xs font-semibold" :class="historyScope === 'selected' ? 'bg-[#005C55] text-white' : 'text-[#52615E]'" @click="historyScope = 'selected'">Pieza {{ selectedTooth }}</button><button type="button" class="h-8 px-3 text-xs font-semibold" :class="historyScope === 'all' ? 'bg-[#005C55] text-white' : 'text-[#52615E]'" @click="historyScope = 'all'">Todo el historial</button></div></header>
-            <div v-if="savedEntryNotice" class="flex items-start gap-2 border-b border-[#ABEFC6] bg-[#ECFDF3] px-4 py-3 text-xs text-[#027A48]" role="status"><CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0" /><span><strong>Registro guardado.</strong> Aquí puedes consultar la ficha y todo el historial de la pieza {{ selectedTooth }}.</span></div>
+<header class="flex flex-col gap-3 border-b border-[#D8E0DE] bg-[#F7FAF9] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="flex items-center gap-2 text-sm font-bold"><History class="h-4 w-4 text-[#005C55]" />Trazabilidad del odontograma</h2><p class="mt-0.5 text-xs text-[#64748B]">Diagnósticos y transiciones conservados en orden cronológico inverso.</p></div><div class="inline-flex w-fit flex-wrap border border-[#9AAEAA] bg-white p-0.5"><button v-if="activeHistorySurface" type="button" class="h-8 px-3 text-xs font-semibold" :class="historyScope === 'surface' ? 'bg-[#005C55] text-white' : 'text-[#52615E]'" @click="historyScope = 'surface'">{{ surfaceLabel(activeHistorySurface) }}</button><button type="button" class="h-8 px-3 text-xs font-semibold" :class="historyScope === 'selected' ? 'bg-[#005C55] text-white' : 'text-[#52615E]'" @click="historyScope = 'selected'">Pieza {{ selectedTooth }}</button><button type="button" class="h-8 px-3 text-xs font-semibold" :class="historyScope === 'all' ? 'bg-[#005C55] text-white' : 'text-[#52615E]'" @click="historyScope = 'all'">Todo el historial</button></div></header>
+            <div v-if="savedEntryNotice" class="flex items-start gap-2 border-b border-[#ABEFC6] bg-[#ECFDF3] px-4 py-3 text-xs text-[#027A48]" role="status"><CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0" /><span><strong>Registro guardado.</strong> Aquí puedes consultar {{ historyScope === 'surface' && activeHistorySurface ? `la superficie ${surfaceLabel(activeHistorySurface).toLowerCase()}` : `todo el historial de la pieza ${selectedTooth}` }}.</span></div>
             <div v-if="visibleEntries.length" class="divide-y divide-[#E4E7EC]"><article v-for="entry in visibleEntries" :key="entry.id" class="grid gap-3 px-4 py-3 sm:grid-cols-[70px_minmax(160px,1fr)_minmax(170px,1.4fr)_auto] sm:items-center"><div><span class="font-mono text-lg font-bold text-[#005C55]">{{ entry.tooth_number }}</span><p class="text-[10px] text-[#98A2B3]">Pieza FDI</p></div><div><p class="text-sm font-semibold">{{ conditionLabel(entry.condition) }}</p><p class="mt-0.5 text-xs text-[#64748B]">{{ (entry.surfaces || [entry.surface]).map(surfaceLabel).join(' · ') }}</p><p class="mt-1 text-[10px] font-bold uppercase text-[#006B63]">{{ entryTypes.find(type => type.value === entry.entry_type)?.label || 'Hallazgo' }} · {{ verificationStatuses.find(status => status.value === entry.verification_status)?.label || 'Confirmado' }}</p></div><div><p class="text-xs text-[#344054]">{{ entry.notes || 'Sin observaciones adicionales.' }}</p><p v-if="entry.amendment_reason" class="mt-1 text-[10px] font-semibold text-[#B54708]">Corrección: {{ entry.amendment_reason }}</p><p class="mt-1 flex items-center gap-1 text-[10px] text-[#98A2B3]"><Clock3 class="h-3 w-3" />{{ formatDate(entry.recorded_at) }} · {{ entry.recorded_by?.name || 'Usuario del sistema' }}</p></div><span class="w-fit border px-2 py-1 text-[10px] font-bold" :class="lifecycleClass(entry.lifecycle_state)">{{ lifecycleLabel(entry.lifecycle_state) }}</span></article></div>
-            <div v-else class="grid min-h-40 place-items-center p-6 text-center"><div><FileClock class="mx-auto h-8 w-8 text-[#98A2B3]" /><p class="mt-2 text-sm font-semibold text-[#344054]">Sin registros para esta pieza</p><p class="mt-1 text-xs text-[#64748B]">Selecciona una superficie y documenta el primer hallazgo clínico.</p></div></div>
+            <div v-else class="grid min-h-40 place-items-center p-6 text-center"><div><FileClock class="mx-auto h-8 w-8 text-[#98A2B3]" /><p class="mt-2 text-sm font-semibold text-[#344054]">{{ historyScope === 'surface' && activeHistorySurface ? `Sin registros en ${surfaceLabel(activeHistorySurface).toLowerCase()}` : 'Sin registros para esta pieza' }}</p><p class="mt-1 text-xs text-[#64748B]">{{ historyScope === 'surface' ? 'Documenta el primer hallazgo clínico de esta superficie.' : 'Selecciona una superficie y documenta el primer hallazgo clínico.' }}</p></div></div>
         </section>
         <footer class="flex flex-wrap items-center justify-between gap-2 pb-3 text-[11px] text-[#64748B]"><span class="inline-flex items-center gap-1.5"><Stethoscope class="h-3.5 w-3.5" />Notación FDI · {{ arches.label }} · {{ arches.count }} piezas</span><span class="inline-flex items-center gap-1.5"><CheckCircle2 class="h-3.5 w-3.5 text-[#027A48]" />{{ entries.length }} eventos clínicos trazables</span></footer>
     </main>
