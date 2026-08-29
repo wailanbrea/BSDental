@@ -94,6 +94,7 @@ Route::group([], function () {
 
         Route::middleware([RequireTenantTwoFactor::class, 'branch.access'])->group(function () {
             Route::get('/dashboard', [ClinicDashboardController::class, 'index'])->name('clinic.dashboard');
+            Route::get('/session/keep-alive', static fn () => response()->noContent())->name('clinic.session.keep_alive');
 
             Route::get('/notifications', [NotificationCenterController::class, 'index'])->name('clinic.notifications.index');
             Route::patch('/notifications/read-all', [NotificationCenterController::class, 'markAllRead'])->name('clinic.notifications.read_all');

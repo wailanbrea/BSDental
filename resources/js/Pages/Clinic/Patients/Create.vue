@@ -18,7 +18,7 @@ import {
     UsersRound,
     X,
 } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 interface DuplicateCandidate {
     id: string
@@ -116,6 +116,25 @@ const newCondition = ref('')
 const newMedication = ref('')
 const newTag = ref('')
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let keepAliveTimer: ReturnType<typeof setInterval> | null = null
+
+function keepSessionAlive() {
+    void fetch(appUrl('/session/keep-alive'), {
+        cache: 'no-store',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+    })
+}
+
+onMounted(() => {
+    keepSessionAlive()
+    keepAliveTimer = setInterval(keepSessionAlive, 15 * 60 * 1000)
+})
+
+onUnmounted(() => {
+    if (keepAliveTimer) clearInterval(keepAliveTimer)
+    if (debounceTimer) clearTimeout(debounceTimer)
+})
 
 function addUnique(target: string[], input: string) {
     const value = input.trim()
