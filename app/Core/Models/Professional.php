@@ -118,6 +118,7 @@ class Professional extends Model
         return $this->belongsToMany(Specialty::class, 'professional_specialty');
     }
 
+    /** @return HasOne<Employee, $this> */
     public function employee(): HasOne
     {
         return $this->hasOne(Employee::class);

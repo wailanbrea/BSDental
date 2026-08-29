@@ -51,6 +51,7 @@ class QuoteItem extends Model
     protected $fillable = [
         'id',
         'quote_id',
+        'clinical_plan_item_id',
         'procedure_id',
         'tooth_number',
         'surface',
@@ -92,6 +93,12 @@ class QuoteItem extends Model
     public function quote(): BelongsTo
     {
         return $this->belongsTo(Quote::class, 'quote_id');
+    }
+
+    /** @return BelongsTo<ClinicalPlanItem, $this> */
+    public function clinicalPlanItem(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalPlanItem::class);
     }
 
     /**

@@ -82,6 +82,7 @@ class Odontogram extends Model
         return $this->hasMany(OdontogramEntry::class, 'odontogram_id')->orderBy('recorded_at', 'asc');
     }
 
+    /** @return HasMany<PeriodontalExam, $this> */
     public function periodontalExams(): HasMany
     {
         return $this->hasMany(PeriodontalExam::class, 'odontogram_id');

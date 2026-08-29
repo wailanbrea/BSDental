@@ -10,6 +10,7 @@ use App\Core\Controllers\BillingController;
 use App\Core\Controllers\BranchController;
 use App\Core\Controllers\CashRegisterController;
 use App\Core\Controllers\ClinicalEncounterController;
+use App\Core\Controllers\ClinicalPlanController;
 use App\Core\Controllers\ClinicDashboardController;
 use App\Core\Controllers\ClinicSettingsController;
 use App\Core\Controllers\ClinicUserController;
@@ -33,6 +34,7 @@ use App\Platform\Auth\Middleware\RequirePlatformTwoFactor;
 use App\Platform\Controllers\PlatformDashboardController;
 use App\Platform\Controllers\PlatformOperationsController;
 use App\Platform\Controllers\PlatformTenantController;
+use App\Platform\Tenancy\Middleware\EnsureModuleEntitlement;
 use App\Platform\Tenancy\Middleware\PreventCentralDomainFromAccessingTenantDb;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -153,6 +155,12 @@ Route::group([], function () {
             Route::post('/encounters/{id}/finalize', [ClinicalEncounterController::class, 'finalize'])->middleware('permission:clinical.finalize')->name('clinic.encounters.finalize');
             Route::post('/encounters/{id}/amend', [ClinicalEncounterController::class, 'amend'])->middleware('permission:clinical.finalize')->name('clinic.encounters.amend');
 
+            // Clinical plans are proposals; they become executable only through quote approval.
+            Route::get('/encounters/{encounterId}/clinical-plans/create', [ClinicalPlanController::class, 'create'])->middleware('permission:clinical.write')->name('clinic.clinical_plans.create');
+            Route::post('/encounters/{encounterId}/clinical-plans', [ClinicalPlanController::class, 'store'])->middleware('permission:clinical.write')->name('clinic.clinical_plans.store');
+            Route::get('/clinical-plans/{id}', [ClinicalPlanController::class, 'show'])->middleware('permission:clinical.view')->name('clinic.clinical_plans.show');
+            Route::post('/clinical-plans/{id}/quotes', [ClinicalPlanController::class, 'convertToQuote'])->middleware('permission:quotes.create')->name('clinic.clinical_plans.convert_to_quote');
+
             // Odontogram FDI
             Route::get('/patients/{patientId}/odontogram', [OdontogramController::class, 'show'])->middleware('permission:odontogram.view')->name('clinic.odontogram.show');
             Route::post('/patients/{patientId}/odontogram/entries', [OdontogramController::class, 'storeEntry'])->middleware('permission:odontogram.write')->name('clinic.odontogram.store_entry');
@@ -185,57 +193,57 @@ Route::group([], function () {
             Route::post('/treatment-items/{itemId}/complete', [TreatmentPlanController::class, 'completeItem'])->middleware('permission:clinical.write')->name('clinic.treatment_items.complete');
 
             // Inventory & Stock Ledger
-            Route::get('/inventory', [InventoryController::class, 'index'])->middleware('permission:inventory.view')->name('clinic.inventory.index');
-            Route::get('/inventory/items/{id}/kardex', [InventoryController::class, 'kardex'])->middleware('permission:inventory.view')->name('clinic.inventory.kardex');
-            Route::post('/inventory/items', [InventoryController::class, 'storeItem'])->middleware('permission:inventory.adjust')->name('clinic.inventory.store_item');
-            Route::post('/inventory/purchases', [InventoryController::class, 'recordPurchase'])->middleware('permission:inventory.purchase')->name('clinic.inventory.record_purchase');
-            Route::post('/inventory/adjustments', [InventoryController::class, 'recordAdjustment'])->middleware('permission:inventory.adjust')->name('clinic.inventory.record_adjustment');
+            Route::get('/inventory', [InventoryController::class, 'index'])->middleware([EnsureModuleEntitlement::class.':inventory', 'permission:inventory.view'])->name('clinic.inventory.index');
+            Route::get('/inventory/items/{id}/kardex', [InventoryController::class, 'kardex'])->middleware([EnsureModuleEntitlement::class.':inventory', 'permission:inventory.view'])->name('clinic.inventory.kardex');
+            Route::post('/inventory/items', [InventoryController::class, 'storeItem'])->middleware([EnsureModuleEntitlement::class.':inventory', 'permission:inventory.adjust'])->name('clinic.inventory.store_item');
+            Route::post('/inventory/purchases', [InventoryController::class, 'recordPurchase'])->middleware([EnsureModuleEntitlement::class.':inventory', 'permission:inventory.purchase'])->name('clinic.inventory.record_purchase');
+            Route::post('/inventory/adjustments', [InventoryController::class, 'recordAdjustment'])->middleware([EnsureModuleEntitlement::class.':inventory', 'permission:inventory.adjust'])->name('clinic.inventory.record_adjustment');
 
             // Dental Laboratory & Prosthesis
-            Route::get('/lab', [DentalLabController::class, 'index'])->middleware('permission:lab.view')->name('clinic.lab.index');
-            Route::post('/lab/orders', [DentalLabController::class, 'storeOrder'])->middleware('permission:lab.order')->name('clinic.lab.store_order');
-            Route::post('/lab/orders/{id}/status', [DentalLabController::class, 'updateStatus'])->middleware('permission:lab.receive')->name('clinic.lab.update_status');
-            Route::post('/lab/orders/{id}/quality', [DentalLabController::class, 'receiveQuality'])->middleware('permission:lab.receive')->name('clinic.lab.receive_quality');
-            Route::post('/lab/orders/{id}/remake', [DentalLabController::class, 'remake'])->middleware('permission:lab.order')->name('clinic.lab.remake');
+            Route::get('/lab', [DentalLabController::class, 'index'])->middleware([EnsureModuleEntitlement::class.':lab', 'permission:lab.view'])->name('clinic.lab.index');
+            Route::post('/lab/orders', [DentalLabController::class, 'storeOrder'])->middleware([EnsureModuleEntitlement::class.':lab', 'permission:lab.order'])->name('clinic.lab.store_order');
+            Route::post('/lab/orders/{id}/status', [DentalLabController::class, 'updateStatus'])->middleware([EnsureModuleEntitlement::class.':lab', 'permission:lab.receive'])->name('clinic.lab.update_status');
+            Route::post('/lab/orders/{id}/quality', [DentalLabController::class, 'receiveQuality'])->middleware([EnsureModuleEntitlement::class.':lab', 'permission:lab.receive'])->name('clinic.lab.receive_quality');
+            Route::post('/lab/orders/{id}/remake', [DentalLabController::class, 'remake'])->middleware([EnsureModuleEntitlement::class.':lab', 'permission:lab.order'])->name('clinic.lab.remake');
 
             // Patient Billing & Invoicing
-            Route::get('/patients/{patientId}/billing', [BillingController::class, 'index'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.index');
-            Route::get('/patients/{patientId}/billing/statement', [BillingController::class, 'showStatement'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.statement');
-            Route::post('/patients/{patientId}/billing/charges', [BillingController::class, 'storeCharge'])->middleware('permission:payments.create')->name('clinic.billing.store_charge');
-            Route::post('/patients/{patientId}/billing/payments', [BillingController::class, 'storePayment'])->middleware('permission:payments.create')->name('clinic.billing.store_payment');
-            Route::get('/charges/{chargeId}', [BillingController::class, 'showCharge'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.charge');
-            Route::post('/charges/{chargeId}/adjustments', [BillingController::class, 'storeAdjustment'])->middleware('permission:payments.create')->name('clinic.billing.adjustment');
-            Route::get('/payments/{paymentId}', [BillingController::class, 'showPayment'])->middleware('permission:payments.view|finance.view')->name('clinic.billing.payment');
-            Route::post('/payments/{paymentId}/allocate', [BillingController::class, 'allocate'])->middleware('permission:payments.create')->name('clinic.billing.allocate');
-            Route::post('/payments/{paymentId}/refund', [BillingController::class, 'refund'])->middleware('permission:payments.refund')->name('clinic.billing.refund');
-            Route::get('/billing/aging-receivables', [BillingController::class, 'agingReport'])->middleware('permission:finance.reports')->name('clinic.billing.aging');
+            Route::get('/patients/{patientId}/billing', [BillingController::class, 'index'])->middleware([EnsureModuleEntitlement::class.':billing', 'permission:payments.view|finance.view'])->name('clinic.billing.index');
+            Route::get('/patients/{patientId}/billing/statement', [BillingController::class, 'showStatement'])->middleware([EnsureModuleEntitlement::class.':billing', 'permission:payments.view|finance.view'])->name('clinic.billing.statement');
+            Route::post('/patients/{patientId}/billing/charges', [BillingController::class, 'storeCharge'])->middleware([EnsureModuleEntitlement::class.':billing', 'permission:payments.create'])->name('clinic.billing.store_charge');
+            Route::post('/patients/{patientId}/billing/payments', [BillingController::class, 'storePayment'])->middleware([EnsureModuleEntitlement::class.':billing', 'permission:payments.create'])->name('clinic.billing.store_payment');
+            Route::get('/charges/{chargeId}', [BillingController::class, 'showCharge'])->middleware([EnsureModuleEntitlement::class.':billing', 'permission:payments.view|finance.view'])->name('clinic.billing.charge');
+            Route::post('/charges/{chargeId}/adjustments', [BillingController::class, 'storeAdjustment'])->middleware([EnsureModuleEntitlement::class.':billing', 'permission:payments.create'])->name('clinic.billing.adjustment');
+            Route::get('/payments/{paymentId}', [BillingController::class, 'showPayment'])->middleware([EnsureModuleEntitlement::class.':billing', 'permission:payments.view|finance.view'])->name('clinic.billing.payment');
+            Route::post('/payments/{paymentId}/allocate', [BillingController::class, 'allocate'])->middleware([EnsureModuleEntitlement::class.':billing', 'permission:payments.allocate'])->name('clinic.billing.allocate');
+            Route::post('/payments/{paymentId}/refund', [BillingController::class, 'refund'])->middleware([EnsureModuleEntitlement::class.':billing', 'permission:payments.refund'])->name('clinic.billing.refund');
+            Route::get('/billing/aging-receivables', [BillingController::class, 'agingReport'])->middleware([EnsureModuleEntitlement::class.':billing', 'permission:finance.reports'])->name('clinic.billing.aging');
 
             // Payroll & Professional Commissions
-            Route::get('/payroll', [PayrollController::class, 'index'])->middleware('permission:finance.reports')->name('clinic.payroll.index');
-            Route::post('/payroll/employees', [PayrollController::class, 'storeEmployee'])->middleware('permission:finance.reports')->name('clinic.payroll.employees.store');
-            Route::put('/payroll/employees/{employee}', [PayrollController::class, 'updateEmployee'])->middleware('permission:finance.reports')->name('clinic.payroll.employees.update');
-            Route::post('/payroll/runs', [PayrollController::class, 'storeRun'])->middleware('permission:finance.reports')->name('clinic.payroll.runs.store');
-            Route::post('/payroll/runs/{run}/pay', [PayrollController::class, 'payRun'])->middleware('permission:finance.reports')->name('clinic.payroll.runs.pay');
+            Route::get('/payroll', [PayrollController::class, 'index'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:finance.reports'])->name('clinic.payroll.index');
+            Route::post('/payroll/employees', [PayrollController::class, 'storeEmployee'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:finance.reports'])->name('clinic.payroll.employees.store');
+            Route::put('/payroll/employees/{employee}', [PayrollController::class, 'updateEmployee'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:finance.reports'])->name('clinic.payroll.employees.update');
+            Route::post('/payroll/runs', [PayrollController::class, 'storeRun'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:finance.reports'])->name('clinic.payroll.runs.store');
+            Route::post('/payroll/runs/{run}/pay', [PayrollController::class, 'payRun'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:finance.reports'])->name('clinic.payroll.runs.pay');
 
             // Cash Registers & Sessions
-            Route::get('/cash-registers', [CashRegisterController::class, 'index'])->middleware('permission:cash.view')->name('clinic.cash.index');
-            Route::post('/cash-registers/{id}/open', [CashRegisterController::class, 'open'])->middleware('permission:cash.open')->name('clinic.cash.open');
-            Route::get('/cash-sessions/{id}', [CashRegisterController::class, 'showSession'])->middleware('permission:cash.view')->name('clinic.cash.session');
-            Route::get('/cash-sessions/{id}/export', [CashRegisterController::class, 'exportSession'])->middleware('permission:cash.view|finance.reports')->name('clinic.cash.session_export');
-            Route::post('/cash-sessions/{id}/movements', [CashRegisterController::class, 'storeMovement'])->middleware('permission:cash.open|cash.close')->name('clinic.cash.movement');
-            Route::post('/cash-sessions/{id}/close', [CashRegisterController::class, 'close'])->middleware('permission:cash.close')->name('clinic.cash.close');
-            Route::post('/cash-sessions/{id}/reopen', [CashRegisterController::class, 'reopen'])->middleware('permission:cash.reopen')->name('clinic.cash.reopen');
+            Route::get('/cash-registers', [CashRegisterController::class, 'index'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:cash.view'])->name('clinic.cash.index');
+            Route::post('/cash-registers/{id}/open', [CashRegisterController::class, 'open'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:cash.open'])->name('clinic.cash.open');
+            Route::get('/cash-sessions/{id}', [CashRegisterController::class, 'showSession'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:cash.view'])->name('clinic.cash.session');
+            Route::get('/cash-sessions/{id}/export', [CashRegisterController::class, 'exportSession'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:cash.view|finance.reports'])->name('clinic.cash.session_export');
+            Route::post('/cash-sessions/{id}/movements', [CashRegisterController::class, 'storeMovement'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:cash.open|cash.close'])->name('clinic.cash.movement');
+            Route::post('/cash-sessions/{id}/close', [CashRegisterController::class, 'close'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:cash.close'])->name('clinic.cash.close');
+            Route::post('/cash-sessions/{id}/reopen', [CashRegisterController::class, 'reopen'])->middleware([EnsureModuleEntitlement::class.':finance', 'permission:cash.reopen'])->name('clinic.cash.reopen');
 
             // CRM, Recalls & Follow-up
-            Route::get('/crm', [CrmFollowUpController::class, 'index'])->middleware('permission:crm.view')->name('clinic.crm.index');
-            Route::post('/crm/tasks', [CrmFollowUpController::class, 'storeTask'])->middleware('permission:crm.manage')->name('clinic.crm.store_task');
-            Route::post('/crm/tasks/{id}/complete', [CrmFollowUpController::class, 'completeTask'])->middleware('permission:crm.manage')->name('clinic.crm.complete_task');
-            Route::post('/crm/profiles/{id}/stage', [CrmFollowUpController::class, 'updateStage'])->middleware('permission:crm.manage')->name('clinic.crm.update_stage');
-            Route::get('/crm/patients/{id}/whatsapp-link', [CrmFollowUpController::class, 'whatsappLink'])->middleware('permission:crm.view')->name('clinic.crm.whatsapp_link');
+            Route::get('/crm', [CrmFollowUpController::class, 'index'])->middleware([EnsureModuleEntitlement::class.':marketing', 'permission:crm.view'])->name('clinic.crm.index');
+            Route::post('/crm/tasks', [CrmFollowUpController::class, 'storeTask'])->middleware([EnsureModuleEntitlement::class.':marketing', 'permission:crm.manage'])->name('clinic.crm.store_task');
+            Route::post('/crm/tasks/{id}/complete', [CrmFollowUpController::class, 'completeTask'])->middleware([EnsureModuleEntitlement::class.':marketing', 'permission:crm.manage'])->name('clinic.crm.complete_task');
+            Route::post('/crm/profiles/{id}/stage', [CrmFollowUpController::class, 'updateStage'])->middleware([EnsureModuleEntitlement::class.':marketing', 'permission:crm.manage'])->name('clinic.crm.update_stage');
+            Route::get('/crm/patients/{id}/whatsapp-link', [CrmFollowUpController::class, 'whatsappLink'])->middleware([EnsureModuleEntitlement::class.':marketing', 'permission:crm.view'])->name('clinic.crm.whatsapp_link');
 
             // Executive Analytics & Reports
-            Route::get('/analytics', [AnalyticsDashboardController::class, 'index'])->middleware('permission:finance.reports')->name('clinic.analytics.index');
-            Route::get('/analytics/export', [AnalyticsDashboardController::class, 'export'])->middleware('permission:finance.reports')->name('clinic.analytics.export');
+            Route::get('/analytics', [AnalyticsDashboardController::class, 'index'])->middleware([EnsureModuleEntitlement::class.':analytics', 'permission:finance.reports'])->name('clinic.analytics.index');
+            Route::get('/analytics/export', [AnalyticsDashboardController::class, 'export'])->middleware([EnsureModuleEntitlement::class.':analytics', 'permission:finance.reports'])->name('clinic.analytics.export');
         });
 
         // WhatsApp Webhook (Signed & Idempotent)

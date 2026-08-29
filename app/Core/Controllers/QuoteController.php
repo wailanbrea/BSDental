@@ -179,7 +179,7 @@ class QuoteController extends Controller
      */
     public function show(string $id): Response
     {
-        $quote = Quote::with(['patient.medicalHistory', 'professional', 'items.procedure', 'treatmentPlan'])->findOrFail($id);
+        $quote = Quote::with(['patient.medicalHistory', 'professional', 'items.procedure', 'items.clinicalPlanItem.clinicalPlan', 'treatmentPlan'])->findOrFail($id);
 
         return Inertia::render('Clinic/Quotes/Show', [
             'quote' => $quote,

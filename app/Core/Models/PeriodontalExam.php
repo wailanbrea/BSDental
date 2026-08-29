@@ -21,8 +21,27 @@ class PeriodontalExam extends Model
         return ['recorded_at' => 'datetime'];
     }
 
-    public function odontogram(): BelongsTo { return $this->belongsTo(Odontogram::class); }
-    public function encounter(): BelongsTo { return $this->belongsTo(ClinicalEncounter::class); }
-    public function recordedBy(): BelongsTo { return $this->belongsTo(User::class, 'recorded_by_user_id'); }
-    public function measurements(): HasMany { return $this->hasMany(PeriodontalMeasurement::class); }
+    /** @return BelongsTo<Odontogram, $this> */
+    public function odontogram(): BelongsTo
+    {
+        return $this->belongsTo(Odontogram::class);
+    }
+
+    /** @return BelongsTo<ClinicalEncounter, $this> */
+    public function encounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function recordedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by_user_id');
+    }
+
+    /** @return HasMany<PeriodontalMeasurement, $this> */
+    public function measurements(): HasMany
+    {
+        return $this->hasMany(PeriodontalMeasurement::class);
+    }
 }

@@ -20,6 +20,7 @@ use App\Platform\Tenancy\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -150,8 +151,8 @@ class ClinicDashboardController extends Controller
                 ->first();
 
             $cashCollectedToday = (float) Payment::whereDate('paid_at', $today)
-                ->where('status', 'completed')
-                ->sum('total_amount');
+                ->where('status', '!=', 'cancelled')
+                ->sum(DB::raw('total_amount - refunded_amount'));
 
             $pendingCharges = PatientCharge::whereIn('status', ['pending', 'partially_paid'])
                 ->with('patient:id,first_name,last_name,record_number')
@@ -170,7 +171,7 @@ class ClinicDashboardController extends Controller
                 ]);
 
             $recentPayments = Payment::whereDate('paid_at', $today)
-                ->where('status', 'completed')
+                ->where('status', '!=', 'cancelled')
                 ->with(['patient:id,first_name,last_name,record_number', 'splits'])
                 ->orderByDesc('paid_at')
                 ->take(8)
@@ -313,8 +314,8 @@ class ClinicDashboardController extends Controller
         }
         if ($canViewPayments) {
             $netCollectedToday = (float) Payment::whereDate('paid_at', $today)
-                ->whereNotIn('status', ['cancelled', 'refunded'])
-                ->sum('total_amount');
+                ->where('status', '!=', 'cancelled')
+                ->sum(DB::raw('total_amount - refunded_amount'));
 
             $accountsReceivable = (float) PatientCharge::whereIn('status', ['pending', 'partially_paid'])
                 ->sum('balance_due');
@@ -327,7 +328,9 @@ class ClinicDashboardController extends Controller
                 $dayName = $date->locale('es')->isoFormat('ddd D');
 
                 $production = (float) PatientCharge::whereDate('created_at', $date)->sum('total_amount');
-                $collected = (float) Payment::whereDate('paid_at', $date)->whereNotIn('status', ['cancelled', 'refunded'])->sum('total_amount');
+                $collected = (float) Payment::whereDate('paid_at', $date)
+                    ->where('status', '!=', 'cancelled')
+                    ->sum(DB::raw('total_amount - refunded_amount'));
 
                 $financialChart[] = [
                     'day' => ucfirst($dayName),

@@ -1,6 +1,10 @@
 <?php
 
 use App\Core\Auth\Models\User;
+use App\Core\Models\ClinicalDiagnosis;
+use App\Core\Models\ClinicalEncounter;
+use App\Core\Models\ClinicalPlan;
+use App\Core\Models\ClinicalPlanItem;
 use App\Core\Models\Employee;
 use App\Core\Models\Patient;
 use App\Core\Models\PatientMedicalHistory;
@@ -41,6 +45,7 @@ beforeEach(function () {
         'database_name' => $this->dbPathQuo,
         'status' => 'active',
     ]);
+    grantTenantModules($this->tenant, ['finance']);
 
     TenantDomain::create([
         'tenant_id' => $this->tenant->id,
@@ -192,8 +197,15 @@ test('[GATE QUO] Full lifecycle: procedure catalog, quote calculation, approval 
 
     // 5. Execute 1st Treatment Item (Resina Pz 16)
     $item1 = $plan->items()->where('tooth_number', 16)->firstOrFail();
+    $encounter = ClinicalEncounter::create([
+        'patient_id' => $this->patient->id,
+        'professional_id' => $this->professional->id,
+        'encounter_date' => now(),
+        'status' => 'draft',
+    ]);
     $completeResponse = $this->post("http://presupuestos.bsdental.test/treatment-items/{$item1->id}/complete", [
         'professional_id' => $this->professional->id,
+        'encounter_id' => $encounter->id,
     ]);
     $completeResponse->assertRedirect();
 
@@ -210,6 +222,7 @@ test('[GATE QUO] Full lifecycle: procedure catalog, quote calculation, approval 
     $item2 = $plan->items()->whereNull('tooth_number')->firstOrFail();
     $completeResponse2 = $this->post("http://presupuestos.bsdental.test/treatment-items/{$item2->id}/complete", [
         'professional_id' => $this->professional->id,
+        'encounter_id' => $encounter->id,
     ]);
     $completeResponse2->assertRedirect();
 
@@ -265,11 +278,17 @@ test('[FIN PAY] Monthly payroll combines fixed salaries with idempotent producti
         'price' => 1000,
         'status' => 'pending',
     ]);
+    $encounter = ClinicalEncounter::create([
+        'patient_id' => $this->patient->id,
+        'professional_id' => $this->professional->id,
+        'encounter_date' => now(),
+        'status' => 'draft',
+    ]);
 
     app(TreatmentPlanGeneratorService::class)->completeItem(
         $item,
         (string) $this->user->id,
-        null,
+        $encounter,
         $this->professional,
     );
 
@@ -444,4 +463,98 @@ test('[CLN-03] Multi-phased quotes preserve phase structure when converted to ac
     $plan = TreatmentPlan::where('quote_id', $quote->id)->firstOrFail();
     expect($plan->items()->where('phase', 1)->count())->toBe(1)
         ->and($plan->items()->where('phase', 2)->count())->toBe(1);
+});
+
+test('[CLN-04] Clinical plans remain separate from diagnoses and preserve selected-item provenance through quote approval', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $encounter = ClinicalEncounter::create([
+        'patient_id' => $this->patient->id,
+        'professional_id' => $this->professional->id,
+        'encounter_date' => now(),
+        'status' => 'draft',
+    ]);
+    $diagnosis = ClinicalDiagnosis::create([
+        'encounter_id' => $encounter->id,
+        'code' => 'K02.1',
+        'description' => 'Caries de dentina en pieza 16',
+        'type' => 'definitive',
+    ]);
+    $otherEncounter = ClinicalEncounter::create([
+        'patient_id' => $this->patient->id,
+        'professional_id' => $this->professional->id,
+        'encounter_date' => now(),
+        'status' => 'draft',
+    ]);
+    $otherDiagnosis = ClinicalDiagnosis::create([
+        'encounter_id' => $otherEncounter->id,
+        'description' => 'Diagnóstico de otro encuentro',
+        'type' => 'definitive',
+    ]);
+
+    $this->post("http://presupuestos.bsdental.test/encounters/{$encounter->id}/clinical-plans", [
+        'clinical_diagnosis_id' => $otherDiagnosis->id,
+        'title' => 'Plan inválido',
+        'items' => [['procedure_id' => $this->procResina->id, 'quantity' => 1]],
+    ])->assertNotFound();
+
+    $this->post("http://presupuestos.bsdental.test/encounters/{$encounter->id}/clinical-plans", [
+        'clinical_diagnosis_id' => $diagnosis->id,
+        'title' => 'Rehabilitación conservadora',
+        'notes' => 'Resolver caries antes de continuar con la fase preventiva.',
+        'items' => [
+            [
+                'procedure_id' => $this->procResina->id,
+                'tooth_number' => 16,
+                'surface' => 'occlusal_incisal',
+                'quantity' => 1,
+                'clinical_note' => 'Restauración indicada por lesión cariosa activa.',
+                'priority' => 'high',
+                'estimated_minutes' => 45,
+            ],
+            [
+                'procedure_id' => $this->procLimpieza->id,
+                'quantity' => 1,
+                'priority' => 'normal',
+            ],
+        ],
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $clinicalPlan = ClinicalPlan::where('clinical_encounter_id', $encounter->id)->firstOrFail();
+    $selectedItem = $clinicalPlan->items()->where('procedure_id', $this->procResina->id)->firstOrFail();
+    $unselectedItem = $clinicalPlan->items()->where('procedure_id', $this->procLimpieza->id)->firstOrFail();
+
+    expect($clinicalPlan->id)->not->toBe($diagnosis->id)
+        ->and($clinicalPlan->clinical_diagnosis_id)->toBe($diagnosis->id)
+        ->and($clinicalPlan->patient_id)->toBe($this->patient->id)
+        ->and(ClinicalPlanItem::count())->toBe(2);
+
+    $this->post("http://presupuestos.bsdental.test/clinical-plans/{$clinicalPlan->id}/quotes", [
+        'alternative_name' => 'Cotización restauración pieza 16',
+        'item_ids' => [$selectedItem->id],
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $quote = Quote::where('alternative_name', 'Cotización restauración pieza 16')->firstOrFail();
+    $quoteItem = $quote->items()->firstOrFail();
+
+    expect($quote->patient_id)->toBe($this->patient->id)
+        ->and($quoteItem->clinical_plan_item_id)->toBe($selectedItem->id)
+        ->and($quoteItem->unit_price)->toBe(45.0)
+        ->and($quoteItem->tax)->toBe(0.0)
+        ->and($selectedItem->fresh()->status)->toBe('quoted')
+        ->and($unselectedItem->fresh()->status)->toBe('proposed');
+
+    $this->post("http://presupuestos.bsdental.test/quotes/{$quote->id}/approve")->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $treatmentItem = TreatmentPlanItem::where('quote_item_id', $quoteItem->id)->firstOrFail();
+
+    expect($treatmentItem->clinical_plan_item_id)->toBe($selectedItem->id)
+        ->and($treatmentItem->price)->toBe($quoteItem->total)
+        ->and(TenantAuditLog::where('action', 'clinical_plan.created')->exists())->toBeTrue()
+        ->and(TenantAuditLog::where('action', 'clinical_plan.converted_to_quote')->exists())->toBeTrue()
+        ->and(TenantAuditLog::where('action', 'quote.created_from_clinical_plan')->exists())->toBeTrue();
 });

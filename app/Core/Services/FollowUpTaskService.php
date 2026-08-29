@@ -4,6 +4,7 @@ namespace App\Core\Services;
 
 use App\Core\Models\FollowUpTask;
 use App\Core\Models\Patient;
+use App\Core\Models\TreatmentExecution;
 use Carbon\Carbon;
 use InvalidArgumentException;
 
@@ -24,11 +25,13 @@ class FollowUpTaskService
         string $priority = 'medium',
         ?string $appointmentId = null,
         ?string $assignedUserId = null,
-        ?string $notes = null
+        ?string $notes = null,
+        ?TreatmentExecution $execution = null,
     ): FollowUpTask {
         $task = FollowUpTask::create([
             'patient_id' => $patient->id,
             'appointment_id' => $appointmentId,
+            'treatment_execution_id' => $execution?->id,
             'type' => $type,
             'title' => $title,
             'due_date' => $dueDate,
@@ -56,7 +59,7 @@ class FollowUpTaskService
     /**
      * Mark task as completed.
      */
-    public function completeTask(FollowUpTask $task): FollowUpTask
+    public function completeTask(FollowUpTask $task, ?string $completionChannel = null, ?string $completionResult = null): FollowUpTask
     {
         if ($task->status === 'completed') {
             throw new InvalidArgumentException('Esta tarea ya fue completada.');
@@ -65,6 +68,8 @@ class FollowUpTaskService
         $task->update([
             'status' => 'completed',
             'completed_at' => now(),
+            'completion_channel' => $completionChannel,
+            'completion_result' => $completionResult,
         ]);
 
         return $task;

@@ -35,6 +35,7 @@ beforeEach(function () {
         'database_name' => $this->dbPathApt,
         'status' => 'active',
     ]);
+    grantTenantModules($this->tenant, ['agenda']);
 
     TenantDomain::create([
         'tenant_id' => $this->tenant->id,
@@ -112,6 +113,7 @@ test('[GATE APP] Comprehensive appointment lifecycle, reception flow, conflict v
         'appointment_type_id' => $this->aptType->id,
         'start_time' => $slot1Start,
         'duration_minutes' => 30,
+        'priority' => 'high',
         'reason' => 'Ajuste de brackets',
     ]);
     $response->assertRedirect();
@@ -119,6 +121,7 @@ test('[GATE APP] Comprehensive appointment lifecycle, reception flow, conflict v
     $context->makeCurrent($this->tenant);
     $appointment = Appointment::where('patient_id', $this->patient->id)->firstOrFail();
     expect($appointment->status)->toBe('scheduled')
+        ->and($appointment->priority)->toBe('high')
         ->and($appointment->end_time->format('H:i:s'))->toBe('10:30:00');
 
     // Patient 360 deep links preselect the patient for creation and open an existing appointment.
@@ -180,6 +183,11 @@ test('[GATE APP] Comprehensive appointment lifecycle, reception flow, conflict v
     expect($appointment->status)->toBe('completed')
         ->and($appointment->completed_at)->not->toBeNull();
 
+    // Terminal statuses cannot be moved back into the operational flow.
+    $this->put("http://agenda.bsdental.test/appointments/{$appointment->id}/status", [
+        'status' => 'confirmed',
+    ])->assertSessionHasErrors('status');
+
     // 4. Create Schedule Block
     $blockResponse = $this->post('http://agenda.bsdental.test/appointments/blocks', [
         'branch_id' => $this->branch->id,
@@ -211,21 +219,33 @@ test('[GATE APP] Comprehensive appointment lifecycle, reception flow, conflict v
     ]);
     $blockedBookingResponse->assertSessionHasErrors(['start_time']);
 
-    // 5. Reschedule Appointment
-    $rescheduleResponse = $this->post("http://agenda.bsdental.test/appointments/{$appointment->id}/reschedule", [
+    // 5. Reschedule a non-terminal appointment and preserve its original record.
+    $context->makeCurrent($this->tenant);
+    $reschedulable = Appointment::create([
+        'patient_id' => $this->patient->id,
+        'professional_id' => $this->professional->id,
+        'branch_id' => $this->branch->id,
+        'room_id' => $this->room->id,
         'start_time' => "{$targetDate} 16:00:00",
+        'end_time' => "{$targetDate} 16:30:00",
+        'duration_minutes' => 30,
+        'status' => 'scheduled',
+        'priority' => 'normal',
+    ]);
+    $rescheduleResponse = $this->post("http://agenda.bsdental.test/appointments/{$reschedulable->id}/reschedule", [
+        'start_time' => "{$targetDate} 17:00:00",
         'duration_minutes' => 30,
         'reason' => 'Reprogramación por solicitud del paciente',
     ]);
     $rescheduleResponse->assertRedirect();
 
     $context->makeCurrent($this->tenant);
-    $appointment->refresh();
-    expect($appointment->status)->toBe('rescheduled');
+    $reschedulable->refresh();
+    expect($reschedulable->status)->toBe('rescheduled');
 
-    $newApt = Appointment::where('rescheduled_from_id', $appointment->id)->firstOrFail();
+    $newApt = Appointment::where('rescheduled_from_id', $reschedulable->id)->firstOrFail();
     expect($newApt->status)->toBe('scheduled')
-        ->and($newApt->start_time->format('H:i:s'))->toBe('16:00:00');
+        ->and($newApt->start_time->format('H:i:s'))->toBe('17:00:00');
 
     // 6. Cancellation requires a clinical-operational reason.
     $this->put("http://agenda.bsdental.test/appointments/{$newApt->id}/status", [
@@ -249,5 +269,11 @@ test('[GATE APP] Comprehensive appointment lifecycle, reception flow, conflict v
         ->and(TenantAuditLog::where('action', 'appointment.status_updated')->exists())->toBeTrue()
         ->and(TenantAuditLog::where('action', 'appointment.rescheduled')->exists())->toBeTrue()
         ->and($firstStatusAudit->metadata['old_status'])->toBe('scheduled')
-        ->and($firstStatusAudit->metadata['new_status'])->toBe('checked_in');
+        ->and($firstStatusAudit->metadata['new_status'])->toBe('checked_in')
+        ->and(TenantAuditLog::where('action', 'appointment.status_updated')
+            ->where('resource_id', $reschedulable->id)
+            ->where('metadata->old_status', 'scheduled')
+            ->where('metadata->new_status', 'rescheduled')
+            ->where('metadata->reason', 'Reprogramación por solicitud del paciente')
+            ->exists())->toBeTrue();
 });

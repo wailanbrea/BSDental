@@ -5,6 +5,7 @@ namespace App\Core\Services;
 use App\Core\Models\DentalLaboratory;
 use App\Core\Models\LabOrder;
 use App\Core\Models\Patient;
+use App\Core\Models\TreatmentPlanItem;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -47,23 +48,35 @@ class DentalLabService
         ?string $treatmentPlanItemId = null,
         ?string $userId = null
     ): LabOrder {
-        $orderNumber = $this->generateOrderNumber();
+        if ($treatmentPlanItemId !== null) {
+            $planItem = TreatmentPlanItem::with(['treatmentPlan', 'procedure'])->findOrFail($treatmentPlanItemId);
 
-        return LabOrder::create([
-            'patient_id' => $patient->id,
-            'laboratory_id' => $lab->id,
-            'treatment_plan_item_id' => $treatmentPlanItemId,
-            'order_number' => $orderNumber,
-            'tooth_number' => $toothNumber,
-            'work_description' => $workDescription,
-            'shade_guide' => $shadeGuide,
-            'status' => 'draft',
-            'due_date' => $dueDate ? Carbon::parse($dueDate) : null,
-            'estimated_cost' => $estimatedCost,
-            'final_cost' => 0.00,
-            'payable_status' => 'unpaid',
-            'created_by_user_id' => $userId,
-        ]);
+            if ($planItem->treatmentPlan->patient_id !== $patient->id) {
+                throw new InvalidArgumentException('La orden de laboratorio debe corresponder al paciente del ítem de tratamiento.');
+            }
+
+            if (! $planItem->procedure->requires_lab) {
+                throw new InvalidArgumentException('El procedimiento vinculado no requiere laboratorio.');
+            }
+        }
+
+        return DB::connection('tenant')->transaction(function () use ($patient, $lab, $workDescription, $toothNumber, $shadeGuide, $estimatedCost, $dueDate, $treatmentPlanItemId, $userId) {
+            return LabOrder::create([
+                'patient_id' => $patient->id,
+                'laboratory_id' => $lab->id,
+                'treatment_plan_item_id' => $treatmentPlanItemId,
+                'order_number' => $this->generateOrderNumber(),
+                'tooth_number' => $toothNumber,
+                'work_description' => $workDescription,
+                'shade_guide' => $shadeGuide,
+                'status' => 'draft',
+                'due_date' => $dueDate ? Carbon::parse($dueDate) : null,
+                'estimated_cost' => $estimatedCost,
+                'final_cost' => 0.00,
+                'payable_status' => 'unpaid',
+                'created_by_user_id' => $userId,
+            ]);
+        });
     }
 
     /**
@@ -74,56 +87,71 @@ class DentalLabService
         string $newStatus,
         ?float $finalCost = null
     ): LabOrder {
-        $validStatuses = ['draft', 'ordered', 'sent', 'in_progress', 'ready', 'received', 'delivered', 'rejected_remake', 'cancelled'];
-        if (! in_array($newStatus, $validStatuses, true)) {
-            throw new InvalidArgumentException("Estado de orden inválido: {$newStatus}");
-        }
+        return DB::connection('tenant')->transaction(function () use ($order, $newStatus, $finalCost) {
+            $lockedOrder = LabOrder::with('patient')->whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $transitions = [
+                'draft' => ['ordered', 'cancelled'],
+                'ordered' => ['sent', 'cancelled'],
+                'sent' => ['in_progress', 'cancelled'],
+                'in_progress' => ['ready', 'cancelled'],
+                'ready' => ['received', 'cancelled'],
+                'received' => ['delivered'],
+            ];
 
-        $previousStatus = $order->status;
-        $updates = ['status' => $newStatus];
-
-        if ($newStatus === 'sent' && ! $order->sent_date) {
-            $updates['sent_date'] = now();
-        }
-
-        if ($newStatus === 'received' && ! $order->received_date) {
-            $updates['received_date'] = now();
-        }
-
-        if ($finalCost !== null) {
-            $updates['final_cost'] = $finalCost;
-        }
-
-        $order->update($updates);
-
-        if ($newStatus === 'ready' && $previousStatus !== 'ready') {
-            $title = "Trabajo de laboratorio {$order->order_number} listo";
-            $message = "El laboratorio marcó como listo el trabajo de {$order->patient->full_name}.";
-            $data = ['lab_order_id' => $order->id, 'patient_id' => $order->patient_id];
-
-            if ($order->created_by_user_id !== null) {
-                $this->notificationService->notifyUser(
-                    $order->created_by_user_id,
-                    'lab',
-                    'success',
-                    $title,
-                    $message,
-                    '/lab',
-                    $data
-                );
-            } else {
-                $this->notificationService->notifyActiveUsers(
-                    'lab',
-                    'success',
-                    $title,
-                    $message,
-                    '/lab',
-                    $data
-                );
+            if ($newStatus !== $lockedOrder->status && ! in_array($newStatus, $transitions[$lockedOrder->status] ?? [], true)) {
+                throw new InvalidArgumentException("Transición de laboratorio no permitida: {$lockedOrder->status} a {$newStatus}.");
             }
-        }
 
-        return $order;
+            if ($finalCost !== null && ! in_array($newStatus, ['received', 'delivered'], true)) {
+                throw new InvalidArgumentException('El costo final solo puede registrarse al recibir o entregar la orden.');
+            }
+
+            $previousStatus = $lockedOrder->status;
+            $updates = ['status' => $newStatus];
+
+            if ($newStatus === 'sent' && ! $lockedOrder->sent_date) {
+                $updates['sent_date'] = now();
+            }
+
+            if ($newStatus === 'received' && ! $lockedOrder->received_date) {
+                $updates['received_date'] = now();
+            }
+
+            if ($finalCost !== null) {
+                $updates['final_cost'] = $finalCost;
+            }
+
+            $lockedOrder->update($updates);
+
+            if ($newStatus === 'ready' && $previousStatus !== 'ready') {
+                $title = "Trabajo de laboratorio {$lockedOrder->order_number} listo";
+                $message = "El laboratorio marcó como listo el trabajo de {$lockedOrder->patient->full_name}.";
+                $data = ['lab_order_id' => $lockedOrder->id, 'patient_id' => $lockedOrder->patient_id];
+
+                if ($lockedOrder->created_by_user_id !== null) {
+                    $this->notificationService->notifyUser(
+                        $lockedOrder->created_by_user_id,
+                        'lab',
+                        'success',
+                        $title,
+                        $message,
+                        '/lab',
+                        $data
+                    );
+                } else {
+                    $this->notificationService->notifyActiveUsers(
+                        'lab',
+                        'success',
+                        $title,
+                        $message,
+                        '/lab',
+                        $data
+                    );
+                }
+            }
+
+            return $lockedOrder;
+        });
     }
 
     /**
@@ -137,6 +165,10 @@ class DentalLabService
     ): LabOrder {
         if ($finalCost < 0) {
             throw new InvalidArgumentException('El costo final del laboratorio no puede ser negativo.');
+        }
+
+        if ($order->status !== 'ready') {
+            throw new InvalidArgumentException('Solo se pueden recibir órdenes de laboratorio listas.');
         }
 
         $order->update([
@@ -165,6 +197,9 @@ class DentalLabService
         }
 
         return DB::connection('tenant')->transaction(function () use ($originalOrder, $remakeReason, $shadeGuide, $estimatedCost, $dueDate, $userId) {
+            if ($originalOrder->status !== 'received') {
+                throw new InvalidArgumentException('Solo se puede solicitar re-trabajo de una orden recibida.');
+            }
             // Update original order to rejected_remake
             $originalOrder->update([
                 'status' => 'rejected_remake',

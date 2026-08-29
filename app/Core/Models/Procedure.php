@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -84,5 +85,11 @@ class Procedure extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(ProcedureCategory::class, 'category_id');
+    }
+
+    /** @return HasMany<ProcedureMaterialRule, $this> */
+    public function materialRules(): HasMany
+    {
+        return $this->hasMany(ProcedureMaterialRule::class);
     }
 }

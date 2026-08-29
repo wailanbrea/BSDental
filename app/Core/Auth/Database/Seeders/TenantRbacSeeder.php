@@ -49,6 +49,7 @@ class TenantRbacSeeder extends Seeder
             // Pagos y Facturación
             'payments.view',
             'payments.create',
+            'payments.allocate',
             'payments.refund',
 
             // Caja
@@ -96,7 +97,7 @@ class TenantRbacSeeder extends Seeder
                 'clinical.view', 'clinical.write', 'clinical.finalize',
                 'odontogram.view', 'odontogram.write',
                 'quotes.view', 'quotes.create', 'quotes.approve', 'quotes.discount',
-                'payments.view', 'payments.create',
+                'payments.view', 'payments.create', 'payments.allocate',
                 'cash.view',
                 'finance.view', 'finance.reports',
                 'inventory.view', 'inventory.purchase',
@@ -139,7 +140,7 @@ class TenantRbacSeeder extends Seeder
 
             'Cashier' => [
                 'patients.view',
-                'payments.view', 'payments.create', 'payments.refund',
+                'payments.view', 'payments.create', 'payments.allocate', 'payments.refund',
                 'cash.view', 'cash.open', 'cash.close', 'cash.reopen',
                 'finance.view',
             ],

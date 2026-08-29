@@ -98,7 +98,9 @@ test('tenant rbac seeds create predefined clinical roles and permissions', funct
             ->and(Permission::count())->toBeGreaterThan(15)
             ->and(Role::where('name', 'Owner')->exists())->toBeTrue()
             ->and(Role::where('name', 'GeneralDentist')->exists())->toBeTrue()
-            ->and(Role::where('name', 'Receptionist')->exists())->toBeTrue();
+            ->and(Role::where('name', 'Receptionist')->exists())->toBeTrue()
+            ->and(Role::where('name', 'ClinicDirector')->firstOrFail()->hasPermissionTo('payments.allocate'))->toBeTrue()
+            ->and(Role::where('name', 'Cashier')->firstOrFail()->hasPermissionTo('payments.allocate'))->toBeTrue();
     });
 });
 
@@ -120,6 +122,7 @@ test('owner role has full permissions access', function () {
         expect($owner->hasRole('Owner'))->toBeTrue()
             ->and($owner->can('patients.create'))->toBeTrue()
             ->and($owner->can('clinical.finalize'))->toBeTrue()
+            ->and($owner->can('payments.allocate'))->toBeTrue()
             ->and($owner->can('cash.reopen'))->toBeTrue()
             ->and($owner->can('users.manage'))->toBeTrue();
     });
@@ -144,6 +147,7 @@ test('dentist role has clinical permissions but no financial or user management 
             ->and($dentist->can('clinical.view'))->toBeTrue()
             ->and($dentist->can('clinical.write'))->toBeTrue()
             ->and($dentist->can('odontogram.write'))->toBeTrue()
+            ->and($dentist->can('payments.allocate'))->toBeFalse()
             ->and($dentist->can('cash.reopen'))->toBeFalse()
             ->and($dentist->can('users.manage'))->toBeFalse();
     });
@@ -167,6 +171,7 @@ test('receptionist role has admission permissions but cannot write clinical data
         expect($receptionist->hasRole('Receptionist'))->toBeTrue()
             ->and($receptionist->can('appointments.create'))->toBeTrue()
             ->and($receptionist->can('patients.create'))->toBeTrue()
+            ->and($receptionist->can('payments.allocate'))->toBeFalse()
             ->and($receptionist->can('clinical.write'))->toBeFalse()
             ->and($receptionist->can('clinical.finalize'))->toBeFalse();
     });

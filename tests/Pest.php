@@ -2,6 +2,7 @@
 
 use App\Core\Auth\Database\Seeders\TenantRbacSeeder;
 use App\Core\Auth\Models\User;
+use App\Platform\Tenancy\Models\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -49,4 +50,24 @@ function grantTenantOwnerAccess(User $user): void
 {
     (new TenantRbacSeeder)->run();
     $user->assignRole('Owner');
+}
+
+/**
+ * Grant only the commercial modules exercised by an operational test.
+ *
+ * @param  list<string>  $modules
+ */
+function grantTenantModules(Tenant $tenant, array $modules): void
+{
+    $settings = $tenant->settings ?? [];
+    $overrides = is_array($settings['module_overrides'] ?? null)
+        ? $settings['module_overrides']
+        : [];
+
+    foreach ($modules as $module) {
+        $overrides[$module] = true;
+    }
+
+    $settings['module_overrides'] = $overrides;
+    $tenant->update(['settings' => $settings]);
 }

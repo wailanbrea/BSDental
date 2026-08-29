@@ -37,6 +37,7 @@ interface EditablePatient {
     identification_number: string | null
     birth_date: string | null
     gender: string | null
+    patient_type: 'new' | 'returning' | 'vip'
     phone: string | null
     secondary_phone: string | null
     email: string | null
@@ -82,6 +83,7 @@ const form = useForm({
     identification_number: props.patient?.identification_number ?? '',
     birth_date: props.patient?.birth_date?.slice(0, 10) ?? '',
     gender: props.patient?.gender ?? '',
+    patient_type: props.patient?.patient_type ?? 'new',
     phone: props.patient?.phone ?? '',
     secondary_phone: props.patient?.secondary_phone ?? '',
     email: props.patient?.email ?? '',
@@ -260,6 +262,7 @@ function submit() {
                         <label class="field"><span>Número de documento</span><div class="relative"><input v-model="form.identification_number" class="w-full pr-9" autocomplete="off" /><LoaderCircle v-if="checkingDuplicates" class="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#007D73]" /></div></label>
                         <label class="field"><span>Fecha de nacimiento</span><input v-model="form.birth_date" type="date" /></label>
                         <label class="field"><span>Género</span><select v-model="form.gender"><option value="">Sin especificar</option><option value="male">Masculino</option><option value="female">Femenino</option><option value="other">Otro</option></select></label>
+                        <label class="field"><span>Tipo de paciente</span><select v-model="form.patient_type"><option value="new">Nuevo</option><option value="returning">Recurrente</option><option value="vip">Preferente</option></select></label>
                         <label class="field"><span>Grupo sanguíneo</span><select v-model="form.blood_type"><option value="">Sin registrar</option><option v-for="type in ['O+','O-','A+','A-','B+','B-','AB+','AB-']" :key="type" :value="type">{{ type }}</option></select></label>
                         <label class="field"><span>Ciudad</span><input v-model="form.city" autocomplete="address-level2" /></label>
                         <label class="field"><span>Teléfono principal</span><input v-model="form.phone" type="tel" autocomplete="tel" /><small v-if="form.errors.phone">{{ form.errors.phone }}</small></label>

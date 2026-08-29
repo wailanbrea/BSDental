@@ -37,6 +37,7 @@ class PayrollRun extends Model
         ];
     }
 
+    /** @return HasMany<PayrollItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(PayrollItem::class);

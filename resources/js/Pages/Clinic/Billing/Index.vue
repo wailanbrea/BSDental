@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { Head, Link, useForm } from '@inertiajs/vue3'
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { appUrl } from '@/lib/url'
 import { computed, ref } from 'vue'
 import { ArrowLeft, CreditCard, ExternalLink, FileText, Link2, Plus, RotateCcw, Trash2, X } from 'lucide-vue-next'
@@ -50,6 +50,12 @@ const props = defineProps<{
     activeCashSession: SessionDetails | null
 }>()
 
+const page = usePage<{ auth?: { user?: { roles?: string[]; permissions?: string[] } } }>()
+const canAllocateCredit = computed(() => {
+    const user = page.props.auth?.user
+    return Boolean(user?.roles?.includes('Owner') || user?.permissions?.includes('payments.allocate'))
+})
+
 const isPaymentModal = ref(false)
 const isChargeModal = ref(false)
 const allocationPayment = ref<PaymentDetails | null>(null)
@@ -72,6 +78,8 @@ const chargeForm = useForm({
 const allocationForm = useForm({
     patient_charge_id: '',
     amount: 0,
+    reason: 'Aplicación manual de saldo a favor',
+    idempotency_key: '',
 })
 
 const refundForm = useForm({
@@ -116,6 +124,8 @@ function openAllocation(payment: PaymentDetails) {
     allocationForm.clearErrors()
     allocationForm.patient_charge_id = firstCharge?.id || ''
     allocationForm.amount = Math.min(payment.unallocated_amount, firstCharge?.balance_due || 0)
+    allocationForm.reason = 'Aplicación manual de saldo a favor'
+    allocationForm.idempotency_key = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
 }
 
 function updateAllocationAmount() {
@@ -228,6 +238,13 @@ function submitCharge() {
                         <span class="text-2xl font-bold font-data-tabular text-[#131B2E]">{{ formatMoney(totalCharged) }}</span>
                     </div>
                 </div>
+                <div v-if="payments.some(payment => payment.unallocated_amount > 0)" class="bg-[#F1FAF8] rounded-xl p-5 border border-[#B7D9D4] shadow-xs flex flex-col justify-between">
+                    <span class="text-xs font-semibold text-[#006B63]">Crédito pendiente de aplicación manual</span>
+                    <div class="mt-2">
+                        <span class="text-2xl font-bold font-data-tabular text-[#006B63]">{{ formatMoney(payments.reduce((total, payment) => total + payment.unallocated_amount, 0)) }}</span>
+                    </div>
+                    <p class="mt-1 text-[11px] text-[#506B66]">No se aplica automáticamente a cargos.</p>
+                </div>
 
                 <div class="bg-white rounded-xl p-5 border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
                     <span class="text-xs font-semibold text-[#505F76]">Total Cobrado</span>
@@ -338,12 +355,12 @@ function submitCharge() {
                         
                         <div class="flex shrink-0 items-center gap-2">
                             <button 
-                                v-if="pay.unallocated_amount > 0 && outstandingCharges.length" 
+                                v-if="canAllocateCredit && pay.unallocated_amount > 0 && outstandingCharges.length"
                                 type="button" 
                                 class="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3 py-1.5 font-semibold text-blue-700 hover:bg-blue-50 transition shadow-2xs" 
                                 @click="openAllocation(pay)"
                             >
-                                <Link2 class="h-3.5 w-3.5" /> Asignar
+                                <Link2 class="h-3.5 w-3.5" /> Aplicar saldo
                             </button>
                             <button 
                                 v-if="pay.total_amount > pay.refunded_amount" 
@@ -373,7 +390,7 @@ function submitCharge() {
                 <div class="w-full max-w-md bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl p-6 space-y-4">
                     <div class="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
                         <div>
-                            <h2 class="text-sm font-bold text-[#131B2E]">Asignar pago {{ allocationPayment.payment_number }}</h2>
+                            <h2 class="text-sm font-bold text-[#131B2E]">Aplicar saldo del recibo {{ allocationPayment.payment_number }}</h2>
                             <p class="text-xs text-[#505F76]">Monto disponible: {{ formatMoney(allocationPayment.unallocated_amount) }}</p>
                         </div>
                         <button class="text-[#505F76] hover:text-[#131B2E]" @click="allocationPayment = null">
@@ -397,6 +414,12 @@ function submitCharge() {
                             <input v-model.number="allocationForm.amount" type="number" step="0.01" min="0.01" :max="allocationMaximum" required class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs font-mono focus:bg-white focus:border-[#005C55]" />
                             <p class="mt-1 text-[11px] text-[#505F76]">Máximo conciliable: {{ formatMoney(allocationMaximum) }}</p>
                             <p v-if="allocationForm.errors.amount" class="mt-1 text-xs text-[#BA1A1A]">{{ allocationForm.errors.amount }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-[#505F76] mb-1">Motivo de la aplicación *</label>
+                            <textarea v-model="allocationForm.reason" required maxlength="255" rows="2" class="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BDC9C6] rounded-lg text-[#131B2E] text-xs focus:bg-white focus:border-[#005C55]" />
+                            <p v-if="allocationForm.errors.reason" class="mt-1 text-xs text-[#BA1A1A]">{{ allocationForm.errors.reason }}</p>
                         </div>
 
                         <div class="flex justify-end gap-2 pt-3 border-t border-[#E2E8F0]">

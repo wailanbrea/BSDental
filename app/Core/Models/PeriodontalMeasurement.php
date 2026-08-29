@@ -26,5 +26,9 @@ class PeriodontalMeasurement extends Model
         ];
     }
 
-    public function exam(): BelongsTo { return $this->belongsTo(PeriodontalExam::class, 'periodontal_exam_id'); }
+    /** @return BelongsTo<PeriodontalExam, $this> */
+    public function exam(): BelongsTo
+    {
+        return $this->belongsTo(PeriodontalExam::class, 'periodontal_exam_id');
+    }
 }

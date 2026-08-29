@@ -9,7 +9,7 @@ interface MedicalHistory { allergies: string[] | null; systemic_conditions: stri
 interface PatientDetails { id: string; record_number: string; full_name: string; medical_history?: MedicalHistory | null }
 interface PatientCandidate { id: string; record_number: string; full_name: string; phone: string | null; email: string | null }
 interface ProfessionalDetails { id: string; full_name: string }
-interface QuoteItemDetails { id: string; tooth_number: number | null; surface: string; phase?: number; unit_price: number; quantity: number; discount_percentage: number; total: number; procedure: { name: string; code: string | null } }
+interface QuoteItemDetails { id: string; tooth_number: number | null; surface: string; phase?: number; unit_price: number; quantity: number; discount_percentage: number; total: number; procedure: { name: string; code: string | null }; clinical_plan_item?: { id: string; clinical_plan?: { id: string; title: string } | null } | null }
 interface QuoteDetails {
     id: string; patient_id: string | null; prospect_first_name: string | null; prospect_last_name: string | null
     prospect_phone: string | null; prospect_email: string | null; quote_number: string; version: number; alternative_name: string

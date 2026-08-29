@@ -57,7 +57,7 @@ class CrmFollowUpController extends Controller
     {
         $validated = $request->validate([
             'patient_id' => ['required', 'uuid', 'exists:tenant.patients,id'],
-            'type' => ['required', 'string', 'in:post_op,no_show,quote_pending,treatment_incomplete,periodic_recall'],
+            'type' => ['required', 'string', 'in:appointment_confirmation,appointment_reminder,post_op,no_show,quote_pending,treatment_incomplete,periodic_recall,reactivation,missed_call'],
             'title' => ['required', 'string', 'max:255'],
             'due_date' => ['required', 'date'],
             'priority' => ['required', 'string', 'in:low,medium,high'],
@@ -91,15 +91,26 @@ class CrmFollowUpController extends Controller
     /**
      * Complete a follow-up task.
      */
-    public function completeTask(string $id): RedirectResponse
+    public function completeTask(Request $request, string $id): RedirectResponse
     {
         $task = FollowUpTask::findOrFail($id);
 
-        $this->followUpService->completeTask($task);
+        $validated = $request->validate([
+            'completion_channel' => ['nullable', 'string', 'in:phone,whatsapp,email,sms,in_person,other'],
+            'completion_result' => ['nullable', 'string', 'in:completed,reached,no_response,rescheduled,declined,left_message,other'],
+        ]);
+
+        $this->followUpService->completeTask(
+            $task,
+            $validated['completion_channel'] ?? null,
+            $validated['completion_result'] ?? null
+        );
 
         $this->auditLogger->logTenant('crm.task_completed', 'FollowUpTask', $task->id, [
             'patient_id' => $task->patient_id,
             'title' => $task->title,
+            'completion_channel' => $task->completion_channel,
+            'completion_result' => $task->completion_result,
         ]);
 
         return redirect()->back()->with('success', "Tarea '{$task->title}' marcada como completada.");

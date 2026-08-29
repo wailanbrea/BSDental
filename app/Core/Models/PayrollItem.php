@@ -33,16 +33,19 @@ class PayrollItem extends Model
         ];
     }
 
+    /** @return BelongsTo<PayrollRun, $this> */
     public function run(): BelongsTo
     {
         return $this->belongsTo(PayrollRun::class, 'payroll_run_id');
     }
 
+    /** @return BelongsTo<Employee, $this> */
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
     }
 
+    /** @return HasMany<PayrollItemLine, $this> */
     public function lines(): HasMany
     {
         return $this->hasMany(PayrollItemLine::class);

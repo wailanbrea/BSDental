@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property string $id
@@ -58,5 +59,11 @@ class ClinicalDiagnosis extends Model
     public function encounter(): BelongsTo
     {
         return $this->belongsTo(ClinicalEncounter::class, 'encounter_id');
+    }
+
+    /** @return HasMany<ClinicalPlan, $this> */
+    public function clinicalPlans(): HasMany
+    {
+        return $this->hasMany(ClinicalPlan::class, 'clinical_diagnosis_id');
     }
 }

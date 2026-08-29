@@ -9,6 +9,7 @@ use App\Core\Models\CreditAdjustment;
 use App\Core\Models\Patient;
 use App\Core\Models\PatientCharge;
 use App\Core\Models\Payment;
+use App\Core\Models\PaymentAllocation;
 use App\Core\Models\Professional;
 use App\Core\Models\Refund;
 use App\Core\Security\Models\TenantAuditLog;
@@ -43,6 +44,7 @@ beforeEach(function () {
         'database_name' => $this->dbPathFin,
         'status' => 'active',
     ]);
+    grantTenantModules($this->tenant, ['billing', 'finance']);
 
     TenantDomain::create([
         'tenant_id' => $this->tenant->id,
@@ -166,7 +168,7 @@ test('[GATE-FIN] Comprehensive billing, multi-split payments, payment allocation
         ->and($comp->rate)->toBe(30.0)
         ->and($comp->status)->toBe('accrued');
 
-    // 6. Invariant 33 & 35: Refund $20 of cash from payment
+    // 6. Invariant 33 & 35: Refund $20 reverses the latest allocation before cash leaves the clinic
     $refundResponse = $this->post("http://finanzas.bsdental.test/payments/{$payment->id}/refund", [
         'amount' => 20.00,
         'reason' => 'Ajuste de cortesía clínica',
@@ -179,6 +181,10 @@ test('[GATE-FIN] Comprehensive billing, multi-split payments, payment allocation
     $session->refresh();
     expect($payment->refunded_amount)->toBe(20.0)
         ->and($payment->getRefundableBalance())->toBe(100.0)
+        ->and($payment->allocated_amount)->toBe(100.0)
+        ->and($payment->unallocated_amount)->toBe(0.0)
+        ->and($charge->fresh()->paid_amount)->toBe(100.0)
+        ->and($charge->fresh()->balance_due)->toBe(20.0)
         ->and($session->expected_cash)->toBe(150.0); // 170 - 20
 
     $receiptResponse = $this->get("http://finanzas.bsdental.test/payments/{$payment->id}");
@@ -188,7 +194,7 @@ test('[GATE-FIN] Comprehensive billing, multi-split payments, payment allocation
             ->where('payment.payment_number', 'REC-00001')
             ->where('payment.patient.record_number', 'HC-00001')
             ->where('payment.total_amount', 120)
-            ->where('payment.allocated_amount', 120)
+            ->where('payment.allocated_amount', 100)
             ->where('payment.refunded_amount', 20)
             ->where('payment.net_amount', 100)
             ->has('payment.splits', 2)
@@ -264,6 +270,8 @@ test('[GATE-FIN] Manual allocation is patient-scoped, charge detail is reconcile
     $allocationResponse = $this->post("http://finanzas.bsdental.test/payments/{$payment->id}/allocate", [
         'patient_charge_id' => $charge->id,
         'amount' => 50.00,
+        'reason' => 'Aplicación manual al cargo de corona',
+        'idempotency_key' => 'allocation-detail-test-01',
     ]);
     $allocationResponse->assertRedirect();
 
@@ -649,4 +657,87 @@ test('[FIN-06] Comprehensive patient account statement and aging receivables buc
             ->where('report.buckets.aging_31_60.total', 200)
             ->where('report.buckets.over_90.total', 500)
         );
+});
+
+test('[FIN-07] Locked allocations reject stale repeats and refunds reverse allocations without creating credit', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+
+    $billingService = app(BillingPaymentService::class);
+    $charge = $billingService->createCharge($this->patient, 'Restauración posterior', 100.00);
+    $payment = $billingService->recordPayment($this->patient, [
+        ['method' => 'transfer', 'amount' => 100.00, 'reference_code' => 'TRX-LOCK-01'],
+    ]);
+    $stalePayment = Payment::findOrFail($payment->id);
+    $staleCharge = PatientCharge::findOrFail($charge->id);
+
+    $billingService->allocatePayment($payment, $charge, 100.00);
+
+    expect(fn () => $billingService->allocatePayment($stalePayment, $staleCharge, 1.00))
+        ->toThrow(InvalidArgumentException::class, 'El monto excede el saldo no asignado disponible en este pago.');
+
+    expect(PaymentAllocation::count())->toBe(1)
+        ->and($payment->fresh()->unallocated_amount)->toBe(0.0)
+        ->and($charge->fresh()->balance_due)->toBe(0.0);
+
+    $refund = $billingService->refundPayment($stalePayment, 40.00, 'Corrección de cobro', null, null, 'refund-lock-01');
+    $refundReplay = $billingService->refundPayment($stalePayment, 40.00, 'Corrección de cobro', null, null, 'refund-lock-01');
+
+    expect($refundReplay->id)->toBe($refund->id)
+        ->and(Refund::count())->toBe(1)
+        ->and($payment->fresh()->allocated_amount)->toBe(60.0)
+        ->and($payment->fresh()->unallocated_amount)->toBe(0.0)
+        ->and($charge->fresh()->paid_amount)->toBe(60.0)
+        ->and($charge->fresh()->balance_due)->toBe(40.0)
+        ->and(PaymentAllocation::firstOrFail()->reversed_amount)->toBe(40.0);
+
+    expect(fn () => $billingService->refundPayment($payment, 61.00, 'Exceso de reembolso'))
+        ->toThrow(InvalidArgumentException::class, 'El monto del reembolso excede el saldo reembolsable disponible.');
+});
+
+test('[FIN-08] Customer credit is explicit in the statement and is not auto-applied to charges', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+
+    $billingService = app(BillingPaymentService::class);
+    $charge = $billingService->createCharge($this->patient, 'Limpieza preventiva', 100.00);
+    $payment = $billingService->recordPayment($this->patient, [
+        ['method' => 'transfer', 'amount' => 100.00, 'reference_code' => 'TRX-CREDIT-01'],
+    ]);
+
+    $statement = $billingService->getPatientAccountStatement($this->patient);
+
+    expect($charge->fresh()->paid_amount)->toBe(0.0)
+        ->and($charge->fresh()->balance_due)->toBe(100.0)
+        ->and($statement['summary']['net_balance_due'])->toBe(100.0)
+        ->and($statement['summary']['customer_credit'])->toBe(100.0)
+        ->and($statement['summary']['payer_balance'])->toBe(0.0)
+        ->and($statement['summary']['saldo_a_favor'])->toBe(0.0);
+
+    $futureCharge = $billingService->createCharge($this->patient, 'Control futuro', 60.00);
+    $payload = [
+        'patient_charge_id' => $futureCharge->id,
+        'amount' => 60.00,
+        'reason' => 'Autorización del paciente para aplicar saldo a favor',
+        'idempotency_key' => 'credit-application-fin-08',
+    ];
+
+    $this->actingAs($this->user, 'web')
+        ->post("http://finanzas.bsdental.test/payments/{$payment->id}/allocate", $payload)
+        ->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect($payment->fresh()->unallocated_amount)->toBe(40.0)
+        ->and($futureCharge->fresh()->balance_due)->toBe(0.0)
+        ->and($futureCharge->fresh()->status)->toBe('paid')
+        ->and(PaymentAllocation::where('idempotency_key', 'credit-application-fin-08')->count())->toBe(1)
+        ->and(PaymentAllocation::where('idempotency_key', 'credit-application-fin-08')->firstOrFail()->created_by_user_id)->toBe($this->user->id)
+        ->and(TenantAuditLog::where('action', 'billing.payment_allocated')->count())->toBe(1);
+
+    $this->post("http://finanzas.bsdental.test/payments/{$payment->id}/allocate", $payload)
+        ->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect($payment->fresh()->unallocated_amount)->toBe(40.0)
+        ->and($futureCharge->fresh()->paid_amount)->toBe(60.0)
+        ->and(PaymentAllocation::where('idempotency_key', 'credit-application-fin-08')->count())->toBe(1)
+        ->and(TenantAuditLog::where('action', 'billing.payment_allocated')->count())->toBe(1);
 });

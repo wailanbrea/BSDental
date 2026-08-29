@@ -40,6 +40,7 @@ beforeEach(function () {
         'database_name' => $this->dbPathWa,
         'status' => 'active',
     ]);
+    grantTenantModules($this->tenant, ['marketing']);
 
     TenantDomain::create([
         'tenant_id' => $this->tenant->id,
@@ -129,15 +130,29 @@ test('[GATE WA / GATE CRM] Follow-up task lifecycle and strict reminder invalida
             ->exists())->toBeTrue();
 
     // 2. Complete Task
-    $completeResponse = $this->post("http://crm.bsdental.test/crm/tasks/{$task->id}/complete");
+    $completeResponse = $this->post("http://crm.bsdental.test/crm/tasks/{$task->id}/complete", [
+        'completion_channel' => 'whatsapp',
+        'completion_result' => 'reached',
+    ]);
     $completeResponse->assertRedirect();
 
     $context->makeCurrent($this->tenant);
     $task->refresh();
     expect($task->status)->toBe('completed')
-        ->and($task->completed_at)->not->toBeNull();
+        ->and($task->completed_at)->not->toBeNull()
+        ->and($task->completion_channel)->toBe('whatsapp')
+        ->and($task->completion_result)->toBe('reached');
+
+    $this->post('http://crm.bsdental.test/crm/tasks', [
+        'patient_id' => $this->patient->id,
+        'type' => 'appointment_confirmation',
+        'title' => 'Confirmar cita de control',
+        'due_date' => Carbon::tomorrow()->toDateString(),
+        'priority' => 'medium',
+    ])->assertRedirect();
 
     // 3. Create Appointment for next week (72 hours in the future)
+    $context->makeCurrent($this->tenant);
     $appStart = Carbon::now()->addDays(4)->setTime(10, 0);
     $appointment = Appointment::create([
         'patient_id' => $this->patient->id,

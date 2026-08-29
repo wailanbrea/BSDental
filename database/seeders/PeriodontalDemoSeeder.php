@@ -7,6 +7,7 @@ use App\Core\Models\Patient;
 use App\Core\Models\PeriodontalExam;
 use App\Core\Models\PeriodontalMeasurement;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Log;
 
 class PeriodontalDemoSeeder extends Seeder
 {
@@ -15,7 +16,7 @@ class PeriodontalDemoSeeder extends Seeder
         $patient = Patient::query()->where('record_number', 'HC-00001')->first();
 
         if (! $patient) {
-            $this->command?->warn('No se encontró el paciente demo HC-00001; se omitió el periodontograma.');
+            Log::warning('No se encontró el paciente demo HC-00001; se omitió el periodontograma.');
 
             return;
         }

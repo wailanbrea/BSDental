@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
-import { Head, Link } from '@inertiajs/vue3'
-import { ArrowLeft, Printer } from 'lucide-vue-next'
+import { Head, Link, usePage } from '@inertiajs/vue3'
+import { ArrowLeft, Link2, Printer } from 'lucide-vue-next'
 
 interface Charge {
     id: string
@@ -56,12 +56,21 @@ interface StatementData {
         total_adjusted: number
         net_balance_due: number
         unallocated_credit: number
+        payer_balance: number
+        customer_credit: number
+        saldo_a_favor: number
     }
 }
 
-defineProps<{
+const props = defineProps<{
     statement: StatementData
 }>()
+
+const page = usePage<{ auth?: { user?: { roles?: string[]; permissions?: string[] } } }>()
+const canAllocateCredit = Boolean(
+    page.props.auth?.user?.roles?.includes('Owner')
+    || page.props.auth?.user?.permissions?.includes('payments.allocate'),
+)
 
 function formatMoney(amount: number) {
     return new Intl.NumberFormat('es-DO', {
@@ -100,12 +109,21 @@ function triggerPrint() {
                     </div>
                 </div>
 
-                <button
-                    class="flex items-center gap-1.5 px-4 py-2 bg-[#005C55] hover:bg-[#00504A] text-white font-semibold text-xs rounded-lg transition shadow-xs"
-                    @click="triggerPrint"
-                >
-                    <Printer class="w-4 h-4" /> Imprimir Estado de Cuenta
-                </button>
+                <div class="flex items-center gap-2">
+                    <Link
+                        v-if="canAllocateCredit && props.statement.summary.customer_credit > 0"
+                        :href="`/patients/${props.statement.patient.id}/billing`"
+                        class="flex items-center gap-1.5 px-4 py-2 bg-white border border-[#7FB8B1] text-[#005C55] font-semibold text-xs rounded-lg transition hover:bg-[#F1FAF8]"
+                    >
+                        <Link2 class="w-4 h-4" /> Aplicar saldo a un cargo
+                    </Link>
+                    <button
+                        class="flex items-center gap-1.5 px-4 py-2 bg-[#005C55] hover:bg-[#00504A] text-white font-semibold text-xs rounded-lg transition shadow-xs"
+                        @click="triggerPrint"
+                    >
+                        <Printer class="w-4 h-4" /> Imprimir Estado de Cuenta
+                    </button>
+                </div>
             </div>
 
             <!-- Statement Document Sheet (Printable) -->
@@ -126,7 +144,7 @@ function triggerPrint() {
                 </div>
 
                 <!-- Patient & Balance Overview Bento -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
                     <div class="space-y-1 text-xs">
                         <span class="font-label-caps text-[#505F76] text-[10px]">DATOS DEL PACIENTE</span>
                         <p class="text-sm font-bold text-[#131B2E]">{{ statement.patient.full_name }}</p>
@@ -134,21 +152,27 @@ function triggerPrint() {
                         <p v-if="statement.patient.identification_number" class="text-[#505F76]">Cédula/ID: <span class="font-mono text-[#131B2E]">{{ statement.patient.identification_number }}</span></p>
                         <p v-if="statement.patient.phone" class="text-[#505F76]">Teléfono: {{ statement.patient.phone }}</p>
                     </div>
+                    <div class="flex flex-col justify-between border-t md:border-t-0 md:border-l border-[#E2E8F0] pt-4 md:pt-0 md:pl-6">
+                        <span class="font-label-caps text-[#505F76] text-[10px]">CRÉDITO DEL PACIENTE</span>
+                        <span class="mt-1 text-2xl font-bold font-data-tabular text-[#005C55]">{{ formatMoney(statement.summary.customer_credit) }}</span>
+                        <p class="mt-2 text-[11px] text-[#505F76]">Saldo a favor disponible solo para aplicación manual.</p>
+                    </div>
 
                     <div class="flex flex-col justify-between border-t md:border-t-0 md:border-l border-[#E2E8F0] pt-4 md:pt-0 md:pl-6">
-                        <span class="font-label-caps text-[#505F76] text-[10px]">BALANCE TOTAL PENDIENTE</span>
+                        <span class="font-label-caps text-[#505F76] text-[10px]">POSICIÓN NETA DEL PAGADOR</span>
                         <div class="mt-1">
                             <span 
                                 class="text-3xl font-bold font-data-tabular"
-                                :class="statement.summary.net_balance_due > 0 ? 'text-[#BA1A1A]' : 'text-emerald-700'"
+                                :class="statement.summary.payer_balance > 0 ? 'text-[#BA1A1A]' : 'text-emerald-700'"
                             >
-                                {{ formatMoney(statement.summary.net_balance_due) }}
+                                {{ formatMoney(statement.summary.payer_balance) }}
                             </span>
                         </div>
                         <div class="flex gap-4 mt-2 text-[11px] font-data-tabular">
                             <span class="text-[#505F76]">Total Cargos: <strong>{{ formatMoney(statement.summary.total_charged) }}</strong></span>
                             <span class="text-emerald-700">Total Pagado: <strong>{{ formatMoney(statement.summary.total_paid) }}</strong></span>
                             <span v-if="statement.summary.total_adjusted > 0" class="text-[#005C55]">Ajustes: <strong>{{ formatMoney(statement.summary.total_adjusted) }}</strong></span>
+                            <span v-if="statement.summary.saldo_a_favor > 0" class="text-[#005C55]">Saldo a favor neto: <strong>{{ formatMoney(statement.summary.saldo_a_favor) }}</strong></span>
                         </div>
                     </div>
                 </div>

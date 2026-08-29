@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $updated_at
  * @property Professional $professional
  * @property PatientCharge|null $charge
+ * @property TreatmentPlanItem|null $treatmentPlanItem
  */
 class ProfessionalCompensation extends Model
 {
@@ -76,6 +77,7 @@ class ProfessionalCompensation extends Model
         return $this->belongsTo(PatientCharge::class, 'patient_charge_id');
     }
 
+    /** @return BelongsTo<TreatmentPlanItem, $this> */
     public function treatmentPlanItem(): BelongsTo
     {
         return $this->belongsTo(TreatmentPlanItem::class, 'treatment_plan_item_id');

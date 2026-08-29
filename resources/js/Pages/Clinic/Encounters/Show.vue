@@ -87,6 +87,7 @@ function submitAmendment() {
                     <p class="mt-2 text-sm text-[#64748B]">{{ encounter.patient.full_name }} · {{ encounter.professional.full_name }} · {{ formatDate(encounter.encounter_date) }}</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
+                    <Link :href="appUrl(`/encounters/${encounter.id}/clinical-plans/create`)" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#005C55]"><ClipboardCheck class="h-4 w-4" /> Crear plan clínico</Link>
                     <button v-if="encounter.status === 'draft'" class="inline-flex h-10 items-center gap-2 border border-[#9AAEAA] bg-white px-4 text-sm font-semibold text-[#455653]" @click="isEditing = !isEditing"><Pencil class="h-4 w-4" /> {{ isEditing ? 'Cerrar edición' : 'Editar borrador' }}</button>
                     <button v-if="encounter.status === 'draft'" class="inline-flex h-10 items-center gap-2 bg-[#005C55] px-4 text-sm font-semibold text-white" @click="isFinalizeModal = true"><ShieldCheck class="h-4 w-4" /> Finalizar y sellar</button>
                     <button v-else class="inline-flex h-10 items-center gap-2 border border-[#F79009] bg-[#FFFAEB] px-4 text-sm font-semibold text-[#93370D]" @click="isAmendmentModal = true"><FileEdit class="h-4 w-4" /> Registrar enmienda</button>

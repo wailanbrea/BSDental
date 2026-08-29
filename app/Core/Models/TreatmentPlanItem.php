@@ -55,6 +55,8 @@ class TreatmentPlanItem extends Model
     protected $fillable = [
         'id',
         'treatment_plan_id',
+        'quote_item_id',
+        'clinical_plan_item_id',
         'procedure_id',
         'tooth_number',
         'surface',
@@ -93,6 +95,18 @@ class TreatmentPlanItem extends Model
         return $this->belongsTo(TreatmentPlan::class, 'treatment_plan_id');
     }
 
+    /** @return BelongsTo<QuoteItem, $this> */
+    public function quoteItem(): BelongsTo
+    {
+        return $this->belongsTo(QuoteItem::class);
+    }
+
+    /** @return BelongsTo<ClinicalPlanItem, $this> */
+    public function clinicalPlanItem(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalPlanItem::class);
+    }
+
     /**
      * Procedure relation.
      *
@@ -123,13 +137,21 @@ class TreatmentPlanItem extends Model
         return $this->belongsTo(ClinicalEncounter::class, 'encounter_id');
     }
 
+    /** @return BelongsTo<Professional, $this> */
     public function professional(): BelongsTo
     {
         return $this->belongsTo(Professional::class, 'professional_id');
     }
 
+    /** @return HasOne<ProfessionalCompensation, $this> */
     public function compensation(): HasOne
     {
         return $this->hasOne(ProfessionalCompensation::class, 'treatment_plan_item_id');
+    }
+
+    /** @return HasOne<TreatmentExecution, $this> */
+    public function execution(): HasOne
+    {
+        return $this->hasOne(TreatmentExecution::class, 'treatment_plan_item_id');
     }
 }

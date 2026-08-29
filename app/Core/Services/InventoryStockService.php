@@ -6,6 +6,7 @@ use App\Core\Models\InventoryBatch;
 use App\Core\Models\InventoryItem;
 use App\Core\Models\ProcedureMaterialRule;
 use App\Core\Models\StockMovement;
+use App\Core\Models\TreatmentExecution;
 use App\Core\Models\TreatmentPlanItem;
 use App\Core\Models\Warehouse;
 use Carbon\Carbon;
@@ -180,10 +181,11 @@ class InventoryStockService
     public function consumeMaterialsForProcedure(
         TreatmentPlanItem $planItem,
         Warehouse $warehouse,
+        TreatmentExecution $execution,
         ?string $userId = null
     ): array {
-        $existingMovements = StockMovement::where('reference_type', 'TreatmentPlanItem')
-            ->where('reference_id', $planItem->id)
+        $existingMovements = StockMovement::where('reference_type', 'TreatmentExecution')
+            ->where('reference_id', $execution->id)
             ->get()
             ->all();
 
@@ -196,8 +198,22 @@ class InventoryStockService
             return [];
         }
 
-        return DB::connection('tenant')->transaction(function () use ($planItem, $warehouse, $userId, $rules) {
+        return DB::connection('tenant')->transaction(function () use ($planItem, $warehouse, $execution, $userId, $rules) {
             $movements = [];
+
+            // Lock and validate every required material before mutating any batch.
+            foreach ($rules->groupBy('inventory_item_id') as $itemId => $itemRules) {
+                $available = InventoryBatch::where('inventory_item_id', $itemId)
+                    ->where('warehouse_id', $warehouse->id)
+                    ->lockForUpdate()
+                    ->get()
+                    ->sum('current_quantity');
+                $required = (float) $itemRules->sum('quantity_required');
+
+                if ($available < $required) {
+                    throw new InvalidArgumentException("Stock insuficiente de {$itemRules->first()->item->name} para ejecutar el procedimiento.");
+                }
+            }
 
             foreach ($rules as $rule) {
                 $qtyNeeded = $rule->quantity_required;
@@ -235,14 +251,18 @@ class InventoryStockService
                         'new_stock' => $newStock,
                         'unit_cost' => $batch->cost_per_unit,
                         'total_cost' => $deduct * $batch->cost_per_unit,
-                        'reference_type' => 'TreatmentPlanItem',
-                        'reference_id' => $planItem->id,
+                        'reference_type' => 'TreatmentExecution',
+                        'reference_id' => $execution->id,
                         'notes' => "Consumo en procedimiento: {$planItem->procedure->name}",
                         'created_by_user_id' => $userId,
                         'created_at' => now(),
                     ]);
 
                     $movements[] = $mov;
+                }
+
+                if ($qtyNeeded > 0) {
+                    throw new InvalidArgumentException("Stock insuficiente de {$item->name} para ejecutar el procedimiento.");
                 }
             }
 

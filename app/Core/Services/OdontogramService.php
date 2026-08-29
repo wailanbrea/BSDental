@@ -104,7 +104,7 @@ class OdontogramService
     /**
      * Append an immutable, structured clinical event to the odontogram.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function recordClinicalEntry(Odontogram $odontogram, array $data, ?string $userId = null): OdontogramEntry
     {

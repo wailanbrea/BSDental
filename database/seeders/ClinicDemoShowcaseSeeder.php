@@ -30,6 +30,7 @@ use App\Core\Models\Warehouse;
 use App\Core\Services\ClinicalIntegrityService;
 use App\Platform\Tenancy\Models\ClinicProfile;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Log;
 
 class ClinicDemoShowcaseSeeder extends Seeder
 {
@@ -44,7 +45,7 @@ class ClinicDemoShowcaseSeeder extends Seeder
         $owner = User::query()->where('email', 'owner@bsdental.com')->first();
 
         if (! $carlos || ! $sofia || ! $elena || ! $doctor || ! $periodontist || ! $owner) {
-            $this->command?->warn('Faltan registros base del tenant demo; se omitieron los datos de muestra ampliados.');
+            Log::warning('Faltan registros base del tenant demo; se omitieron los datos de muestra ampliados.');
 
             return;
         }

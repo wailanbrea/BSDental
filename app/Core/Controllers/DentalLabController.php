@@ -57,17 +57,21 @@ class DentalLabController extends Controller
         $lab = DentalLaboratory::findOrFail($validated['laboratory_id']);
         $userId = Auth::guard('web')->id();
 
-        $order = $this->labService->createOrder(
-            $patient,
-            $lab,
-            $validated['work_description'],
-            $validated['tooth_number'] ?? null,
-            $validated['shade_guide'] ?? null,
-            $validated['estimated_cost'] ?? 0.00,
-            $validated['due_date'] ?? null,
-            $validated['treatment_plan_item_id'] ?? null,
-            $userId ? (string) $userId : null
-        );
+        try {
+            $order = $this->labService->createOrder(
+                $patient,
+                $lab,
+                $validated['work_description'],
+                $validated['tooth_number'] ?? null,
+                $validated['shade_guide'] ?? null,
+                $validated['estimated_cost'] ?? 0.00,
+                $validated['due_date'] ?? null,
+                $validated['treatment_plan_item_id'] ?? null,
+                $userId ? (string) $userId : null
+            );
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->withErrors(['treatment_plan_item_id' => $e->getMessage()]);
+        }
 
         $this->auditLogger->logTenant('lab_order.created', 'LabOrder', $order->id, [
             'order_number' => $order->order_number,
@@ -86,15 +90,19 @@ class DentalLabController extends Controller
         $order = LabOrder::findOrFail($id);
 
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:draft,ordered,sent,in_progress,ready,received,delivered,rejected_remake,cancelled'],
+            'status' => ['required', 'string', 'in:draft,ordered,sent,in_progress,ready,received,delivered,cancelled'],
             'final_cost' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $updated = $this->labService->updateStatus(
-            $order,
-            $validated['status'],
-            $validated['final_cost'] ?? null
-        );
+        try {
+            $updated = $this->labService->updateStatus(
+                $order,
+                $validated['status'],
+                $validated['final_cost'] ?? null
+            );
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->withErrors(['status' => $e->getMessage()]);
+        }
 
         $this->auditLogger->logTenant('lab_order.status_updated', 'LabOrder', $updated->id, [
             'order_number' => $updated->order_number,

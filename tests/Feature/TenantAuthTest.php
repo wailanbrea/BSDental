@@ -201,7 +201,7 @@ test('tenant user with 2FA requires two-factor challenge', function () {
 
     $context->execute($this->tenantA, function () {
         $user = User::where('email', 'carlos@alfadental.com')->firstOrFail();
-        $user->two_factor_secret = '123456';
+        $user->two_factor_secret = 'tenant-test-secret';
         $user->two_factor_confirmed_at = now();
         $user->save();
     });
@@ -215,8 +215,12 @@ test('tenant user with 2FA requires two-factor challenge', function () {
     $this->get('http://alfa.bsdental.test/dashboard')
         ->assertRedirect(route('two-factor'));
 
-    // Valid code grants access
+    // The former universal bypass must not satisfy this user's challenge.
     $this->post('http://alfa.bsdental.test/two-factor', ['code' => '123456'])
+        ->assertSessionHasErrors('code');
+
+    // The configured per-user secret grants access in the test environment.
+    $this->post('http://alfa.bsdental.test/two-factor', ['code' => 'tenant-test-secret'])
         ->assertRedirect(route('clinic.dashboard'));
 
     $this->get('http://alfa.bsdental.test/dashboard')

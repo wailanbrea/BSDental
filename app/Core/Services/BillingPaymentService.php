@@ -195,47 +195,76 @@ class BillingPaymentService
     public function allocatePayment(
         Payment $payment,
         PatientCharge $charge,
-        float $amount
+        float $amount,
+        ?string $userId = null,
+        ?string $idempotencyKey = null,
+        ?string $reason = null
     ): PaymentAllocation {
-        if ($payment->patient_id !== $charge->patient_id) {
-            throw new InvalidArgumentException('El pago y el cargo deben pertenecer al mismo paciente.');
-        }
-
         if ($amount <= 0) {
             throw new InvalidArgumentException('El monto a asignar debe ser mayor a cero.');
         }
 
-        if ($amount > $payment->unallocated_amount) {
-            throw new InvalidArgumentException('El monto excede el saldo no asignado disponible en este pago.');
-        }
+        return DB::connection('tenant')->transaction(function () use ($payment, $charge, $amount, $userId, $idempotencyKey, $reason) {
+            // Lock in a consistent order so stale models cannot oversubscribe a payment or charge.
+            $lockedPayment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
+            $lockedCharge = PatientCharge::whereKey($charge->id)->lockForUpdate()->firstOrFail();
 
-        if ($amount > $charge->balance_due) {
-            throw new InvalidArgumentException('El monto excede el saldo pendiente del cargo seleccionado.');
-        }
+            if ($idempotencyKey !== null && $idempotencyKey !== '') {
+                $existing = PaymentAllocation::where('idempotency_key', $idempotencyKey)->first();
+                if ($existing) {
+                    if ($existing->payment_id !== $lockedPayment->id
+                        || $existing->patient_charge_id !== $lockedCharge->id
+                        || round((float) $existing->amount, 2) !== round($amount, 2)) {
+                        throw new InvalidArgumentException('Clave de idempotencia ya utilizada con parámetros diferentes.');
+                    }
 
-        return DB::connection('tenant')->transaction(function () use ($payment, $charge, $amount) {
+                    return $existing;
+                }
+            }
+
+            if ($lockedPayment->patient_id !== $lockedCharge->patient_id) {
+                throw new InvalidArgumentException('El pago y el cargo deben pertenecer al mismo paciente.');
+            }
+
+            $allocatedAmount = (float) PaymentAllocation::where('payment_id', $lockedPayment->id)
+                ->selectRaw('COALESCE(SUM(amount - reversed_amount), 0) as total')
+                ->value('total');
+            $availableAmount = round($lockedPayment->total_amount - $lockedPayment->refunded_amount - $allocatedAmount, 2);
+
+            if ($amount > $availableAmount) {
+                throw new InvalidArgumentException('El monto excede el saldo no asignado disponible en este pago.');
+            }
+
+            if ($amount > $lockedCharge->balance_due) {
+                throw new InvalidArgumentException('El monto excede el saldo pendiente del cargo seleccionado.');
+            }
+
             $allocation = PaymentAllocation::create([
-                'payment_id' => $payment->id,
-                'patient_charge_id' => $charge->id,
+                'payment_id' => $lockedPayment->id,
+                'patient_charge_id' => $lockedCharge->id,
                 'amount' => $amount,
+                'reversed_amount' => 0.00,
+                'reason' => $reason,
+                'idempotency_key' => $idempotencyKey,
                 'allocated_at' => now(),
+                'created_by_user_id' => $userId,
             ]);
 
-            $newAllocated = $payment->allocated_amount + $amount;
-            $newUnallocated = $payment->unallocated_amount - $amount;
+            $newAllocated = round($allocatedAmount + $amount, 2);
+            $newUnallocated = round($lockedPayment->total_amount - $lockedPayment->refunded_amount - $newAllocated, 2);
             $paymentStatus = $newUnallocated <= 0 ? 'fully_allocated' : 'partially_allocated';
 
-            $payment->update([
+            $lockedPayment->update([
                 'allocated_amount' => $newAllocated,
                 'unallocated_amount' => $newUnallocated,
                 'status' => $paymentStatus,
             ]);
 
-            $newPaid = $charge->paid_amount + $amount;
-            $newBalance = $charge->balance_due - $amount;
+            $newPaid = round($lockedCharge->paid_amount + $amount, 2);
+            $newBalance = round(max(0.0, $lockedCharge->total_amount - $lockedCharge->adjusted_amount - $newPaid), 2);
             $chargeStatus = $newBalance <= 0 ? 'paid' : 'partially_paid';
 
-            $charge->update([
+            $lockedCharge->update([
                 'paid_amount' => $newPaid,
                 'balance_due' => $newBalance,
                 'status' => $chargeStatus,
@@ -256,35 +285,81 @@ class BillingPaymentService
         ?string $userId = null,
         ?string $idempotencyKey = null
     ): Refund {
-        if ($cashSession && $cashSession->status !== 'open') {
-            throw new InvalidArgumentException('La sesión de caja seleccionada no está abierta.');
-        }
-
         if ($amount <= 0) {
             throw new InvalidArgumentException('El monto del reembolso debe ser mayor a cero.');
         }
 
-        if ($amount > $payment->getRefundableBalance()) {
-            throw new InvalidArgumentException('El monto del reembolso excede el saldo reembolsable disponible.');
-        }
+        return DB::connection('tenant')->transaction(function () use ($payment, $amount, $reason, $cashSession, $userId, $idempotencyKey) {
+            $lockedPayment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
 
-        // Idempotency check for refund
-        if ($idempotencyKey !== null && $idempotencyKey !== '') {
-            $existing = Refund::where('idempotency_key', $idempotencyKey)->first();
-            if ($existing) {
-                if ($existing->payment_id !== $payment->id || (float) $existing->amount !== (float) $amount) {
-                    throw new InvalidArgumentException('Clave de idempotencia ya utilizada con parámetros diferentes.');
+            // Check after the payment lock so concurrent replays observe the committed refund.
+            if ($idempotencyKey !== null && $idempotencyKey !== '') {
+                $existing = Refund::where('idempotency_key', $idempotencyKey)->first();
+                if ($existing) {
+                    if ($existing->payment_id !== $lockedPayment->id || (float) $existing->amount !== (float) $amount) {
+                        throw new InvalidArgumentException('Clave de idempotencia ya utilizada con parámetros diferentes.');
+                    }
+
+                    return $existing;
+                }
+            }
+
+            if ($amount > $lockedPayment->getRefundableBalance()) {
+                throw new InvalidArgumentException('El monto del reembolso excede el saldo reembolsable disponible.');
+            }
+
+            $lockedCashSession = null;
+            if ($cashSession) {
+                $lockedCashSession = CashSession::whereKey($cashSession->id)->lockForUpdate()->firstOrFail();
+                if ($lockedCashSession->status !== 'open') {
+                    throw new InvalidArgumentException('La sesión de caja seleccionada no está abierta.');
+                }
+            }
+
+            $allocations = PaymentAllocation::where('payment_id', $lockedPayment->id)
+                ->whereRaw('amount > reversed_amount')
+                ->orderByDesc('allocated_at')
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->get();
+            $chargeIds = $allocations->pluck('patient_charge_id')->unique()->sort()->values();
+            $charges = PatientCharge::whereIn('id', $chargeIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            $allocatedAmount = (float) $allocations->sum(fn (PaymentAllocation $allocation) => $allocation->getOpenAmount());
+            $unallocatedAmount = round($lockedPayment->total_amount - $lockedPayment->refunded_amount - $allocatedAmount, 2);
+            $amountToReverse = max(0.0, round($amount - $unallocatedAmount, 2));
+
+            // Refund unallocated credit first, then reverse the most recent allocations with a full audit trail.
+            foreach ($allocations as $allocation) {
+                if ($amountToReverse <= 0) {
+                    break;
                 }
 
-                return $existing;
-            }
-        }
+                $reversal = min($allocation->getOpenAmount(), $amountToReverse);
+                $allocation->update(['reversed_amount' => round($allocation->reversed_amount + $reversal, 2)]);
 
-        return DB::connection('tenant')->transaction(function () use ($payment, $amount, $reason, $cashSession, $userId, $idempotencyKey) {
+                $lockedCharge = $charges->get($allocation->patient_charge_id);
+                if ($lockedCharge === null) {
+                    throw new InvalidArgumentException('No se encontró el cargo asociado a la asignación.');
+                }
+
+                $newPaid = round($lockedCharge->paid_amount - $reversal, 2);
+                $newBalance = round(max(0.0, $lockedCharge->total_amount - $lockedCharge->adjusted_amount - $newPaid), 2);
+                $lockedCharge->update([
+                    'paid_amount' => $newPaid,
+                    'balance_due' => $newBalance,
+                    'status' => $newBalance <= 0 ? 'paid' : ($newPaid > 0 ? 'partially_paid' : 'pending'),
+                ]);
+                $amountToReverse = round($amountToReverse - $reversal, 2);
+            }
+
+            if ($amountToReverse > 0) {
+                throw new InvalidArgumentException('El monto del reembolso excede el saldo conciliado disponible.');
+            }
+
             $refund = Refund::create([
-                'payment_id' => $payment->id,
-                'patient_id' => $payment->patient_id,
-                'cash_session_id' => $cashSession?->id,
+                'payment_id' => $lockedPayment->id,
+                'patient_id' => $lockedPayment->patient_id,
+                'cash_session_id' => $lockedCashSession?->id,
                 'amount' => $amount,
                 'reason' => $reason,
                 'idempotency_key' => $idempotencyKey,
@@ -292,24 +367,33 @@ class BillingPaymentService
                 'created_by_user_id' => $userId,
             ]);
 
-            $payment->update([
-                'refunded_amount' => $payment->refunded_amount + $amount,
-                'status' => 'refunded',
+            $newRefundedAmount = round($lockedPayment->refunded_amount + $amount, 2);
+            $newAllocatedAmount = round($allocatedAmount - max(0.0, $amount - $unallocatedAmount), 2);
+            $newUnallocatedAmount = round($lockedPayment->total_amount - $newRefundedAmount - $newAllocatedAmount, 2);
+            $paymentStatus = $newRefundedAmount >= $lockedPayment->total_amount
+                ? 'refunded'
+                : ($newUnallocatedAmount <= 0 ? 'fully_allocated' : ($newAllocatedAmount > 0 ? 'partially_allocated' : 'confirmed'));
+
+            $lockedPayment->update([
+                'allocated_amount' => $newAllocatedAmount,
+                'unallocated_amount' => $newUnallocatedAmount,
+                'refunded_amount' => $newRefundedAmount,
+                'status' => $paymentStatus,
             ]);
 
-            if ($cashSession) {
+            if ($lockedCashSession) {
                 CashMovement::create([
-                    'cash_session_id' => $cashSession->id,
+                    'cash_session_id' => $lockedCashSession->id,
                     'type' => 'patient_refund',
                     'amount' => -$amount,
                     'payment_method' => 'cash',
-                    'concept' => "Reembolso {$payment->payment_number}: {$reason}",
+                    'concept' => "Reembolso {$lockedPayment->payment_number}: {$reason}",
                     'created_by_user_id' => $userId,
                     'created_at' => now(),
                 ]);
 
-                $cashSession->update([
-                    'expected_cash' => $cashSession->expected_cash - $amount,
+                $lockedCashSession->update([
+                    'expected_cash' => $lockedCashSession->expected_cash - $amount,
                 ]);
             }
 
@@ -418,6 +502,8 @@ class BillingPaymentService
         $totalAdjusted = (float) $charges->sum('adjusted_amount');
         $netBalanceDue = (float) $charges->sum('balance_due');
         $totalUnallocated = (float) $payments->sum('unallocated_amount');
+        $payerBalance = max(0.0, round($netBalanceDue - $totalUnallocated, 2));
+        $saldoAFavor = max(0.0, round($totalUnallocated - $netBalanceDue, 2));
 
         return [
             'patient' => $patient,
@@ -430,6 +516,10 @@ class BillingPaymentService
                 'total_adjusted' => $totalAdjusted,
                 'net_balance_due' => $netBalanceDue,
                 'unallocated_credit' => $totalUnallocated,
+                // Product decision: credit is displayed as a manual-only balance; it is never auto-applied to charges.
+                'payer_balance' => $payerBalance,
+                'customer_credit' => $totalUnallocated,
+                'saldo_a_favor' => $saldoAFavor,
             ],
         ];
     }

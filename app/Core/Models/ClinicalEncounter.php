@@ -150,6 +150,16 @@ class ClinicalEncounter extends Model
     }
 
     /**
+     * Clinical plans proposed from this encounter.
+     *
+     * @return HasMany<ClinicalPlan, $this>
+     */
+    public function clinicalPlans(): HasMany
+    {
+        return $this->hasMany(ClinicalPlan::class, 'clinical_encounter_id');
+    }
+
+    /**
      * Prescriptions list.
      *
      * @return HasMany<ClinicalPrescription, $this>

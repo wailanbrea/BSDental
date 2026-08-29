@@ -58,10 +58,11 @@ function statusBadge(status: string) {
 }
 
 function updateStatus(order: OrderItem, nextStatus: string) {
-    useForm({
-        status: nextStatus,
-        final_cost: order.final_cost > 0 ? order.final_cost : order.estimated_cost,
-    }).post(`/lab/orders/${order.id}/status`)
+    const form = useForm({ status: nextStatus, final_cost: null as number | null })
+    if (nextStatus === 'received' || nextStatus === 'delivered') {
+        form.final_cost = order.final_cost > 0 ? order.final_cost : order.estimated_cost
+    }
+    form.post(appUrl(`/lab/orders/${order.id}/status`))
 }
 </script>
 
@@ -165,21 +166,42 @@ function updateStatus(order: OrderItem, nextStatus: string) {
                             <!-- State Machine Actions -->
                             <div class="flex items-center gap-1.5">
                                 <button
-                                    v-if="ord.status === 'draft' || ord.status === 'ordered'"
+                                    v-if="ord.status === 'draft'"
+                                    class="px-3 py-1.5 bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 rounded-lg font-medium text-xs transition"
+                                    @click="updateStatus(ord, 'ordered')"
+                                >
+                                    Confirmar orden
+                                </button>
+                                <button
+                                    v-if="ord.status === 'ordered'"
                                     class="px-3 py-1.5 bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 rounded-lg font-medium text-xs transition"
                                     @click="updateStatus(ord, 'sent')"
                                 >
                                     Enviar a Lab
                                 </button>
                                 <button
-                                    v-if="ord.status === 'sent' || ord.status === 'in_progress'"
+                                    v-if="ord.status === 'sent'"
                                     class="px-3 py-1.5 bg-[#005C55] hover:bg-[#004742] text-white rounded-lg font-medium text-xs transition"
+                                    @click="updateStatus(ord, 'in_progress')"
+                                >
+                                    Iniciar fabricación
+                                </button>
+                                <button
+                                    v-if="ord.status === 'in_progress'"
+                                    class="px-3 py-1.5 bg-[#005C55] hover:bg-[#004742] text-white rounded-lg font-medium text-xs transition"
+                                    @click="updateStatus(ord, 'ready')"
+                                >
+                                    Marcar listo
+                                </button>
+                                <button
+                                    v-if="ord.status === 'ready'"
+                                    class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-xs transition"
                                     @click="updateStatus(ord, 'received')"
                                 >
                                     Recibir en Clínica
                                 </button>
                                 <button
-                                    v-if="ord.status === 'received' || ord.status === 'ready'"
+                                    v-if="ord.status === 'received'"
                                     class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-xs transition"
                                     @click="updateStatus(ord, 'delivered')"
                                 >

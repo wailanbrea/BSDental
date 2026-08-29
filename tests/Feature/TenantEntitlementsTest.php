@@ -1,11 +1,14 @@
 <?php
 
+use App\Core\Auth\Models\User;
 use App\Platform\Plans\Models\Plan;
 use App\Platform\Tenancy\Middleware\EnsureModuleEntitlement;
 use App\Platform\Tenancy\Models\Tenant;
+use App\Platform\Tenancy\Models\TenantDomain;
 use App\Platform\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -50,6 +53,31 @@ beforeEach(function () {
         'plan_id' => 'enterprise',
         'status' => 'active',
     ]);
+
+    TenantDomain::create([
+        'tenant_id' => $this->tenantStarter->id,
+        'domain' => 'clinica-pequena.bsdental.test',
+        'is_primary' => true,
+        'is_verified' => true,
+    ]);
+
+    $context = app(TenantContext::class);
+    $context->execute($this->tenantStarter, function () {
+        Schema::connection('tenant')->dropAllTables();
+        Artisan::call('migrate', [
+            '--path' => 'database/migrations/tenant',
+            '--database' => 'tenant',
+            '--realpath' => false,
+        ]);
+
+        $this->user = User::create([
+            'name' => 'Clinic Owner',
+            'email' => 'owner@clinica-pequena.test',
+            'password' => Hash::make('SecretPassword123!'),
+            'status' => 'active',
+        ]);
+        grantTenantOwnerAccess($this->user);
+    });
 });
 
 test('tenant inherits module entitlements from commercial plan', function () {
@@ -92,4 +120,20 @@ test('ensure module entitlement middleware enforces access and blocks unentitled
     $requestLab = Request::create('http://clinica-pequena.bsdental.test/lab');
     expect(fn () => $middleware->handle($requestLab, fn () => response('OK'), 'lab'))
         ->toThrow(HttpException::class);
+});
+
+test('tenant module routes deny unentitled access and allow an entitled override', function () {
+    $this->actingAs($this->user, 'web')
+        ->get('http://clinica-pequena.bsdental.test/inventory')
+        ->assertForbidden();
+
+    $this->tenantStarter->update([
+        'settings' => [
+            'module_overrides' => ['inventory' => true],
+        ],
+    ]);
+
+    $this->actingAs($this->user, 'web')
+        ->get('http://clinica-pequena.bsdental.test/inventory')
+        ->assertOk();
 });

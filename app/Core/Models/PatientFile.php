@@ -112,11 +112,13 @@ class PatientFile extends Model
         return $this->belongsTo(User::class, 'uploaded_by_user_id');
     }
 
+    /** @return BelongsTo<OdontogramEntry, $this> */
     public function odontogramEntry(): BelongsTo
     {
         return $this->belongsTo(OdontogramEntry::class, 'odontogram_entry_id');
     }
 
+    /** @return BelongsTo<ClinicalEncounter, $this> */
     public function encounter(): BelongsTo
     {
         return $this->belongsTo(ClinicalEncounter::class, 'encounter_id');

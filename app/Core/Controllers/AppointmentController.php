@@ -2,12 +2,14 @@
 
 namespace App\Core\Controllers;
 
+use App\Core\Auth\Models\User;
 use App\Core\Models\Appointment;
 use App\Core\Models\AppointmentType;
 use App\Core\Models\Branch;
 use App\Core\Models\Patient;
 use App\Core\Models\Professional;
 use App\Core\Models\ScheduleBlock;
+use App\Core\Security\Models\TenantAuditLog;
 use App\Core\Services\AppointmentConflictValidator;
 use App\Http\Controllers\Controller;
 use App\Platform\Security\AuditLogger;
@@ -16,6 +18,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use InvalidArgumentException;
@@ -76,6 +79,16 @@ class AppointmentController extends Controller
             ? $requestedAppointmentId
             : null;
 
+        $historyLogs = TenantAuditLog::query()
+            ->where('action', 'appointment.status_updated')
+            ->where('resource_type', 'Appointment')
+            ->whereIn('resource_id', $appointments->pluck('id'))
+            ->oldest('created_at')
+            ->get();
+        $usersById = User::query()
+            ->whereIn('id', $historyLogs->pluck('user_id')->filter())
+            ->pluck('name', 'id');
+
         $blocks = ScheduleBlock::with(['professional', 'room'])
             ->when($selectedBranchId, fn ($q) => $q->where('branch_id', $selectedBranchId))
             ->when($professionalId, fn ($q) => $q->where(fn ($scope) => $scope
@@ -98,6 +111,14 @@ class AppointmentController extends Controller
                 ->limit(250)
                 ->get(['id', 'record_number', 'first_name', 'last_name', 'phone']),
             'appointments' => $appointments,
+            'appointmentHistory' => $historyLogs->map(fn (TenantAuditLog $log) => [
+                'appointment_id' => $log->resource_id,
+                'user_name' => $log->user_id ? $usersById->get($log->user_id, 'Usuario eliminado') : 'Sistema',
+                'old_status' => $log->metadata['old_status'] ?? null,
+                'new_status' => $log->metadata['new_status'] ?? null,
+                'reason' => $log->metadata['reason'] ?? null,
+                'created_at' => $log->created_at->toIso8601String(),
+            ])->values(),
             'blocks' => $blocks,
             'filters' => [
                 'branch_id' => $selectedBranchId,
@@ -125,6 +146,7 @@ class AppointmentController extends Controller
             'appointment_type_id' => ['nullable', 'uuid', 'exists:tenant.appointment_types,id'],
             'start_time' => ['required', 'date'],
             'duration_minutes' => ['required', 'integer', 'min:10', 'max:480'],
+            'priority' => ['nullable', 'string', Rule::in(Appointment::PRIORITIES)],
             'reason' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ]);
@@ -154,6 +176,7 @@ class AppointmentController extends Controller
                     'end_time' => $endTime,
                     'duration_minutes' => $validated['duration_minutes'],
                     'status' => 'scheduled',
+                    'priority' => $validated['priority'] ?? 'normal',
                     'reason' => $validated['reason'] ?? null,
                     'notes' => $validated['notes'] ?? null,
                 ]);
@@ -179,12 +202,18 @@ class AppointmentController extends Controller
         $appointment = Appointment::findOrFail($id);
 
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:scheduled,confirmed,checked_in,waiting,in_progress,completed,cancelled,no_show'],
+            'status' => ['required', 'string', Rule::in(Appointment::STATUSES)],
             'cancellation_reason' => ['required_if:status,cancelled', 'nullable', 'string', 'max:500'],
+            'status_reason' => ['nullable', 'string', 'max:500'],
         ]);
 
         $newStatus = $validated['status'];
         $oldStatus = $appointment->status;
+
+        if (! Appointment::canTransition($oldStatus, $newStatus)) {
+            return redirect()->back()->withErrors(['status' => "La transición de {$oldStatus} a {$newStatus} no está permitida."]);
+        }
+
         $now = now();
 
         $updateData = ['status' => $newStatus];
@@ -205,6 +234,7 @@ class AppointmentController extends Controller
         $this->auditLogger->logTenant('appointment.status_updated', 'Appointment', $appointment->id, [
             'old_status' => $oldStatus,
             'new_status' => $newStatus,
+            'reason' => $validated['cancellation_reason'] ?? $validated['status_reason'] ?? null,
         ]);
 
         return redirect()->back()->with('success', "Estado de cita actualizado a {$newStatus}.");
@@ -216,13 +246,18 @@ class AppointmentController extends Controller
     public function reschedule(Request $request, string $id): RedirectResponse
     {
         $original = Appointment::findOrFail($id);
+        $originalStatus = $original->status;
+
+        if (! Appointment::canTransition($original->status, 'rescheduled')) {
+            return redirect()->back()->withErrors(['status' => "La cita en estado {$original->status} no puede reprogramarse."]);
+        }
 
         $validated = $request->validate([
             'start_time' => ['required', 'date'],
             'duration_minutes' => ['required', 'integer', 'min:10', 'max:480'],
             'professional_id' => ['nullable', 'uuid', 'exists:tenant.professionals,id'],
             'room_id' => ['nullable', 'uuid', 'exists:tenant.rooms,id'],
-            'reason' => ['nullable', 'string', 'max:255'],
+            'reason' => ['required', 'string', 'max:500'],
         ]);
 
         $startTime = Carbon::parse($validated['start_time']);
@@ -245,7 +280,7 @@ class AppointmentController extends Controller
                 // Mark original as rescheduled
                 $original->update([
                     'status' => 'rescheduled',
-                    'cancellation_reason' => 'Reprogramada para nueva fecha.',
+                    'cancellation_reason' => $validated['reason'],
                 ]);
 
                 // Create new linked appointment
@@ -259,6 +294,7 @@ class AppointmentController extends Controller
                     'end_time' => $endTime,
                     'duration_minutes' => $validated['duration_minutes'],
                     'status' => 'scheduled',
+                    'priority' => $original->priority,
                     'reason' => $validated['reason'] ?? $original->reason,
                     'notes' => $original->notes,
                     'rescheduled_from_id' => $original->id,
@@ -271,6 +307,12 @@ class AppointmentController extends Controller
         $this->auditLogger->logTenant('appointment.rescheduled', 'Appointment', $rescheduled->id, [
             'original_appointment_id' => $original->id,
             'new_start_time' => $rescheduled->start_time->toIso8601String(),
+        ]);
+        $this->auditLogger->logTenant('appointment.status_updated', 'Appointment', $original->id, [
+            'old_status' => $originalStatus,
+            'new_status' => 'rescheduled',
+            'reason' => $validated['reason'],
+            'rescheduled_to_id' => $rescheduled->id,
         ]);
 
         return redirect()->back()->with('success', 'Cita reprogramada exitosamente conservando el historial.');

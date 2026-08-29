@@ -100,7 +100,7 @@ class BillingController extends Controller
                 ],
                 'allocations' => $charge->allocations->map(fn ($allocation) => [
                     'id' => $allocation->id,
-                    'amount' => $allocation->amount,
+                    'amount' => $allocation->getOpenAmount(),
                     'allocated_at' => $allocation->allocated_at,
                     'payment' => [
                         'id' => $allocation->payment->id,
@@ -257,7 +257,7 @@ class BillingController extends Controller
                 ])->values(),
                 'allocations' => $payment->allocations->map(fn ($allocation) => [
                     'id' => $allocation->id,
-                    'amount' => $allocation->amount,
+                    'amount' => $allocation->getOpenAmount(),
                     'allocated_at' => $allocation->allocated_at,
                     'charge' => [
                         'id' => $allocation->charge->id,
@@ -292,6 +292,8 @@ class BillingController extends Controller
                 Rule::exists('tenant.patient_charges', 'id')->where('patient_id', $payment->patient_id),
             ],
             'amount' => ['required', 'numeric', 'min:0.01'],
+            'reason' => ['required', 'string', 'max:255'],
+            'idempotency_key' => ['required', 'string', 'max:120'],
         ]);
 
         $charge = PatientCharge::findOrFail($validated['patient_charge_id']);
@@ -299,14 +301,20 @@ class BillingController extends Controller
         $allocation = $this->billingService->allocatePayment(
             $payment,
             $charge,
-            $validated['amount']
+            $validated['amount'],
+            Auth::guard('web')->id() ? (string) Auth::guard('web')->id() : null,
+            $validated['idempotency_key'],
+            $validated['reason']
         );
 
-        $this->auditLogger->logTenant('billing.payment_allocated', 'PaymentAllocation', $allocation->id, [
-            'payment_number' => $payment->payment_number,
-            'charge_number' => $charge->charge_number,
-            'amount' => $allocation->amount,
-        ]);
+        if ($allocation->wasRecentlyCreated) {
+            $this->auditLogger->logTenant('billing.payment_allocated', 'PaymentAllocation', $allocation->id, [
+                'payment_number' => $payment->payment_number,
+                'charge_number' => $charge->charge_number,
+                'amount' => $allocation->getOpenAmount(),
+                'reason' => $allocation->reason,
+            ]);
+        }
 
         return redirect()->back()->with('success', "Asignados \${$allocation->amount} al cargo {$charge->charge_number}.");
     }

@@ -2,7 +2,9 @@
 
 use App\Core\Auth\Models\User;
 use App\Core\Models\Branch;
+use App\Core\Models\ClinicalEncounter;
 use App\Core\Models\DentalLaboratory;
+use App\Core\Models\FollowUpTask;
 use App\Core\Models\InventoryBatch;
 use App\Core\Models\InventoryCategory;
 use App\Core\Models\InventoryItem;
@@ -11,7 +13,9 @@ use App\Core\Models\Patient;
 use App\Core\Models\Procedure;
 use App\Core\Models\ProcedureCategory;
 use App\Core\Models\ProcedureMaterialRule;
+use App\Core\Models\Professional;
 use App\Core\Models\StockMovement;
+use App\Core\Models\TreatmentExecution;
 use App\Core\Models\TreatmentPlan;
 use App\Core\Models\TreatmentPlanItem;
 use App\Core\Models\UserNotification;
@@ -46,6 +50,7 @@ beforeEach(function () {
         'database_name' => $this->dbPathInv,
         'status' => 'active',
     ]);
+    grantTenantModules($this->tenant, ['inventory', 'lab']);
 
     TenantDomain::create([
         'tenant_id' => $this->tenant->id,
@@ -89,6 +94,14 @@ beforeEach(function () {
             'last_name' => 'Morales',
             'phone' => '+58 414 555-1234',
             'status' => 'active',
+        ]);
+
+        $this->professional = Professional::create([
+            'user_id' => $this->user->id,
+            'first_name' => 'Dr. Stock',
+            'last_name' => 'Manager',
+            'color' => '#0d9488',
+            'is_active' => true,
         ]);
 
         $this->invCat = InventoryCategory::create([
@@ -195,7 +208,20 @@ test('[GATE INV] Reconciliable stock ledger, purchase != consumption and dental 
     ]);
 
     $stockService = app(InventoryStockService::class);
-    $movements = $stockService->consumeMaterialsForProcedure($planItem, $this->warehouse, (string) $this->user->id);
+    $encounter = ClinicalEncounter::create([
+        'patient_id' => $this->patient->id,
+        'professional_id' => $this->professional->id,
+        'encounter_date' => now(),
+        'status' => 'draft',
+    ]);
+    $execution = TreatmentExecution::create([
+        'treatment_plan_item_id' => $planItem->id,
+        'clinical_encounter_id' => $encounter->id,
+        'professional_id' => $this->professional->id,
+        'executed_by_user_id' => $this->user->id,
+        'executed_at' => now(),
+    ]);
+    $movements = $stockService->consumeMaterialsForProcedure($planItem, $this->warehouse, $execution, (string) $this->user->id);
 
     expect(count($movements))->toBe(1)
         ->and($movements[0]->type)->toBe('procedure_consumption')
@@ -205,7 +231,7 @@ test('[GATE INV] Reconciliable stock ledger, purchase != consumption and dental 
     expect($this->itemResina->totalStock())->toBe(14.75);
 
     // 3. Idempotent consumption: consuming again for same plan item must not duplicate deduction
-    $duplicateMovements = $stockService->consumeMaterialsForProcedure($planItem, $this->warehouse, (string) $this->user->id);
+    $duplicateMovements = $stockService->consumeMaterialsForProcedure($planItem, $this->warehouse, $execution, (string) $this->user->id);
     expect(count($duplicateMovements))->toBe(1)
         ->and($this->itemResina->totalStock())->toBe(14.75);
 
@@ -230,9 +256,10 @@ test('[GATE INV] Reconciliable stock ledger, purchase != consumption and dental 
         ->and($order->payable_status)->toBe('unpaid');
 
     // 5. A ready lab order creates one internal alert for its owner, without duplicates.
-    $readyResponse = $this->post("http://inventario.bsdental.test/lab/orders/{$order->id}/status", [
-        'status' => 'ready',
-    ]);
+    foreach (['ordered', 'sent', 'in_progress', 'ready'] as $status) {
+        $this->post("http://inventario.bsdental.test/lab/orders/{$order->id}/status", ['status' => $status])->assertRedirect();
+    }
+    $readyResponse = $this->post("http://inventario.bsdental.test/lab/orders/{$order->id}/status", ['status' => 'ready']);
     $readyResponse->assertRedirect();
 
     $context->makeCurrent($this->tenant);
@@ -320,6 +347,117 @@ test('[INV-01 & INV-02] Manual stock adjustments, Kardex ledger and expiry alert
     expect($alerts['expiring_count'])->toBeGreaterThanOrEqual(1);
 });
 
+test('[TREATMENT EXECUTION] Completion is encounter-backed, inventory-safe, and creates execution follow-ups', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $plan = TreatmentPlan::create([
+        'patient_id' => $this->patient->id,
+        'title' => 'Plan con material insuficiente',
+        'status' => 'active',
+        'total_estimated' => 50.00,
+    ]);
+    $item = TreatmentPlanItem::create([
+        'treatment_plan_id' => $plan->id,
+        'procedure_id' => $this->procResina->id,
+        'price' => 50.00,
+        'status' => 'pending',
+    ]);
+    $encounter = ClinicalEncounter::create([
+        'patient_id' => $this->patient->id,
+        'professional_id' => $this->professional->id,
+        'encounter_date' => now(),
+        'status' => 'draft',
+    ]);
+
+    $this->post("http://inventario.bsdental.test/treatment-items/{$item->id}/complete", [
+        'professional_id' => $this->professional->id,
+        'encounter_id' => $encounter->id,
+        'warehouse_id' => $this->warehouse->id,
+    ])->assertSessionHasErrors('execution');
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect($item->fresh()->status)->toBe('pending')
+        ->and(TreatmentExecution::where('treatment_plan_item_id', $item->id)->exists())->toBeFalse()
+        ->and(StockMovement::where('type', 'procedure_consumption')->count())->toBe(0);
+
+    // A second rule for the same item proves the preflight aggregates requirements before any FIFO deduction.
+    ProcedureMaterialRule::create([
+        'procedure_id' => $this->procResina->id,
+        'inventory_item_id' => $this->itemResina->id,
+        'quantity_required' => 0.80,
+    ]);
+    app(InventoryStockService::class)->recordPurchase($this->itemResina, $this->warehouse, 'LOT-EXEC-01', 1, 25, null, $this->user->id);
+
+    $this->post("http://inventario.bsdental.test/treatment-items/{$item->id}/complete", [
+        'professional_id' => $this->professional->id,
+        'encounter_id' => $encounter->id,
+        'warehouse_id' => $this->warehouse->id,
+    ])->assertSessionHasErrors('execution');
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect($this->itemResina->fresh()->totalStock())->toBe(1.0)
+        ->and(StockMovement::where('type', 'procedure_consumption')->count())->toBe(0);
+
+    app(InventoryStockService::class)->recordPurchase($this->itemResina, $this->warehouse, 'LOT-EXEC-02', 0.10, 25, null, $this->user->id);
+
+    $this->post("http://inventario.bsdental.test/treatment-items/{$item->id}/complete", [
+        'professional_id' => $this->professional->id,
+        'encounter_id' => $encounter->id,
+        'warehouse_id' => $this->warehouse->id,
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $execution = TreatmentExecution::where('treatment_plan_item_id', $item->id)->firstOrFail();
+    expect($item->fresh()->status)->toBe('completed')
+        ->and($item->fresh()->encounter_id)->toBe($encounter->id)
+        ->and(StockMovement::where('reference_type', 'TreatmentExecution')->where('reference_id', $execution->id)->count())->toBe(3)
+        ->and(FollowUpTask::where('treatment_execution_id', $execution->id)->where('type', 'post_op')->exists())->toBeTrue()
+        ->and(TenantAuditLog::where('action', 'treatment_item.completed')->where('resource_id', $item->id)->exists())->toBeTrue();
+});
+
+test('[TREATMENT LAB] Lab orders can link only to eligible treatment items and follow the controlled lifecycle', function () {
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $this->actingAs($this->user, 'web');
+
+    $plan = TreatmentPlan::create([
+        'patient_id' => $this->patient->id,
+        'title' => 'Plan protésico',
+        'status' => 'active',
+        'total_estimated' => 230.00,
+    ]);
+    $restoration = TreatmentPlanItem::create(['treatment_plan_id' => $plan->id, 'procedure_id' => $this->procResina->id, 'price' => 50, 'status' => 'pending']);
+    $crown = TreatmentPlanItem::create(['treatment_plan_id' => $plan->id, 'procedure_id' => $this->procCorona->id, 'tooth_number' => 16, 'price' => 180, 'status' => 'pending']);
+
+    $this->post('http://inventario.bsdental.test/lab/orders', [
+        'patient_id' => $this->patient->id,
+        'laboratory_id' => $this->lab->id,
+        'treatment_plan_item_id' => $restoration->id,
+        'work_description' => 'Orden no permitida',
+    ])->assertSessionHasErrors('treatment_plan_item_id');
+
+    $this->post('http://inventario.bsdental.test/lab/orders', [
+        'patient_id' => $this->patient->id,
+        'laboratory_id' => $this->lab->id,
+        'treatment_plan_item_id' => $crown->id,
+        'tooth_number' => 16,
+        'work_description' => 'Corona de porcelana',
+    ])->assertRedirect();
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    $order = LabOrder::where('treatment_plan_item_id', $crown->id)->firstOrFail();
+    $this->post("http://inventario.bsdental.test/lab/orders/{$order->id}/status", ['status' => 'ready'])
+        ->assertSessionHasErrors('status');
+
+    foreach (['ordered', 'sent', 'in_progress', 'ready', 'received', 'delivered'] as $status) {
+        $this->post("http://inventario.bsdental.test/lab/orders/{$order->id}/status", ['status' => $status])->assertRedirect();
+    }
+
+    app(TenantContext::class)->makeCurrent($this->tenant);
+    expect($order->fresh()->status)->toBe('delivered')
+        ->and(TenantAuditLog::where('action', 'lab_order.status_updated')->where('resource_id', $order->id)->count())->toBe(6);
+});
+
 test('[LAB-01 & LAB-02] Quality check reception and reject-and-remake order with parent linkage', function () {
     $context = app(TenantContext::class);
     $context->makeCurrent($this->tenant);
@@ -338,6 +476,11 @@ test('[LAB-01 & LAB-02] Quality check reception and reject-and-remake order with
         null,
         (string) $this->user->id
     );
+
+    foreach (['ordered', 'sent', 'in_progress', 'ready'] as $status) {
+        $labService->updateStatus($originalOrder, $status);
+        $originalOrder->refresh();
+    }
 
     // 1. Receive with quality check
     $qualityResponse = $this->post("http://inventario.bsdental.test/lab/orders/{$originalOrder->id}/quality", [

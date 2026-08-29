@@ -47,6 +47,7 @@ beforeEach(function () {
         'database_name' => $this->dbPathAnl,
         'status' => 'active',
     ]);
+    grantTenantModules($this->tenant, ['analytics']);
 
     TenantDomain::create([
         'tenant_id' => $this->tenant->id,

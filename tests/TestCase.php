@@ -4,6 +4,8 @@ namespace Tests;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 abstract class TestCase extends BaseTestCase
@@ -21,6 +23,14 @@ abstract class TestCase extends BaseTestCase
         }
 
         $this->app['config']->set('database.testing_tenant_directory', $this->tenantDatabaseDirectory);
+
+        if (! Schema::connection('landlord')->hasTable('tenants')) {
+            Artisan::call('migrate', [
+                '--path' => 'database/migrations/landlord',
+                '--database' => 'landlord',
+                '--realpath' => false,
+            ]);
+        }
     }
 
     public function tenantDatabasePath(string $filename): string

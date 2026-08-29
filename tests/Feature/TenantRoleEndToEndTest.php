@@ -32,6 +32,16 @@ beforeEach(function () {
         'database_name' => $this->dbPathE2E,
         'status' => 'active',
     ]);
+    grantTenantModules($this->tenant, [
+        'agenda',
+        'quotes',
+        'inventory',
+        'lab',
+        'billing',
+        'finance',
+        'marketing',
+        'analytics',
+    ]);
 
     TenantDomain::create([
         'tenant_id' => $this->tenant->id,

@@ -7,7 +7,7 @@ import { Check, CheckCircle2, Clock, MessageSquare, PhoneCall, Plus, X } from 'l
 
 interface TaskSummary {
     id: string
-    type: 'post_op' | 'no_show' | 'quote_pending' | 'treatment_incomplete' | 'periodic_recall'
+    type: 'appointment_confirmation' | 'appointment_reminder' | 'post_op' | 'no_show' | 'quote_pending' | 'treatment_incomplete' | 'periodic_recall' | 'reactivation' | 'missed_call'
     title: string
     due_date: string
     priority: 'low' | 'medium' | 'high'
@@ -57,6 +57,10 @@ function typeBadge(type: string) {
         quote_pending: { label: 'Presupuesto Pendiente', class: 'bg-blue-50 text-blue-700 border-blue-200' },
         treatment_incomplete: { label: 'Tratamiento Incompleto', class: 'bg-purple-50 text-purple-700 border-purple-200' },
         periodic_recall: { label: 'Control Periódico', class: 'bg-teal-50 text-teal-700 border-teal-200' },
+        appointment_confirmation: { label: 'Confirmación de Cita', class: 'bg-sky-50 text-sky-700 border-sky-200' },
+        appointment_reminder: { label: 'Recordatorio de Cita', class: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+        reactivation: { label: 'Reactivación', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+        missed_call: { label: 'Llamada no atendida', class: 'bg-orange-50 text-orange-700 border-orange-200' },
     }
     return map[type] || { label: type, class: 'bg-slate-100 text-slate-700 border-slate-200' }
 }
@@ -84,7 +88,7 @@ function submitTask() {
 }
 
 function completeTask(id: string) {
-    useForm({}).post(`/crm/tasks/${id}/complete`)
+    useForm({ completion_channel: 'phone', completion_result: 'completed' }).post(`/crm/tasks/${id}/complete`)
 }
 </script>
 
@@ -258,6 +262,10 @@ function completeTask(id: string) {
                                     <option value="quote_pending">Presupuesto Pendiente</option>
                                     <option value="treatment_incomplete">Tratamiento Incompleto</option>
                                     <option value="periodic_recall">Control Preventivo Periódico</option>
+                                    <option value="appointment_confirmation">Confirmación de Cita</option>
+                                    <option value="appointment_reminder">Recordatorio de Cita</option>
+                                    <option value="reactivation">Reactivación de Paciente</option>
+                                    <option value="missed_call">Llamada no Atendida</option>
                                 </select>
                             </div>
                             <div>

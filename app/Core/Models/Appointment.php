@@ -40,6 +40,35 @@ class Appointment extends Model
 {
     use HasUuids, SoftDeletes;
 
+    public const STATUSES = [
+        'scheduled',
+        'pending_confirmation',
+        'confirmed',
+        'checked_in',
+        'waiting',
+        'in_progress',
+        'completed',
+        'no_show',
+        'cancelled',
+        'rescheduled',
+    ];
+
+    public const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
+
+    /** @var array<string, list<string>> */
+    private const ALLOWED_STATUS_TRANSITIONS = [
+        'scheduled' => ['pending_confirmation', 'confirmed', 'checked_in', 'no_show', 'cancelled', 'rescheduled'],
+        'pending_confirmation' => ['scheduled', 'confirmed', 'checked_in', 'no_show', 'cancelled', 'rescheduled'],
+        'confirmed' => ['checked_in', 'no_show', 'cancelled', 'rescheduled'],
+        'checked_in' => ['waiting', 'in_progress', 'cancelled'],
+        'waiting' => ['in_progress', 'cancelled'],
+        'in_progress' => ['completed', 'cancelled'],
+        'completed' => [],
+        'no_show' => [],
+        'cancelled' => [],
+        'rescheduled' => [],
+    ];
+
     /**
      * The connection name for the model.
      *
@@ -70,6 +99,7 @@ class Appointment extends Model
         'end_time',
         'duration_minutes',
         'status',
+        'priority',
         'reason',
         'notes',
         'cancellation_reason',
@@ -146,5 +176,10 @@ class Appointment extends Model
     public function appointmentType(): BelongsTo
     {
         return $this->belongsTo(AppointmentType::class, 'appointment_type_id');
+    }
+
+    public static function canTransition(string $from, string $to): bool
+    {
+        return in_array($to, self::ALLOWED_STATUS_TRANSITIONS[$from] ?? [], true);
     }
 }

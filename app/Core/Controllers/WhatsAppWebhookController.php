@@ -49,9 +49,17 @@ class WhatsAppWebhookController extends Controller
             // If patient confirms with "SI", confirm appointment
             if (in_array($text, ['SI', 'CONFIRMAR', 'CONFIRMO', 'YES', 'OK']) && $log->appointment_id) {
                 $appointment = Appointment::find($log->appointment_id);
-                if ($appointment && in_array($appointment->status, ['scheduled', 'confirmed'])) {
+                if ($appointment && Appointment::canTransition($appointment->status, 'confirmed')) {
+                    $oldStatus = $appointment->status;
                     $appointment->update([
                         'status' => 'confirmed',
+                    ]);
+
+                    $this->auditLogger->logTenant('appointment.status_updated', 'Appointment', $appointment->id, [
+                        'old_status' => $oldStatus,
+                        'new_status' => 'confirmed',
+                        'reason' => 'Confirmación recibida por WhatsApp.',
+                        'source' => 'whatsapp_webhook',
                     ]);
 
                     $this->auditLogger->logTenant('appointment.whatsapp_confirmed', 'Appointment', $appointment->id, [

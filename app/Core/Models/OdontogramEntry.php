@@ -163,11 +163,13 @@ class OdontogramEntry extends Model
         return $this->belongsTo(User::class, 'recorded_by_user_id');
     }
 
+    /** @return BelongsTo<self, $this> */
     public function supersededEntry(): BelongsTo
     {
         return $this->belongsTo(self::class, 'supersedes_entry_id');
     }
 
+    /** @return HasMany<self, $this> */
     public function corrections(): HasMany
     {
         return $this->hasMany(self::class, 'supersedes_entry_id');

@@ -51,7 +51,7 @@ test('platform login succeeds with valid credentials and redirects to dashboard'
 
 test('platform user with 2FA requires two-factor verification', function () {
     $this->admin->update([
-        'two_factor_secret' => '123456',
+        'two_factor_secret' => 'platform-test-secret',
         'two_factor_confirmed_at' => now(),
     ]);
 
@@ -68,8 +68,12 @@ test('platform user with 2FA requires two-factor verification', function () {
     $this->post('/platform/two-factor', ['code' => '999999'])
         ->assertSessionHasErrors('code');
 
-    // Providing valid code succeeds and allows dashboard access
+    // The former universal bypass must not satisfy this user's challenge.
     $this->post('/platform/two-factor', ['code' => '123456'])
+        ->assertSessionHasErrors('code');
+
+    // The configured per-user secret succeeds and allows dashboard access.
+    $this->post('/platform/two-factor', ['code' => 'platform-test-secret'])
         ->assertRedirect(route('platform.dashboard'));
 
     $this->get(route('platform.dashboard'))
@@ -84,6 +88,21 @@ test('inactive platform user is blocked from accessing platform', function () {
         'email' => 'admin@bsdental.app',
         'password' => 'SecretPassword123!',
     ])->assertForbidden();
+});
+
+test('non-admin platform users cannot access platform administration', function () {
+    $supportUser = PlatformUser::create([
+        'name' => 'Platform Support',
+        'email' => 'support@bsdental.app',
+        'password' => Hash::make('SecretPassword123!'),
+        'role' => 'support',
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($supportUser, 'platform')
+        ->withSession(['platform.2fa_verified' => true])
+        ->get(route('platform.dashboard'))
+        ->assertForbidden();
 });
 
 test('platform logout destroys session and redirects to login', function () {

@@ -2,11 +2,11 @@
 import { computed } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import { appUrl } from '@/lib/url'
-import { ArrowLeft, CalendarCheck, Check, CheckCircle2, Circle, ClipboardList, FileText, Stethoscope } from 'lucide-vue-next'
+import { ArrowLeft, CalendarCheck, Check, CheckCircle2, Circle, ClipboardList, FileText, FlaskConical, Stethoscope } from 'lucide-vue-next'
 import ClinicLayout from '@/Layouts/ClinicLayout.vue'
 
 interface PatientDetails { id: string; record_number: string; full_name: string }
-interface ProcedureDetails { id: string; name: string; code?: string | null }
+interface ProcedureDetails { id: string; name: string; code?: string | null; requires_lab: boolean }
 interface AppointmentSummary { id: string; starts_at?: string; status?: string }
 interface ProfessionalSummary { id: string; full_name: string }
 interface PlanItemDetails {
@@ -21,8 +21,17 @@ interface PlanDetails {
     patient: PatientDetails; quote?: QuoteSummary | null; items: PlanItemDetails[]
 }
 
-const props = defineProps<{ plan: PlanDetails; professionals: ProfessionalSummary[] }>()
-const actionForm = useForm({ professional_id: props.professionals.length === 1 ? props.professionals[0].id : '' })
+interface EncounterSummary { id: string; professional_id: string; encounter_date: string; status: string }
+interface WarehouseSummary { id: string; name: string }
+interface LaboratorySummary { id: string; name: string }
+
+const props = defineProps<{ plan: PlanDetails; professionals: ProfessionalSummary[]; encounters: EncounterSummary[]; warehouses: WarehouseSummary[]; laboratories: LaboratorySummary[] }>()
+const actionForm = useForm({
+    professional_id: props.professionals.length === 1 ? props.professionals[0].id : '',
+    encounter_id: '',
+    warehouse_id: props.warehouses.length === 1 ? props.warehouses[0].id : '',
+})
+const labForm = useForm({ laboratory_id: '', treatment_plan_item_id: '', tooth_number: null as number | null, work_description: '', shade_guide: '', estimated_cost: 0, due_date: '' })
 const money = (value: number) => new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(value || 0)
 const completedCount = computed(() => props.plan.items.filter(item => item.status === 'completed').length)
 const displayProgress = computed(() => props.plan.items.length ? Math.round((completedCount.value / props.plan.items.length) * 100) : 0)
@@ -37,9 +46,26 @@ function completeItem(item: PlanItemDetails) {
         return
     }
 
+    if (!actionForm.encounter_id) {
+        window.alert('Selecciona el encuentro clínico que documenta la ejecución.')
+        return
+    }
+
     if (window.confirm(`¿Marcar “${item.procedure.name}” como realizado? Esta acción actualizará el avance clínico.`)) {
         actionForm.post(appUrl(`/treatment-items/${item.id}/complete`), { preserveScroll: true })
     }
+}
+
+function createLabOrder(item: PlanItemDetails) {
+    if (!labForm.laboratory_id) {
+        window.alert('Selecciona un laboratorio para crear la orden.')
+        return
+    }
+
+    labForm.treatment_plan_item_id = item.id
+    labForm.tooth_number = item.tooth_number
+    labForm.work_description = item.procedure.name
+    labForm.post(appUrl('/lab/orders'), { preserveScroll: true })
 }
 </script>
 
@@ -64,7 +90,7 @@ function completeItem(item: PlanItemDetails) {
             </section>
 
             <section class="border border-[#BDC9C6] bg-white">
-                <div class="flex flex-col justify-between gap-3 border-b border-[#D8E0DE] p-5 md:flex-row md:items-end"><div><h2 class="flex items-center gap-2 font-semibold text-[#131B2E]"><ClipboardList class="h-5 w-5 text-[#006B63]" /> Secuencia de procedimientos</h2><p class="mt-1 text-sm text-[#667085]">Completa cada prestación cuando exista evidencia clínica de su realización.</p></div><label class="text-xs font-bold text-[#455653]">Doctor que realizó el procedimiento<select v-model="actionForm.professional_id" class="mt-1 block h-10 min-w-64 border border-[#9AAEAA] bg-white px-3 text-sm font-normal"><option value="">Seleccionar doctor</option><option v-for="professional in professionals" :key="professional.id" :value="professional.id">{{ professional.full_name }}</option></select></label></div>
+                <div class="grid gap-3 border-b border-[#D8E0DE] p-5 lg:grid-cols-3"><div><h2 class="flex items-center gap-2 font-semibold text-[#131B2E]"><ClipboardList class="h-5 w-5 text-[#006B63]" /> Secuencia de procedimientos</h2><p class="mt-1 text-sm text-[#667085]">La ejecución requiere un encuentro clínico real y consume materiales de forma atómica.</p></div><label class="text-xs font-bold text-[#455653]">Encuentro clínico<select v-model="actionForm.encounter_id" class="mt-1 block h-10 w-full border border-[#9AAEAA] bg-white px-3 text-sm font-normal"><option value="">Seleccionar encuentro</option><option v-for="encounter in encounters" :key="encounter.id" :value="encounter.id">{{ new Date(encounter.encounter_date).toLocaleDateString('es-DO') }} · {{ encounter.status }}</option></select></label><div class="grid grid-cols-2 gap-2"><label class="text-xs font-bold text-[#455653]">Profesional<select v-model="actionForm.professional_id" class="mt-1 block h-10 w-full border border-[#9AAEAA] bg-white px-3 text-sm font-normal"><option value="">Seleccionar</option><option v-for="professional in professionals" :key="professional.id" :value="professional.id">{{ professional.full_name }}</option></select></label><label class="text-xs font-bold text-[#455653]">Bodega<select v-model="actionForm.warehouse_id" class="mt-1 block h-10 w-full border border-[#9AAEAA] bg-white px-3 text-sm font-normal"><option value="">Sin consumo</option><option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.name }}</option></select></label></div></div>
                 <div class="divide-y divide-[#E2E8F0]">
                     <article v-for="item in plan.items" :key="item.id" class="flex flex-col justify-between gap-4 p-4 md:flex-row md:items-center md:p-5">
                         <div class="flex min-w-0 items-start gap-3">
@@ -73,10 +99,12 @@ function completeItem(item: PlanItemDetails) {
                             </div>
                             <div><div class="flex flex-wrap items-center gap-2"><p class="font-semibold text-[#131B2E]">{{ item.procedure.name }}</p><span class="bg-[#F2F6F5] px-2 py-1 text-xs font-semibold text-[#455653]">Fase {{ item.phase }}</span></div><p class="mt-1 font-mono text-xs text-[#667085]">{{ item.procedure.code || 'Sin código' }} · {{ item.tooth_number ? `Pieza ${item.tooth_number}` : 'General' }} · {{ item.surface }}</p><p v-if="item.completed_at" class="mt-1 text-xs font-semibold text-[#006B63]">Realizado {{ date(item.completed_at) }}<span v-if="item.professional"> · {{ item.professional.full_name }}</span></p><p v-else-if="item.appointment" class="mt-1 flex items-center gap-1 text-xs text-[#455653]"><CalendarCheck class="h-3.5 w-3.5" /> Cita vinculada</p></div>
                         </div>
-                        <div class="flex items-center justify-between gap-5 md:justify-end"><div class="text-right"><p class="font-mono font-bold text-[#131B2E]">{{ money(item.price) }}</p><p class="text-xs text-[#667085]">{{ itemStatus(item.status) }}</p></div><button v-if="item.status !== 'completed'" type="button" class="inline-flex h-9 items-center gap-2 rounded-md bg-[#005C55] px-3 text-xs font-semibold text-white disabled:opacity-50" :disabled="actionForm.processing" @click="completeItem(item)"><Check class="h-4 w-4" /> Marcar realizado</button></div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 md:justify-end"><div class="text-right"><p class="font-mono font-bold text-[#131B2E]">{{ money(item.price) }}</p><p class="text-xs text-[#667085]">{{ itemStatus(item.status) }}</p></div><template v-if="item.status !== 'completed'"><button v-if="item.procedure.requires_lab" type="button" class="inline-flex h-9 items-center gap-2 rounded-md border border-[#9BCDC7] bg-white px-3 text-xs font-semibold text-[#006B63] disabled:opacity-50" :disabled="labForm.processing" @click="createLabOrder(item)"><FlaskConical class="h-4 w-4" /> Crear orden de lab</button><button type="button" class="inline-flex h-9 items-center gap-2 rounded-md bg-[#005C55] px-3 text-xs font-semibold text-white disabled:opacity-50" :disabled="actionForm.processing" @click="completeItem(item)"><Check class="h-4 w-4" /> Marcar realizado</button></template></div>
                     </article>
                 </div>
             </section>
+
+            <section v-if="plan.items.some(item => item.procedure.requires_lab)" class="border border-[#D8E0DE] bg-[#F8FAFC] p-4"><div class="flex flex-col gap-3 md:flex-row md:items-end"><div><p class="text-sm font-semibold text-[#131B2E]">Orden de laboratorio</p><p class="text-xs text-[#667085]">Disponible solo para procedimientos que requieren laboratorio.</p></div><label class="text-xs font-bold text-[#455653]">Laboratorio<select v-model="labForm.laboratory_id" class="mt-1 block h-10 min-w-64 border border-[#9AAEAA] bg-white px-3 text-sm font-normal"><option value="">Seleccionar laboratorio</option><option v-for="laboratory in laboratories" :key="laboratory.id" :value="laboratory.id">{{ laboratory.name }}</option></select></label><label class="text-xs font-bold text-[#455653]">Tono (opcional)<input v-model="labForm.shade_guide" class="mt-1 block h-10 border border-[#9AAEAA] bg-white px-3 text-sm font-normal" placeholder="A2 VITA" /></label></div></section>
 
             <section v-if="plan.quote" class="flex flex-col justify-between gap-3 border border-[#D8E0DE] bg-[#F8FAFC] p-4 md:flex-row md:items-center"><div><p class="flex items-center gap-2 text-sm font-semibold text-[#131B2E]"><Stethoscope class="h-4 w-4 text-[#006B63]" /> Originado desde {{ plan.quote.quote_number }}</p><p class="mt-1 text-xs text-[#667085]">{{ plan.quote.alternative_name }} · {{ money(plan.quote.grand_total) }}</p></div><Link :href="`/quotes/${plan.quote.id}`" class="text-sm font-bold text-[#006B63]">Ver presupuesto de origen →</Link></section>
         </div>

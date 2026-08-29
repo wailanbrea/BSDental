@@ -140,7 +140,8 @@ class TenantAuthController extends Controller
 
         $code = trim($request->input('code'));
 
-        $isValid = ($code === '123456' || $code === $user->two_factor_secret);
+        $secret = $user->two_factor_secret;
+        $isValid = is_string($secret) && hash_equals($secret, $code);
 
         if (! $isValid) {
             throw ValidationException::withMessages([

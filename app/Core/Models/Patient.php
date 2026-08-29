@@ -39,6 +39,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $notes
  * @property list<string>|null $tags
  * @property string $status
+ * @property string $patient_type
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -118,6 +119,7 @@ class Patient extends Model
         'notes',
         'tags',
         'status',
+        'patient_type',
         'whatsapp_opt_in',
     ];
 

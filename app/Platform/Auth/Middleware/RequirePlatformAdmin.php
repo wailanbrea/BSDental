@@ -37,6 +37,10 @@ class RequirePlatformAdmin
             throw new HttpException(403, 'La cuenta de administrador de plataforma está inactiva o deshabilitada.');
         }
 
+        if (! $user->isSuperAdmin()) {
+            throw new HttpException(403, 'La cuenta no tiene permisos de administración de plataforma.');
+        }
+
         return $next($request);
     }
 }

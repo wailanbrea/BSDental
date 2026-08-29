@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $notes
  * @property string|null $assigned_to_user_id
  * @property Carbon|null $completed_at
+ * @property string|null $completion_channel
+ * @property string|null $completion_result
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -40,6 +42,7 @@ class FollowUpTask extends Model
         'id',
         'patient_id',
         'appointment_id',
+        'treatment_execution_id',
         'type',
         'title',
         'due_date',
@@ -48,6 +51,8 @@ class FollowUpTask extends Model
         'notes',
         'assigned_to_user_id',
         'completed_at',
+        'completion_channel',
+        'completion_result',
     ];
 
     protected function casts(): array
