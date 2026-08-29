@@ -56,6 +56,7 @@
             "composer dump-autoload --no-dev --optimize --no-scripts",
             "@php artisan optimize:clear",
             "@php artisan migrate --force",
+            "@php artisan migrate --path=database/migrations/landlord --database=landlord --force",
             "@php artisan tenants:artisan \"migrate --path=database/migrations/tenant --database=tenant --force\"",
             "npm run build"
         ],

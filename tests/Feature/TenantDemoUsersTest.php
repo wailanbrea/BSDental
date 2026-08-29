@@ -42,6 +42,16 @@ it('assigns the configured primary domain to the demo tenant', function () {
         ->and(TenantDomain::query()->where('domain', 'demo.localhost')->value('is_primary'))->toBeFalsy();
 });
 
+it('assigns every operational module to the enterprise demo plan', function () {
+    $tenant = Tenant::query()->where('slug', 'demo')->with('plan')->sole();
+
+    expect($tenant->plan)->not->toBeNull();
+
+    foreach (['patients', 'agenda', 'clinical', 'odontogram', 'quotes', 'inventory', 'lab', 'billing', 'finance', 'marketing', 'analytics', 'multi_branch'] as $module) {
+        expect($tenant->hasModuleEntitlement($module))->toBeTrue("Enterprise plan must include {$module}.");
+    }
+});
+
 it('authenticates every demo user and assigns their appropriate clinical role', function (string $email, string $expectedRole) {
     $tenant = Tenant::where('slug', 'demo')->first();
     expect($tenant)->not->toBeNull();
